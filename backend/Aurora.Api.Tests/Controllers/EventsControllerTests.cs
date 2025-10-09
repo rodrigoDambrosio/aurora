@@ -11,29 +11,39 @@ namespace Aurora.Api.Tests.Controllers;
 public class EventsControllerTests
 {
     private readonly Mock<IEventService> _eventServiceMock;
+    private readonly Mock<IAIValidationService> _aiValidationServiceMock;
     private readonly Mock<ILogger<EventsController>> _loggerMock;
     private readonly EventsController _controller;
 
     public EventsControllerTests()
     {
         _eventServiceMock = new Mock<IEventService>();
+        _aiValidationServiceMock = new Mock<IAIValidationService>();
         _loggerMock = new Mock<ILogger<EventsController>>();
-        _controller = new EventsController(_eventServiceMock.Object, _loggerMock.Object);
+        _controller = new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _loggerMock.Object);
     }
 
     [Fact]
     public void Constructor_WithNullEventService_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(null!, _loggerMock.Object);
+        var act = () => new EventsController(null!, _aiValidationServiceMock.Object, _loggerMock.Object);
         act.Should().Throw<ArgumentNullException>().WithParameterName("eventService");
+    }
+
+    [Fact]
+    public void Constructor_WithNullAIValidationService_ShouldThrowArgumentNullException()
+    {
+        // Act & Assert
+        var act = () => new EventsController(_eventServiceMock.Object, null!, _loggerMock.Object);
+        act.Should().Throw<ArgumentNullException>().WithParameterName("aiValidationService");
     }
 
     [Fact]
     public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(_eventServiceMock.Object, null!);
+        var act = () => new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, null!);
         act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
     }
 
@@ -138,6 +148,20 @@ public class EventsControllerTests
             EventCategoryId = createEventDto.EventCategoryId
         };
 
+        // Mock GetEventsByDateRangeAsync to return empty list (no existing events)
+        _eventServiceMock
+            .Setup(x => x.GetEventsByDateRangeAsync(It.IsAny<Guid?>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(new List<EventDto>());
+
+        // Mock AI validation to approve
+        _aiValidationServiceMock
+            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.IsAny<Guid>(), It.IsAny<IEnumerable<EventDto>>()))
+            .ReturnsAsync(new AIValidationResult
+            {
+                IsApproved = true,
+                Severity = AIValidationSeverity.Info
+            });
+
         _eventServiceMock
             .Setup(x => x.CreateEventAsync(It.IsAny<Guid?>(), createEventDto))
             .ReturnsAsync(createdEventDto);
@@ -153,6 +177,58 @@ public class EventsControllerTests
     }
 
     [Fact]
+    public async Task CreateEvent_WhenAIRejectsEvent_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var createEventDto = new CreateEventDto
+        {
+            Title = "Party Event",
+            StartDate = DateTime.Now.Date.AddHours(2), // 2 AM
+            EndDate = DateTime.Now.Date.AddHours(6),
+            EventCategoryId = Guid.NewGuid()
+        };
+
+        // Mock existing events (user already has events that day)
+        var existingEvents = new List<EventDto>
+        {
+            new EventDto
+            {
+                Id = Guid.NewGuid(),
+                Title = "Work Meeting",
+                StartDate = DateTime.Now.Date.AddHours(9),
+                EndDate = DateTime.Now.Date.AddHours(17),
+                EventCategoryId = Guid.NewGuid()
+            }
+        };
+
+        _eventServiceMock
+            .Setup(x => x.GetEventsByDateRangeAsync(It.IsAny<Guid?>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(existingEvents);
+
+        // Mock AI validation to reject
+        _aiValidationServiceMock
+            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.IsAny<Guid>(), It.IsAny<IEnumerable<EventDto>>()))
+            .ReturnsAsync(new AIValidationResult
+            {
+                IsApproved = false,
+                RecommendationMessage = "No es recomendable programar este evento a las 2 AM después de un día de trabajo",
+                Severity = AIValidationSeverity.Warning,
+                Suggestions = new List<string> { "Considera programarlo en horario diurno", "Asegúrate de descansar adecuadamente" }
+            });
+
+        // Act
+        var result = await _controller.CreateEvent(createEventDto);
+
+        // Assert
+        result.Result.Should().BeOfType<BadRequestObjectResult>();
+        var badRequestResult = result.Result as BadRequestObjectResult;
+        badRequestResult!.Value.Should().BeOfType<ProblemDetails>();
+        
+        // Verify that event service was never called
+        _eventServiceMock.Verify(x => x.CreateEventAsync(It.IsAny<Guid?>(), It.IsAny<CreateEventDto>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CreateEvent_WhenServiceThrowsException_ShouldReturnBadRequest()
     {
         // Arrange
@@ -163,6 +239,19 @@ public class EventsControllerTests
             EndDate = DateTime.Now.AddHours(1),
             EventCategoryId = Guid.NewGuid()
         };
+
+        _eventServiceMock
+            .Setup(x => x.GetEventsByDateRangeAsync(It.IsAny<Guid?>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(new List<EventDto>());
+
+        // Mock AI validation to approve
+        _aiValidationServiceMock
+            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.IsAny<Guid>(), It.IsAny<IEnumerable<EventDto>>()))
+            .ReturnsAsync(new AIValidationResult
+            {
+                IsApproved = true,
+                Severity = AIValidationSeverity.Info
+            });
 
         _eventServiceMock
             .Setup(x => x.CreateEventAsync(It.IsAny<Guid?>(), createEventDto))

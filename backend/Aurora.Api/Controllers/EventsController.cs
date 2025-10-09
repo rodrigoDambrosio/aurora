@@ -14,11 +14,16 @@ namespace Aurora.Api.Controllers;
 public class EventsController : ControllerBase
 {
     private readonly IEventService _eventService;
+    private readonly IAIValidationService _aiValidationService;
     private readonly ILogger<EventsController> _logger;
 
-    public EventsController(IEventService eventService, ILogger<EventsController> logger)
+    public EventsController(
+        IEventService eventService,
+        IAIValidationService aiValidationService,
+        ILogger<EventsController> logger)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
+        _aiValidationService = aiValidationService ?? throw new ArgumentNullException(nameof(aiValidationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -163,7 +168,7 @@ public class EventsController : ControllerBase
     /// <param name="createEventDto">Datos del evento a crear</param>
     /// <returns>Evento creado</returns>
     /// <response code="201">Evento creado exitosamente</response>
-    /// <response code="400">Datos de entrada inválidos</response>
+    /// <response code="400">Datos de entrada inválidos o recomendación de IA</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpPost]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status201Created)]
@@ -175,7 +180,47 @@ public class EventsController : ControllerBase
         {
             _logger.LogInformation("Creando nuevo evento: {Title}", createEventDto.Title);
 
-            var createdEvent = await _eventService.CreateEventAsync(DomainConstants.DemoUser.Id, createEventDto);
+            // En desarrollo, usar usuario demo si no se especifica
+            var userId = DomainConstants.DemoUser.Id;
+
+            // 1. Obtener eventos cercanos para dar contexto a la IA
+            // Buscar eventos desde 1 día antes hasta 1 semana después del evento a crear
+            var contextStartDate = createEventDto.StartDate.AddDays(-1);
+            var contextEndDate = createEventDto.StartDate.AddDays(7);
+            
+            _logger.LogInformation("Obteniendo contexto del calendario para validación de IA");
+            var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, contextStartDate, contextEndDate);
+            
+            _logger.LogInformation("Se encontraron {EventCount} eventos en el rango de contexto", existingEvents.Count());
+
+            // 2. Validar el evento con IA usando el contexto del calendario
+            _logger.LogInformation("Validando evento con IA usando contexto del calendario");
+            var aiValidation = await _aiValidationService.ValidateEventCreationAsync(
+                createEventDto, 
+                userId, 
+                existingEvents);
+
+            // 3. Si la IA no aprueba el evento, retornar recomendación
+            if (!aiValidation.IsApproved)
+            {
+                _logger.LogWarning("IA no aprobó el evento: {Message}", aiValidation.RecommendationMessage);
+                
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Recomendación de IA",
+                    Detail = aiValidation.RecommendationMessage,
+                    Status = StatusCodes.Status400BadRequest,
+                    Extensions =
+                    {
+                        ["severity"] = aiValidation.Severity.ToString(),
+                        ["suggestions"] = aiValidation.Suggestions ?? new List<string>()
+                    }
+                });
+            }
+
+            // 4. Si la IA aprueba, crear el evento
+            _logger.LogInformation("IA aprobó el evento, procediendo a crear");
+            var createdEvent = await _eventService.CreateEventAsync(userId, createEventDto);
 
             _logger.LogInformation("Evento creado exitosamente con ID: {EventId}", createdEvent.Id);
 
