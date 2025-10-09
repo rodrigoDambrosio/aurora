@@ -1,0 +1,343 @@
+/* FloatingNLPInput Component Styles */
+
+/* Floating Button */
+.floating-nlp-button {
+    position: fixed;
+    bottom: 12px;
+    right: 16px;
+    z-index: 50;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+    transition: all 0.3s ease;
+}
+
+.floating-nlp-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
+    background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+}
+
+/* Expanded Card */
+.floating-nlp-card {
+    position: fixed;
+    bottom: 12px;
+    right: 16px;
+    z-index: 50;
+    width: 320px;
+    max-width: calc(100vw - 2rem);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+}
+
+/* Header */
+.nlp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.nlp-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nlp-sparkle-badge {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.nlp-title {
+    font-weight: 500;
+    font-size: 14px;
+    color: #1e293b;
+}
+
+.nlp-close-button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.nlp-close-button:hover {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+/* Form */
+.nlp-form {
+    margin-bottom: 16px;
+}
+
+.nlp-input-container {
+    position: relative;
+}
+
+.nlp-input {
+    width: 100%;
+    padding: 12px 40px 12px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.nlp-input:focus {
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.nlp-input:disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+}
+
+.nlp-submit-button {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #8B5CF6;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.nlp-submit-button:hover:not(:disabled) {
+    background: #7C3AED;
+}
+
+.nlp-submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Examples */
+.nlp-examples {
+    margin-top: 12px;
+}
+
+.nlp-examples-label {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.nlp-examples-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.nlp-example-button {
+    background: #f1f5f9;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nlp-example-button:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+/* Processing State */
+.nlp-processing {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 0;
+    text-align: center;
+}
+
+.nlp-processing-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.nlp-processing-text {
+    font-size: 14px;
+    color: #64748b;
+}
+
+/* Confirmation */
+.nlp-confirmation {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.nlp-event-preview {
+    background: rgba(241, 245, 249, 0.5);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.nlp-event-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.nlp-event-title {
+    font-weight: 500;
+    color: #1e293b;
+    margin: 0;
+}
+
+.nlp-confidence-badge {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.nlp-event-details {
+    font-size: 14px;
+    color: #64748b;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nlp-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.nlp-confirm-button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    transition: all 0.2s ease;
+}
+
+.nlp-confirm-button:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    transform: translateY(-1px);
+}
+
+.nlp-cancel-button {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    background: white;
+    color: #475569;
+    transition: all 0.2s ease;
+}
+
+.nlp-cancel-button:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+/* Loading Spinner */
+.nlp-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #8B5CF6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.nlp-spinner-small {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .floating-nlp-button {
+        bottom: 8px;
+        right: 12px;
+    }
+
+    .floating-nlp-card {
+        bottom: 8px;
+        right: 12px;
+        width: calc(100vw - 24px);
+        max-width: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .floating-nlp-button {
+        bottom: 6px;
+        right: 8px;
+        width: 44px;
+        height: 44px;
+    }
+
+    .floating-nlp-card {
+        bottom: 6px;
+        right: 8px;
+        width: calc(100vw - 16px);
+        padding: 16px;
+    }
+}

@@ -1,0 +1,360 @@
+/* Navigation Component */
+.navigation {
+    background: white;
+    height: 778.667px;
+    width: 256px;
+    border-right: 0.667px solid #c8cde2;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+/* Header */
+.navigation-header {
+    padding: 24px 24px 0.667px 24px;
+    height: 88.667px;
+    border-bottom: 0.667px solid #c8cde2;
+    box-sizing: border-box;
+}
+
+.navigation-logo {
+    display: flex;
+    align-items: center;
+    height: 40px;
+}
+
+.logo-icon,
+.w-10.h-10.bg-primary,
+.w-10.h-10.bg-primary-gradient {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.calendar-icon {
+    width: 24px;
+    height: 24px;
+    color: white;
+    stroke-width: 2;
+}
+
+.logo-notification {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    border: 2px solid #FFFFFF;
+    box-shadow: 0 3px 12px rgba(251, 191, 36, 0.4);
+}
+
+.sparkles-icon {
+    width: 10px;
+    height: 10px;
+    color: white;
+    stroke-width: 2;
+}
+
+/* Tailwind CSS fallbacks */
+.bg-primary-gradient {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.w-10 {
+    width: 2.5rem;
+}
+
+.h-10 {
+    height: 2.5rem;
+}
+
+.w-6 {
+    width: 1.5rem;
+}
+
+.h-6 {
+    height: 1.5rem;
+}
+
+.w-5 {
+    width: 1.25rem;
+}
+
+.h-5 {
+    height: 1.25rem;
+}
+
+.w-2\.5 {
+    width: 0.625rem;
+}
+
+.h-2\.5 {
+    height: 0.625rem;
+}
+
+.rounded-lg {
+    border-radius: 0.5rem;
+}
+
+.rounded-full {
+    border-radius: 9999px;
+}
+
+.flex {
+    display: flex;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.relative {
+    position: relative;
+}
+
+.absolute {
+    position: absolute;
+}
+
+.-top-1 {
+    top: -0.25rem;
+}
+
+.-right-1 {
+    right: -0.25rem;
+}
+
+.text-primary-foreground {
+    color: #FFFFFF;
+}
+
+.text-white {
+    color: #FFFFFF;
+}
+
+.bg-gradient-to-br {
+    background: linear-gradient(to bottom right, var(--tw-gradient-from), var(--tw-gradient-to));
+}
+
+.from-yellow-400 {
+    --tw-gradient-from: #FBBF24;
+    --tw-gradient-to: rgba(251, 191, 36, 0);
+}
+
+.to-orange-500 {
+    --tw-gradient-to: #F59E0B;
+}
+
+/* Combined gradient fallback */
+.bg-gradient-to-br.from-yellow-400.to-orange-500 {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%) !important;
+}
+
+/* Specific sparkle badge gradient */
+.absolute.-top-1.-right-1.w-5.h-5.bg-gradient-to-br.from-yellow-400.to-orange-500 {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%) !important;
+}
+
+/* Alternative with direct class targeting */
+.sparkle-badge {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    position: absolute;
+    top: -0.25rem;
+    right: -0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.logo-text h2 {
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 24px;
+    color: #312785;
+    margin: 0;
+    padding: 0;
+}
+
+.logo-text p {
+    font-family: 'Arial', sans-serif;
+    font-weight: normal;
+    font-size: 12px;
+    line-height: 16px;
+    color: #5e6ab7;
+    margin: 0;
+    padding: 0;
+}
+
+/* Menu */
+.navigation-menu {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-button {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    height: 48px;
+    padding: 6px 12px 6px 48px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.nav-button svg {
+    position: absolute;
+    left: 12px;
+    top: 16px;
+    width: 16px;
+    height: 16px;
+    color: #5e6ab7;
+}
+
+.nav-button.active {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+}
+
+.nav-button.active svg {
+    color: white;
+}
+
+.nav-button:hover:not(.active) {
+    background: #f8fafc;
+}
+
+.nav-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.nav-title {
+    font-family: 'Arial', sans-serif;
+    font-weight: normal;
+    font-size: 14px;
+    line-height: 20px;
+    color: inherit;
+}
+
+.nav-button.active .nav-title {
+    color: white;
+}
+
+.nav-subtitle {
+    font-family: 'Arial', sans-serif;
+    font-weight: normal;
+    font-size: 12px;
+    line-height: 16px;
+    opacity: 0.7;
+    color: inherit;
+}
+
+.nav-button.active .nav-subtitle {
+    color: white;
+    opacity: 0.7;
+}
+
+/* Footer */
+.navigation-footer {
+    padding: 16px;
+    border-top: 1px solid #c8cde2;
+}
+
+.dark-mode-toggle {
+    background: white;
+    border: 0.667px solid #c8cde2;
+    border-radius: 8px;
+    height: 32px;
+    padding: 0 10.67px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dark-mode-toggle:hover {
+    background: #f8fafc;
+}
+
+.dark-mode-toggle svg {
+    width: 16px;
+    height: 16px;
+    color: #312785;
+}
+
+.dark-mode-toggle span {
+    font-family: 'Arial', sans-serif;
+    font-weight: normal;
+    font-size: 14px;
+    line-height: 20px;
+    color: #312785;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .navigation {
+        width: 64px;
+    }
+
+    .navigation-header {
+        padding: 24px 12px 0.667px 12px;
+    }
+
+    .logo-text {
+        display: none;
+    }
+
+    .nav-button {
+        padding: 12px;
+        justify-content: center;
+    }
+
+    .nav-button svg {
+        position: static;
+    }
+
+    .nav-text {
+        display: none;
+    }
+
+    .dark-mode-toggle span {
+        display: none;
+    }
+}

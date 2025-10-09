@@ -1,0 +1,78 @@
+/* Main Dashboard Layout */
+.main-dashboard {
+    display: flex;
+    min-height: 100vh;
+    width: 100vw;
+    background: white;
+    font-family: 'Arial', sans-serif;
+    overflow: hidden;
+}
+
+.dashboard-content {
+    flex: 1;
+    min-width: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Placeholder views for other sections */
+.placeholder-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+    background: white;
+}
+
+.placeholder-view h2 {
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    font-size: 24px;
+    line-height: 32px;
+    color: #312785;
+    margin: 0;
+}
+
+.placeholder-view p {
+    font-family: 'Arial', sans-serif;
+    font-size: 16px;
+    line-height: 24px;
+    color: #5e6ab7;
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-dashboard {
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .dashboard-content {
+        flex: 1;
+        height: auto;
+        min-height: 0;
+        overflow: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .placeholder-view {
+        padding: 20px;
+    }
+
+    .placeholder-view h2 {
+        font-size: 20px;
+        line-height: 28px;
+    }
+
+    .placeholder-view p {
+        font-size: 14px;
+        line-height: 20px;
+    }
+}

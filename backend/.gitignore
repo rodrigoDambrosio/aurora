@@ -1,0 +1,61 @@
+# .NET Backend
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.docstates
+_ReSharper*/
+*.resharper
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+*.DS_Store
+
+# Entity Framework
+*.edmx.diagram
+*.edmx.sql
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# Visual Studio
+.vs/
+.vscode/settings.json
+
+# JetBrains
+.idea/
+
+# Configuration files with sensitive data
+appsettings.Production.json
+appsettings.Development.json
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/

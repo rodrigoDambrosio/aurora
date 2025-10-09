@@ -1,0 +1,554 @@
+/* Aurora Weekly Calendar */
+.aurora-weekly-calendar {
+    background: white;
+    height: 778.667px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    gap: 16px;
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid #1447e6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Error Handling */
+.error-message {
+    background: #fef2f2;
+    border: 2px solid #ef4444;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.error-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.error-message p {
+    flex: 1;
+    margin: 0;
+    color: #dc2626;
+    font-weight: 500;
+    min-width: 200px;
+}
+
+.retry-button {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.retry-button:hover {
+    background: #b91c1c;
+}
+
+/* Header Section */
+.calendar-header {
+    background: white;
+    height: 152.667px;
+    border-bottom: 0.667px solid #c8cde2;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.header-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 32px;
+}
+
+.nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nav-btn {
+    background: white;
+    border: 0.667px solid #c8cde2;
+    border-radius: 8px;
+    width: 37.333px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+    background: #f8fafc;
+}
+
+.nav-btn svg {
+    color: #312785;
+}
+
+.month-title {
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 28px;
+    color: #312785;
+    margin: 0;
+}
+
+.action-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.today-btn {
+    background: white;
+    border: 0.667px solid #c8cde2;
+    border-radius: 8px;
+    height: 32px;
+    padding: 0 12.667px;
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    color: #312785;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.today-btn:hover {
+    background: #f8fafc;
+}
+
+.settings-btn {
+    background: white;
+    border: 0.667px solid #c8cde2;
+    border-radius: 8px;
+    width: 37.333px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+    background: #f8fafc;
+}
+
+.settings-btn svg {
+    color: #312785;
+}
+
+/* Active state for filter button */
+.settings-btn.bg-primary {
+    background: #8B5CF6 !important;
+    border-color: #8B5CF6 !important;
+}
+
+.settings-btn.bg-primary svg,
+.settings-btn.text-primary-foreground svg {
+    color: white !important;
+}
+
+/* Tailwind CSS fallbacks */
+.w-4 {
+    width: 1rem;
+}
+
+.h-4 {
+    height: 1rem;
+}
+
+.add-event-btn {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border: none;
+    border-radius: 8px;
+    height: 32px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: white;
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.add-event-btn:hover {
+    background: linear-gradient(135deg, #5855eb 0%, #7c3aed 100%);
+}
+
+.add-event-btn svg {
+    color: white;
+}
+
+/* Week Header */
+.week-header {
+    display: flex;
+    height: 72px;
+    width: 100%;
+}
+
+.day-header {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    text-align: center;
+}
+
+.day-header.today {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 10px;
+    color: white;
+}
+
+.day-name {
+    font-family: 'Arial', sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    text-transform: uppercase;
+    color: #5e6ab7;
+}
+
+.day-header.today .day-name {
+    color: white;
+}
+
+.day-number {
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    font-size: 18px;
+    line-height: 28px;
+    color: #5e6ab7;
+}
+
+.day-header.today .day-number {
+    color: white;
+}
+
+/* Calendar Grid */
+.calendar-grid {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.day-column {
+    flex: 1;
+    border-right: 0.667px solid #c8cde2;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+.day-column:last-child {
+    border-right: none;
+}
+
+.add-event-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    opacity: 0;
+}
+
+.day-column:hover .add-event-placeholder {
+    opacity: 1;
+    background: #f8fafc;
+}
+
+.add-event-placeholder svg {
+    color: #5e6ab7;
+}
+
+.add-event-placeholder span {
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    color: #5e6ab7;
+    text-align: center;
+}
+
+.events-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Event Cards */
+.event-card {
+    border-radius: 10px;
+    border-left: 4px solid;
+    padding: 8px 12px 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.event-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.event-title {
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: normal;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.event-time {
+    font-family: 'Arial', sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    color: #5e6ab7;
+    margin-bottom: 4px;
+}
+
+.event-priority {
+    display: flex;
+    gap: 2px;
+    height: 12px;
+}
+
+.event-priority svg {
+    opacity: 0.6;
+}
+
+/* Footer */
+.calendar-footer {
+    background: white;
+    height: 54px;
+    border-top: 0.667px solid #c8cde2;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.events-summary {
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    color: #5e6ab7;
+}
+
+.week-badge {
+    background: #e4edff;
+    border-radius: 8px;
+    padding: 2.667px 8.667px;
+    font-family: 'Arial', sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    color: #2c2edc;
+}
+
+/* Loading and Error States */
+.aurora-calendar-loading,
+.aurora-calendar-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    gap: 16px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e4edff;
+    border-top: 3px solid #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.aurora-calendar-error button {
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-family: 'Arial', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.aurora-calendar-error button:hover {
+    background: #5855eb;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .aurora-weekly-calendar {
+        height: auto;
+        min-height: 600px;
+    }
+
+    .calendar-header {
+        height: auto;
+        padding: 12px;
+    }
+
+    .header-controls {
+        flex-direction: column;
+        gap: 12px;
+        height: auto;
+    }
+
+    .week-header {
+        height: 60px;
+    }
+
+    .day-header {
+        padding: 8px 4px;
+    }
+
+    .day-name {
+        font-size: 10px;
+    }
+
+    .day-number {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-controls {
+        gap: 8px;
+    }
+
+    .month-title {
+        font-size: 18px;
+    }
+
+    .action-controls {
+        gap: 4px;
+    }
+
+    .add-event-btn span {
+        display: none;
+    }
+
+    .calendar-grid {
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    .day-column {
+        border-right: none;
+        border-bottom: 1px solid #c8cde2;
+        min-height: 100px;
+    }
+
+    .day-column:last-child {
+        border-bottom: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-controls {
+        gap: 8px;
+    }
+
+    .nav-btn,
+    .settings-btn {
+        width: 32px;
+        height: 28px;
+    }
+
+    .today-btn,
+    .add-event-btn {
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .month-title {
+        font-size: 16px;
+    }
+
+    .week-header {
+        height: 50px;
+    }
+
+    .day-header {
+        padding: 4px 2px;
+    }
+
+    .calendar-footer {
+        padding: 12px;
+        flex-direction: column;
+        gap: 8px;
+        height: auto;
+    }
+}
