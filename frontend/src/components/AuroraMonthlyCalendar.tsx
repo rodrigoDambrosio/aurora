@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { apiService, type EventCategoryDto, type EventDto } from '../services/apiService';
 import './AuroraMonthlyCalendar.css';
@@ -189,12 +189,11 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
           <button className="action-button today-button" onClick={goToToday}>
             Hoy
           </button>
-          <button
-            className="action-button add-event-button"
-            onClick={() => onAddEvent(new Date())}
-          >
-            <Plus size={16} />
-            <span>Evento</span>
+          <button className="add-event-btn" onClick={() => onAddEvent?.(new Date())}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" />
+            </svg>
+            Evento
           </button>
         </div>
       </div>

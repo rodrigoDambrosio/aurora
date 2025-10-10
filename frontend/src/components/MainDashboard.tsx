@@ -1,4 +1,3 @@
-import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import type { EventCategoryDto, EventDto } from '../services/apiService';
 import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
@@ -41,11 +40,6 @@ const MainDashboard: React.FC = () => {
   const handleAddEvent = (date: Date) => {
     console.log('Adding event for date:', date);
     setSelectedDate(date);
-    setIsModalOpen(true);
-  };
-
-  const handleFABClick = () => {
-    setSelectedDate(undefined);
     setIsModalOpen(true);
   };
 
@@ -139,16 +133,6 @@ const MainDashboard: React.FC = () => {
       <main className="dashboard-content">
         {renderMainContent()}
       </main>
-
-      {/* FAB - Floating Action Button */}
-      <button
-        className="dashboard-fab"
-        onClick={handleFABClick}
-        aria-label="Crear nuevo evento"
-        title="Crear nuevo evento"
-      >
-        <Plus size={24} />
-      </button>
 
       {/* NLP Input */}
       <FloatingNLPInput onEventCreated={handleEventCreated} />
