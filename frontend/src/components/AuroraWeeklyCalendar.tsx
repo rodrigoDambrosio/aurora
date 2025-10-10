@@ -268,6 +268,13 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                       </div>
                     );
                   })}
+                  {/* Add event button at the bottom */}
+                  <div className="add-event-placeholder compact" onClick={() => onAddEvent?.(date)}>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+                    <span>Agregar evento</span>
+                  </div>
                 </div>
               )}
             </div>

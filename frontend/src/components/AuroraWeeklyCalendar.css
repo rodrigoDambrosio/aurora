@@ -321,6 +321,18 @@
     text-align: center;
 }
 
+/* Compact version for when there are events */
+.add-event-placeholder.compact {
+    opacity: 0;
+    padding: 16px;
+    margin-top: 4px;
+}
+
+.events-container:hover .add-event-placeholder.compact {
+    opacity: 1;
+    background: #f8fafc;
+}
+
 .events-container {
     display: flex;
     flex-direction: column;
