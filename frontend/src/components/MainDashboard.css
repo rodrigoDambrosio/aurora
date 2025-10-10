@@ -45,6 +45,36 @@
     margin: 0;
 }
 
+/* FAB - Floating Action Button */
+.dashboard-fab {
+    position: fixed;
+    bottom: 100px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    z-index: 40;
+}
+
+.dashboard-fab:hover {
+    background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 20px 25px -5px rgba(139, 92, 246, 0.3), 0 10px 10px -5px rgba(139, 92, 246, 0.2);
+}
+
+.dashboard-fab:active {
+    transform: translateY(0) scale(0.95);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .main-dashboard {
@@ -58,6 +88,13 @@
         height: auto;
         min-height: 0;
         overflow: auto;
+    }
+
+    .dashboard-fab {
+        bottom: 80px;
+        right: 16px;
+        width: 48px;
+        height: 48px;
     }
 }
 
