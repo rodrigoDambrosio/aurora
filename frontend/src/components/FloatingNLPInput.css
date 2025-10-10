@@ -341,3 +341,127 @@
         padding: 16px;
     }
 }
+
+/* Validation Feedback Styles */
+.nlp-validation {
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.nlp-validation-info {
+    background: rgba(59, 130, 246, 0.1);
+    border-left-color: #3B82F6;
+}
+
+.nlp-validation-warning {
+    background: rgba(251, 191, 36, 0.1);
+    border-left-color: #FBBF24;
+}
+
+.nlp-validation-critical {
+    background: rgba(239, 68, 68, 0.1);
+    border-left-color: #EF4444;
+}
+
+.nlp-validation-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.nlp-validation-message {
+    font-size: 0.875rem;
+    color: #334155;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+
+.nlp-validation-suggestions {
+    font-size: 0.8125rem;
+    color: #64748B;
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.nlp-validation-suggestions li {
+    margin-bottom: 4px;
+}
+
+/* Edit Form Styles */
+.nlp-edit-form {
+    padding: 12px 0;
+}
+
+.nlp-form-field {
+    margin-bottom: 12px;
+}
+
+.nlp-form-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.nlp-form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: #1E293B;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.nlp-form-input:focus {
+    outline: none;
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.nlp-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+/* Button Variants */
+.nlp-edit-toggle-button {
+    padding: 8px 16px;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748B;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nlp-edit-toggle-button:hover:not(:disabled) {
+    background: #F8FAFC;
+    border-color: #CBD5E1;
+    color: #475569;
+}
+
+.nlp-edit-toggle-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.nlp-button-warning {
+    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
+}
+
+.nlp-button-warning:hover:not(:disabled) {
+    background: linear-gradient(135deg, #D97706 0%, #B45309 100%) !important;
+}

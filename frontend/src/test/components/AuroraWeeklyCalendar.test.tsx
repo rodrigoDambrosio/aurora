@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Use vi.hoisted to ensure mock functions are available
 const mockGetWeeklyEvents = vi.hoisted(() => vi.fn())
@@ -19,6 +19,9 @@ import AuroraWeeklyCalendar from '../../components/AuroraWeeklyCalendar'
 describe('AuroraWeeklyCalendar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+
+    // Mock current date to Sept 30, 2025 so the calendar shows September
+    vi.setSystemTime(new Date('2025-09-30T12:00:00.000Z'))
 
     // Default mock implementations
     mockGetWeeklyEvents.mockResolvedValue({
@@ -124,5 +127,9 @@ describe('AuroraWeeklyCalendar', () => {
       const addEventElements = screen.getAllByText('Agregar evento')
       expect(addEventElements).toHaveLength(7) // One for each day
     })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 })

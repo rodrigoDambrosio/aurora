@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace Aurora.Infrastructure.Services;
 
 /// <summary>
-/// Implementación del servicio de validación de IA usando Google Gemini
+/// Implementaciï¿½n del servicio de validaciï¿½n de IA usando Google Gemini
 /// </summary>
 public class GeminiAIValidationService : IAIValidationService
 {
@@ -28,7 +28,7 @@ public class GeminiAIValidationService : IAIValidationService
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        // Obtener la API Key desde la configuración
+        // Obtener la API Key desde la configuraciï¿½n
         _apiKey = _configuration["Gemini:ApiKey"] 
                   ?? throw new InvalidOperationException("Gemini API Key no configurada en appsettings");
 
@@ -43,7 +43,7 @@ public class GeminiAIValidationService : IAIValidationService
     {
         try
         {
-            _logger.LogInformation("Iniciando validación de IA para evento: {Title} con contexto de {EventCount} eventos existentes", 
+            _logger.LogInformation("Iniciando validaciï¿½n de IA para evento: {Title} con contexto de {EventCount} eventos existentes", 
                 eventDto.Title, existingEvents?.Count() ?? 0);
 
             // Construir el prompt para Gemini con contexto del calendario
@@ -108,7 +108,7 @@ public class GeminiAIValidationService : IAIValidationService
 
             if (string.IsNullOrEmpty(aiText))
             {
-                _logger.LogWarning("No se recibió respuesta válida de Gemini");
+                _logger.LogWarning("No se recibiï¿½ respuesta vï¿½lida de Gemini");
                 return new AIValidationResult
                 {
                     IsApproved = true,
@@ -120,7 +120,7 @@ public class GeminiAIValidationService : IAIValidationService
             // Parsear la respuesta de la IA
             var result = ParseAIResponse(aiText);
             
-            _logger.LogInformation("Validación de IA completada: {IsApproved}", result.IsApproved);
+            _logger.LogInformation("Validaciï¿½n de IA completada: {IsApproved}", result.IsApproved);
 
             return result;
         }
@@ -148,12 +148,12 @@ public class GeminiAIValidationService : IAIValidationService
         sb.AppendLine("Eres un asistente de calendario inteligente y personal. Analiza el siguiente evento considerando el contexto del calendario del usuario.");
         sb.AppendLine();
         sb.AppendLine("EVENTO A VALIDAR:");
-        sb.AppendLine($"- Título: {eventDto.Title}");
-        sb.AppendLine($"- Descripción: {eventDto.Description ?? "Sin descripción"}");
+        sb.AppendLine($"- Tï¿½tulo: {eventDto.Title}");
+        sb.AppendLine($"- Descripciï¿½n: {eventDto.Description ?? "Sin descripciï¿½n"}");
         sb.AppendLine($"- Fecha y hora: {dateFormatted} ({dayOfWeek})");
-        sb.AppendLine($"- Duración: {duration:F1} horas");
-        sb.AppendLine($"- Todo el día: {(eventDto.IsAllDay ? "Sí" : "No")}");
-        sb.AppendLine($"- Ubicación: {eventDto.Location ?? "Sin ubicación"}");
+        sb.AppendLine($"- Duraciï¿½n: {duration:F1} horas");
+        sb.AppendLine($"- Todo el dï¿½a: {(eventDto.IsAllDay ? "Sï¿½" : "No")}");
+        sb.AppendLine($"- Ubicaciï¿½n: {eventDto.Location ?? "Sin ubicaciï¿½n"}");
         sb.AppendLine();
 
         // Agregar contexto del calendario si existe
@@ -171,9 +171,9 @@ public class GeminiAIValidationService : IAIValidationService
                 var evtDuration = (evt.EndDate - evt.StartDate).TotalHours;
                 var evtDay = evt.StartDate.DayOfWeek.ToString();
                 var evtTime = evt.StartDate.ToString("yyyy-MM-dd HH:mm");
-                var category = evt.EventCategory?.Name ?? "Sin categoría";
+                var category = evt.EventCategory?.Name ?? "Sin categorï¿½a";
                 
-                sb.AppendLine($"• [{evtTime} ({evtDay})] \"{evt.Title}\" - {evtDuration:F1}h - {category}");
+                sb.AppendLine($"ï¿½ [{evtTime} ({evtDay})] \"{evt.Title}\" - {evtDuration:F1}h - {category}");
             }
             
             sb.AppendLine();
@@ -187,29 +187,29 @@ public class GeminiAIValidationService : IAIValidationService
         }
 
         sb.AppendLine("ANALIZA LOS SIGUIENTES ASPECTOS:");
-        sb.AppendLine("1. **Conflictos de horario**: ¿Se superpone con otros eventos?");
-        sb.AppendLine("2. **Carga de trabajo**: ¿El usuario ya tiene muchos eventos ese día/semana?");
-        sb.AppendLine("3. **Balance vida-trabajo**: ¿Hay suficiente tiempo libre y de descanso?");
-        sb.AppendLine("4. **Hora apropiada**: ¿Es la hora adecuada para este tipo de actividad?");
-        sb.AppendLine("5. **Duración razonable**: ¿La duración es apropiada?");
-        sb.AppendLine("6. **Descanso entre eventos**: ¿Hay tiempo suficiente entre eventos?");
-        sb.AppendLine("7. **Patrones saludables**: ¿Respeta horarios de descanso y sueño?");
+        sb.AppendLine("1. **Conflictos de horario**: ï¿½Se superpone con otros eventos?");
+        sb.AppendLine("2. **Carga de trabajo**: ï¿½El usuario ya tiene muchos eventos ese dï¿½a/semana?");
+        sb.AppendLine("3. **Balance vida-trabajo**: ï¿½Hay suficiente tiempo libre y de descanso?");
+        sb.AppendLine("4. **Hora apropiada**: ï¿½Es la hora adecuada para este tipo de actividad?");
+        sb.AppendLine("5. **Duraciï¿½n razonable**: ï¿½La duraciï¿½n es apropiada?");
+        sb.AppendLine("6. **Descanso entre eventos**: ï¿½Hay tiempo suficiente entre eventos?");
+        sb.AppendLine("7. **Patrones saludables**: ï¿½Respeta horarios de descanso y sueï¿½o?");
         sb.AppendLine();
         sb.AppendLine("Responde en formato JSON con esta estructura exacta:");
         sb.AppendLine(@"{");
         sb.AppendLine(@"  ""approved"": true/false,");
         sb.AppendLine(@"  ""severity"": ""info""/""warning""/""critical"",");
-        sb.AppendLine(@"  ""message"": ""Tu mensaje personalizado aquí (sé específico y menciona el contexto)"",");
-        sb.AppendLine(@"  ""suggestions"": [""sugerencia específica 1"", ""sugerencia específica 2""]");
+        sb.AppendLine(@"  ""message"": ""Tu mensaje personalizado aquï¿½ (sï¿½ especï¿½fico y menciona el contexto)"",");
+        sb.AppendLine(@"  ""suggestions"": [""sugerencia especï¿½fica 1"", ""sugerencia especï¿½fica 2""]");
         sb.AppendLine(@"}");
         sb.AppendLine();
-        sb.AppendLine("CRITERIOS DE DECISIÓN:");
+        sb.AppendLine("CRITERIOS DE DECISIï¿½N:");
         sb.AppendLine("- **approved = false** si hay conflictos directos, sobrecarga evidente o riesgos para la salud");
-        sb.AppendLine("- **severity = 'critical'** si es muy problemático (ej: conflicto de horario, más de 12h de trabajo seguido)");
-        sb.AppendLine("- **severity = 'warning'** si es cuestionable pero no crítico (ej: poco descanso, día muy cargado)");
+        sb.AppendLine("- **severity = 'critical'** si es muy problemï¿½tico (ej: conflicto de horario, mï¿½s de 12h de trabajo seguido)");
+        sb.AppendLine("- **severity = 'warning'** si es cuestionable pero no crï¿½tico (ej: poco descanso, dï¿½a muy cargado)");
         sb.AppendLine("- **severity = 'info'** si solo son recomendaciones generales");
         sb.AppendLine();
-        sb.AppendLine("Sé específico y personalizado en tu análisis. Menciona eventos específicos del contexto si son relevantes.");
+        sb.AppendLine("Sï¿½ especï¿½fico y personalizado en tu anï¿½lisis. Menciona eventos especï¿½ficos del contexto si son relevantes.");
 
         return sb.ToString();
     }
@@ -266,6 +266,197 @@ public class GeminiAIValidationService : IAIValidationService
                 RecommendationMessage = "No se pudo interpretar la respuesta de la IA.",
                 Severity = AIValidationSeverity.Info
             };
+        }
+    }
+
+    public async Task<CreateEventDto> ParseNaturalLanguageAsync(
+        string naturalLanguageText,
+        Guid userId,
+        IEnumerable<EventCategoryDto> availableCategories,
+        int timezoneOffsetMinutes = 0,
+        IEnumerable<EventDto>? existingEvents = null)
+    {
+        try
+        {
+            _logger.LogInformation("Parseando texto natural: {Text} (Timezone offset: {Offset})", naturalLanguageText, timezoneOffsetMinutes);
+
+            // Construir el prompt para parsear el texto
+            var prompt = BuildParsingPrompt(naturalLanguageText, availableCategories, timezoneOffsetMinutes, existingEvents);
+
+            // Crear la solicitud a Gemini
+            var geminiRequest = new GeminiRequest
+            {
+                Contents = new List<GeminiContent>
+                {
+                    new GeminiContent
+                    {
+                        Parts = new List<GeminiPart>
+                        {
+                            new GeminiPart { Text = prompt }
+                        }
+                    }
+                }
+            };
+
+            // Serializar la solicitud
+            var jsonRequest = JsonSerializer.Serialize(geminiRequest, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            _logger.LogDebug("Request a Gemini para parsing: {Request}", jsonRequest);
+
+            // Construir la URL con la API Key
+            var url = $"{_baseUrl}?key={_apiKey}";
+
+            // Enviar la solicitud
+            var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error en la API de Gemini para parsing: {StatusCode} - {Error}", 
+                    response.StatusCode, errorContent);
+                
+                throw new InvalidOperationException($"Error al parsear texto con IA: {response.StatusCode}");
+            }
+
+            // Parsear la respuesta
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug("Response de Gemini para parsing: {Response}", responseContent);
+
+            var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(responseContent, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            // Extraer el texto de la respuesta
+            var aiText = geminiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+
+            if (string.IsNullOrEmpty(aiText))
+            {
+                _logger.LogWarning("No se recibiÃ³ respuesta vÃ¡lida de Gemini para parsing");
+                throw new InvalidOperationException("No se pudo obtener respuesta de la IA para parsear el texto.");
+            }
+
+            // Parsear la respuesta de la IA a CreateEventDto
+            var eventDto = ParseEventFromAIResponse(aiText);
+            
+            _logger.LogInformation("Texto parseado exitosamente: {Title} - {StartDate}", 
+                eventDto.Title, eventDto.StartDate);
+
+            return eventDto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al parsear texto natural con IA");
+            throw;
+        }
+    }
+
+    private string BuildParsingPrompt(string naturalLanguageText, IEnumerable<EventCategoryDto> availableCategories, int timezoneOffsetMinutes, IEnumerable<EventDto>? existingEvents)
+    {
+        var utcNow = DateTime.UtcNow;
+        // Calcular la hora local del usuario
+        var userLocalNow = utcNow.AddMinutes(timezoneOffsetMinutes);
+        var timezoneString = timezoneOffsetMinutes < 0 
+            ? $"UTC{timezoneOffsetMinutes / 60:+0;-0}" 
+            : $"UTC+{timezoneOffsetMinutes / 60}";
+        
+        var sb = new StringBuilder();
+        
+        sb.AppendLine("Eres un asistente de calendario inteligente. Tu tarea es convertir texto en lenguaje natural a un evento estructurado.");
+        sb.AppendLine();
+        sb.AppendLine($"FECHA Y HORA ACTUAL DEL USUARIO ({timezoneString}): {userLocalNow:yyyy-MM-dd HH:mm:ss} ({userLocalNow.DayOfWeek})");
+        sb.AppendLine("IMPORTANTE: El usuario habla desde su zona horaria local. Cuando dice 'maÃ±ana 3pm' se refiere a 3pm en SU zona horaria.");
+        sb.AppendLine($"DEBES convertir todas las fechas/horas a UTC (restar {Math.Abs(timezoneOffsetMinutes / 60)} horas) antes de devolver el JSON.");
+        sb.AppendLine();
+        sb.AppendLine("TEXTO DEL USUARIO:");
+        sb.AppendLine($"\"{naturalLanguageText}\"");
+        sb.AppendLine();
+
+        // Agregar contexto del calendario si existe
+        if (existingEvents != null && existingEvents.Any())
+        {
+            sb.AppendLine("CONTEXTO DEL CALENDARIO (eventos cercanos):");
+            var sortedEvents = existingEvents
+                .OrderBy(e => e.StartDate)
+                .Take(10)
+                .ToList();
+
+            foreach (var evt in sortedEvents)
+            {
+                var evtTime = evt.StartDate.ToString("yyyy-MM-dd HH:mm");
+                sb.AppendLine($"â€¢ [{evtTime}] \"{evt.Title}\" - {evt.EventCategory?.Name ?? "Sin categorÃ­a"}");
+            }
+            sb.AppendLine();
+        }
+
+        // Mapear categorÃ­as con sus IDs reales
+        sb.AppendLine("CATEGORÃAS DISPONIBLES:");
+        var categoryList = availableCategories.ToList();
+        foreach (var category in categoryList)
+        {
+            sb.AppendLine($"â€¢ {category.Name} - ID: \"{category.Id}\" ({category.Description ?? "Sin descripciÃ³n"})");
+        }
+        sb.AppendLine();
+        
+        sb.AppendLine("INSTRUCCIONES:");
+        sb.AppendLine("1. Interpreta fechas relativas (hoy, maÃ±ana, el lunes, etc.) desde la fecha actual");
+        sb.AppendLine("2. Si no se especifica hora, usa horarios razonables segÃºn el tipo de evento");
+        sb.AppendLine("3. Si no se especifica duraciÃ³n, infiere una duraciÃ³n apropiada (reuniones: 1h, ejercicio: 1.5h, etc.)");
+        sb.AppendLine("4. Detecta la categorÃ­a segÃºn el contenido del evento y usa el ID exacto de la lista de categorÃ­as");
+        sb.AppendLine("5. Todas las fechas/horas deben estar en UTC");
+        sb.AppendLine();
+        sb.AppendLine("Responde en formato JSON con esta estructura exacta:");
+        sb.AppendLine(@"{");
+        sb.AppendLine(@"  ""title"": ""TÃ­tulo del evento"",");
+        sb.AppendLine(@"  ""description"": ""DescripciÃ³n opcional"",");
+        sb.AppendLine(@"  ""startDate"": ""2025-10-10T15:00:00Z"",");
+        sb.AppendLine(@"  ""endDate"": ""2025-10-10T16:00:00Z"",");
+        sb.AppendLine(@"  ""isAllDay"": false,");
+        sb.AppendLine(@"  ""location"": ""UbicaciÃ³n opcional"",");
+        sb.AppendLine($@"  ""eventCategoryId"": ""{categoryList.First().Id}""");
+        sb.AppendLine(@"}");
+        sb.AppendLine();
+        sb.AppendLine("IMPORTANTE:");
+        sb.AppendLine("- eventCategoryId DEBE ser un string con el GUID exacto de la lista de categorÃ­as");
+        sb.AppendLine("- Usa formato ISO 8601 con zona horaria Z para las fechas");
+        sb.AppendLine("- SÃ© inteligente al inferir contexto y categorÃ­a apropiada");
+
+        return sb.ToString();
+    }
+
+    private CreateEventDto ParseEventFromAIResponse(string aiText)
+    {
+        try
+        {
+            // Intentar extraer JSON de la respuesta
+            var jsonStart = aiText.IndexOf('{');
+            var jsonEnd = aiText.LastIndexOf('}') + 1;
+
+            if (jsonStart >= 0 && jsonEnd > jsonStart)
+            {
+                var jsonText = aiText.Substring(jsonStart, jsonEnd - jsonStart);
+                
+                var parsed = JsonSerializer.Deserialize<CreateEventDto>(jsonText, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (parsed != null && !string.IsNullOrEmpty(parsed.Title))
+                {
+                    return parsed;
+                }
+            }
+
+            throw new InvalidOperationException("No se pudo parsear la respuesta de la IA como evento vÃ¡lido");
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Error al parsear JSON de la respuesta de IA: {Text}", aiText);
+            throw new InvalidOperationException("Error al interpretar la respuesta de la IA", ex);
         }
     }
 
