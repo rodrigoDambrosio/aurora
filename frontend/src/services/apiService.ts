@@ -217,16 +217,31 @@ export const apiService = {
   /**
    * Get weekly events for a specific week
    */
-  async getWeeklyEvents(weekStart: string, userId?: string): Promise<WeeklyEventsResponseDto> {
+  async getWeeklyEvents(weekStart: string, userId?: string, categoryId?: string): Promise<WeeklyEventsResponseDto> {
     const request: WeeklyEventsRequestDto = {
       weekStart,
       userId
     };
 
-    return this.fetchApi<WeeklyEventsResponseDto>('/events/weekly', {
+    const queryParam = categoryId ? `?categoryId=${categoryId}` : '';
+
+    return this.fetchApi<WeeklyEventsResponseDto>(`/events/weekly${queryParam}`, {
       method: 'POST',
       body: JSON.stringify(request)
     });
+  },
+
+  /**
+   * Get events for a specific month
+   */
+  async getMonthlyEvents(year: number, month: number, userId?: string, categoryId?: string): Promise<WeeklyEventsResponseDto> {
+    const params = new URLSearchParams();
+    params.append('year', year.toString());
+    params.append('month', month.toString());
+    if (userId) params.append('userId', userId);
+    if (categoryId) params.append('categoryId', categoryId);
+
+    return this.fetchApi<WeeklyEventsResponseDto>(`/events/monthly?${params.toString()}`);
   },
 
   /**

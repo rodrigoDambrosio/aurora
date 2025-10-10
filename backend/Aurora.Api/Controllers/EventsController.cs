@@ -34,6 +34,7 @@ public class EventsController : ControllerBase
     /// Obtiene eventos de una semana específica para un usuario
     /// </summary>
     /// <param name="request">Parámetros de la consulta semanal</param>
+    /// <param name="categoryId">ID de categoría para filtrar (opcional)</param>
     /// <returns>Eventos de la semana con categorías disponibles</returns>
     /// <response code="200">Eventos obtenidos exitosamente</response>
     /// <response code="400">Parámetros de consulta inválidos</response>
@@ -42,16 +43,20 @@ public class EventsController : ControllerBase
     [ProducesResponseType(typeof(WeeklyEventsResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<WeeklyEventsResponseDto>> GetWeeklyEvents([FromBody] WeeklyEventsRequestDto request)
+    public async Task<ActionResult<WeeklyEventsResponseDto>> GetWeeklyEvents(
+        [FromBody] WeeklyEventsRequestDto request,
+        [FromQuery] Guid? categoryId = null)
     {
         try
         {
-            _logger.LogInformation("Obteniendo eventos semanales para fecha: {WeekStart}", request.WeekStart);
+            _logger.LogInformation(
+                "Obteniendo eventos semanales para fecha: {WeekStart}, categoría: {CategoryId}",
+                request.WeekStart, categoryId);
 
             // En desarrollo, usar usuario demo si no se especifica
             var userId = request.UserId ?? DomainConstants.DemoUser.Id;
 
-            var response = await _eventService.GetWeeklyEventsAsync(userId, request.WeekStart);
+            var response = await _eventService.GetWeeklyEventsAsync(userId, request.WeekStart, categoryId);
 
             _logger.LogInformation("Se encontraron {EventCount} eventos para la semana", response.Events.Count());
 
@@ -70,6 +75,68 @@ public class EventsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error obteniendo eventos semanales");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Error interno",
+                Detail = "Ocurrió un error procesando la solicitud",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene eventos de un mes específico para un usuario
+    /// </summary>
+    /// <param name="userId">ID del usuario (opcional)</param>
+    /// <param name="year">Año del mes a consultar</param>
+    /// <param name="month">Mes a consultar (1-12)</param>
+    /// <param name="categoryId">ID de categoría para filtrar (opcional)</param>
+    /// <returns>Eventos del mes con categorías disponibles</returns>
+    /// <response code="200">Eventos obtenidos exitosamente</response>
+    /// <response code="400">Parámetros de consulta inválidos</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpGet("monthly")]
+    [ProducesResponseType(typeof(WeeklyEventsResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<WeeklyEventsResponseDto>> GetMonthlyEvents(
+        [FromQuery] Guid? userId = null,
+        [FromQuery] int? year = null,
+        [FromQuery] int? month = null,
+        [FromQuery] Guid? categoryId = null)
+    {
+        try
+        {
+            // Usar fecha actual si no se especifican año/mes
+            var currentYear = year ?? DateTime.Now.Year;
+            var currentMonth = month ?? DateTime.Now.Month;
+
+            if (currentMonth < 1 || currentMonth > 12)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Mes inválido",
+                    Detail = "El mes debe estar entre 1 y 12",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            _logger.LogInformation(
+                "Obteniendo eventos mensuales para {Year}-{Month}, categoría: {CategoryId}",
+                currentYear, currentMonth, categoryId);
+
+            // En desarrollo, usar usuario demo si no se especifica
+            var effectiveUserId = userId ?? DomainConstants.DemoUser.Id;
+
+            var response = await _eventService.GetMonthlyEventsAsync(effectiveUserId, currentYear, currentMonth, categoryId);
+
+            _logger.LogInformation("Se encontraron {EventCount} eventos para el mes", response.Events.Count());
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo eventos mensuales");
             return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
             {
                 Title = "Error interno",

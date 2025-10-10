@@ -1,0 +1,55 @@
+/* CategoryFilter.css - Filtro de categorías reutilizable */
+
+.category-filter {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 8px 0;
+}
+
+.category-filter-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid #c8cde2;
+    border-radius: 8px;
+    background: white;
+    color: #5e6ab7;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.category-filter-button:hover {
+    background: #f8fafc;
+    border-color: #8B5CF6;
+}
+
+.category-filter-button.active {
+    background: #e4edff;
+    border-color: #8B5CF6;
+    color: #312785;
+    font-weight: 500;
+}
+
+.category-filter-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.category-filter-dot.all-categories {
+    background: linear-gradient(135deg,
+            #1447e6 0%,
+            #8B5CF6 33%,
+            #008236 66%,
+            #ca3500 100%);
+}
+
+.category-filter-text {
+    white-space: nowrap;
+}

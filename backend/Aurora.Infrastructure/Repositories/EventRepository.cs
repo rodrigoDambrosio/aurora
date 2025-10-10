@@ -34,10 +34,45 @@ public class EventRepository : Repository<Event>, IEventRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Event>> GetWeeklyEventsAsync(Guid userId, DateTime weekStart)
+    public async Task<IEnumerable<Event>> GetWeeklyEventsAsync(Guid userId, DateTime weekStart, Guid? categoryId = null)
     {
         var weekEnd = weekStart.AddDays(7);
-        return await GetEventsForWeekAsync(userId, weekStart, weekEnd);
+
+        IQueryable<Event> query = _dbSet
+            .Where(e => e.UserId == userId &&
+                       e.StartDate >= weekStart &&
+                       e.StartDate < weekEnd);
+
+        if (categoryId.HasValue)
+        {
+            query = query.Where(e => e.EventCategoryId == categoryId.Value);
+        }
+
+        return await query
+            .Include(e => e.EventCategory)
+            .OrderBy(e => e.StartDate)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Event>> GetMonthlyEventsAsync(Guid userId, int year, int month, Guid? categoryId = null)
+    {
+        var monthStart = new DateTime(year, month, 1);
+        var monthEnd = monthStart.AddMonths(1);
+
+        IQueryable<Event> query = _dbSet
+            .Where(e => e.UserId == userId &&
+                       e.StartDate >= monthStart &&
+                       e.StartDate < monthEnd);
+
+        if (categoryId.HasValue)
+        {
+            query = query.Where(e => e.EventCategoryId == categoryId.Value);
+        }
+
+        return await query
+            .Include(e => e.EventCategory)
+            .OrderBy(e => e.StartDate)
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Event>> GetEventsByCategoryAsync(Guid userId, Guid categoryId)

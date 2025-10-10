@@ -1,6 +1,6 @@
-import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
-import type { EventDto } from '../services/apiService';
+import type { EventCategoryDto, EventDto } from '../services/apiService';
+import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
 import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
 import { EventFormModal } from './EventFormModal';
 import { FloatingNLPInput } from './FloatingNLPInput';
@@ -12,10 +12,18 @@ const MainDashboard: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<EventCategoryDto[]>([]);
+  const [showFilters, setShowFilters] = useState(true);
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
     console.log('Changing view to:', view);
+  };
+
+  const handleCategoryChange = (categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+    console.log('Category filter changed:', categoryId);
   };
 
   const handleEventCreated = () => {
@@ -35,9 +43,8 @@ const MainDashboard: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleFABClick = () => {
-    setSelectedDate(undefined);
-    setIsModalOpen(true);
+  const handleCategoriesLoaded = (loadedCategories: EventCategoryDto[]) => {
+    setCategories(loadedCategories);
   };
 
   const renderMainContent = () => {
@@ -48,14 +55,27 @@ const MainDashboard: React.FC = () => {
             key={refreshKey}
             onEventClick={handleEventClick}
             onAddEvent={handleAddEvent}
+            selectedCategoryId={selectedCategoryId}
+            onCategoriesLoaded={handleCategoriesLoaded}
+            showFilters={showFilters}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            categories={categories}
+            onCategoryChange={handleCategoryChange}
           />
         );
       case 'calendar-month':
         return (
-          <div className="placeholder-view">
-            <h2>Vista Mensual</h2>
-            <p>Esta vista estará disponible pronto</p>
-          </div>
+          <AuroraMonthlyCalendar
+            key={refreshKey}
+            onEventClick={handleEventClick}
+            onAddEvent={handleAddEvent}
+            selectedCategoryId={selectedCategoryId}
+            onCategoriesLoaded={handleCategoriesLoaded}
+            showFilters={showFilters}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            categories={categories}
+            onCategoryChange={handleCategoryChange}
+          />
         );
       case 'wellness':
         return (
@@ -83,6 +103,8 @@ const MainDashboard: React.FC = () => {
           <AuroraWeeklyCalendar
             onEventClick={handleEventClick}
             onAddEvent={handleAddEvent}
+            selectedCategoryId={selectedCategoryId}
+            onCategoriesLoaded={handleCategoriesLoaded}
           />
         );
     }
@@ -97,16 +119,6 @@ const MainDashboard: React.FC = () => {
       <main className="dashboard-content">
         {renderMainContent()}
       </main>
-
-      {/* FAB - Floating Action Button */}
-      <button
-        className="dashboard-fab"
-        onClick={handleFABClick}
-        aria-label="Crear nuevo evento"
-        title="Crear nuevo evento"
-      >
-        <Plus size={24} />
-      </button>
 
       {/* NLP Input */}
       <FloatingNLPInput onEventCreated={handleEventCreated} />

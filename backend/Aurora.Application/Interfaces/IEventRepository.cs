@@ -21,8 +21,19 @@ public interface IEventRepository : IRepository<Event>
     /// </summary>
     /// <param name="userId">ID del usuario</param>
     /// <param name="weekStart">Fecha de inicio de la semana</param>
+    /// <param name="categoryId">ID de categoría para filtrar (opcional)</param>
     /// <returns>Lista de eventos de la semana</returns>
-    Task<IEnumerable<Event>> GetWeeklyEventsAsync(Guid userId, DateTime weekStart);
+    Task<IEnumerable<Event>> GetWeeklyEventsAsync(Guid userId, DateTime weekStart, Guid? categoryId = null);
+
+    /// <summary>
+    /// Obtiene eventos de un mes específico para un usuario
+    /// </summary>
+    /// <param name="userId">ID del usuario</param>
+    /// <param name="year">Año del mes a consultar</param>
+    /// <param name="month">Mes a consultar (1-12)</param>
+    /// <param name="categoryId">ID de categoría para filtrar (opcional)</param>
+    /// <returns>Lista de eventos del mes</returns>
+    Task<IEnumerable<Event>> GetMonthlyEventsAsync(Guid userId, int year, int month, Guid? categoryId = null);
 
     /// <summary>
     /// Obtiene eventos de un usuario por categoría
