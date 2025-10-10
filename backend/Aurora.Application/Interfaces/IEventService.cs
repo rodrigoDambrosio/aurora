@@ -12,8 +12,19 @@ public interface IEventService
     /// </summary>
     /// <param name="userId">ID del usuario (opcional en modo desarrollo)</param>
     /// <param name="weekStart">Fecha de inicio de la semana</param>
+    /// <param name="categoryId">ID de categoría para filtrar (opcional)</param>
     /// <returns>Respuesta con eventos de la semana</returns>
-    Task<WeeklyEventsResponseDto> GetWeeklyEventsAsync(Guid? userId, DateTime weekStart);
+    Task<WeeklyEventsResponseDto> GetWeeklyEventsAsync(Guid? userId, DateTime weekStart, Guid? categoryId = null);
+
+    /// <summary>
+    /// Obtiene eventos de un mes específico para un usuario
+    /// </summary>
+    /// <param name="userId">ID del usuario (opcional en modo desarrollo)</param>
+    /// <param name="year">Año del mes a consultar</param>
+    /// <param name="month">Mes a consultar (1-12)</param>
+    /// <param name="categoryId">ID de categoría para filtrar (opcional)</param>
+    /// <returns>Respuesta con eventos del mes</returns>
+    Task<WeeklyEventsResponseDto> GetMonthlyEventsAsync(Guid? userId, int year, int month, Guid? categoryId = null);
 
     /// <summary>
     /// Obtiene un evento específico por su ID

@@ -1,7 +1,9 @@
 import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
-import type { EventDto } from '../services/apiService';
+import type { EventCategoryDto, EventDto } from '../services/apiService';
+import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
 import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
+import { CategoryFilter } from './CategoryFilter';
 import { EventFormModal } from './EventFormModal';
 import { FloatingNLPInput } from './FloatingNLPInput';
 import './MainDashboard.css';
@@ -12,10 +14,17 @@ const MainDashboard: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<EventCategoryDto[]>([]);
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
     console.log('Changing view to:', view);
+  };
+
+  const handleCategoryChange = (categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+    console.log('Category filter changed:', categoryId);
   };
 
   const handleEventCreated = () => {
@@ -40,22 +49,53 @@ const MainDashboard: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleCategoriesLoaded = (loadedCategories: EventCategoryDto[]) => {
+    setCategories(loadedCategories);
+  };
+
   const renderMainContent = () => {
     switch (activeView) {
       case 'calendar-week':
         return (
-          <AuroraWeeklyCalendar
-            key={refreshKey}
-            onEventClick={handleEventClick}
-            onAddEvent={handleAddEvent}
-          />
+          <>
+            {categories.length > 0 && (
+              <div style={{ padding: '16px', borderBottom: '1px solid #c8cde2' }}>
+                <CategoryFilter
+                  categories={categories}
+                  selectedCategoryId={selectedCategoryId}
+                  onCategoryChange={handleCategoryChange}
+                />
+              </div>
+            )}
+            <AuroraWeeklyCalendar
+              key={refreshKey}
+              onEventClick={handleEventClick}
+              onAddEvent={handleAddEvent}
+              selectedCategoryId={selectedCategoryId}
+              onCategoriesLoaded={handleCategoriesLoaded}
+            />
+          </>
         );
       case 'calendar-month':
         return (
-          <div className="placeholder-view">
-            <h2>Vista Mensual</h2>
-            <p>Esta vista estará disponible pronto</p>
-          </div>
+          <>
+            {categories.length > 0 && (
+              <div style={{ padding: '16px', borderBottom: '1px solid #c8cde2' }}>
+                <CategoryFilter
+                  categories={categories}
+                  selectedCategoryId={selectedCategoryId}
+                  onCategoryChange={handleCategoryChange}
+                />
+              </div>
+            )}
+            <AuroraMonthlyCalendar
+              key={refreshKey}
+              onEventClick={handleEventClick}
+              onAddEvent={handleAddEvent}
+              selectedCategoryId={selectedCategoryId}
+              onCategoriesLoaded={handleCategoriesLoaded}
+            />
+          </>
         );
       case 'wellness':
         return (
@@ -83,6 +123,8 @@ const MainDashboard: React.FC = () => {
           <AuroraWeeklyCalendar
             onEventClick={handleEventClick}
             onAddEvent={handleAddEvent}
+            selectedCategoryId={selectedCategoryId}
+            onCategoriesLoaded={handleCategoriesLoaded}
           />
         );
     }

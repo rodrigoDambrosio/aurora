@@ -19,7 +19,7 @@ public class EventService : IEventService
         _categoryRepository = categoryRepository ?? throw new ArgumentNullException(nameof(categoryRepository));
     }
 
-    public async Task<WeeklyEventsResponseDto> GetWeeklyEventsAsync(Guid? userId, DateTime weekStart)
+    public async Task<WeeklyEventsResponseDto> GetWeeklyEventsAsync(Guid? userId, DateTime weekStart, Guid? categoryId = null)
     {
         var currentUserId = DevelopmentUserService.GetCurrentUserId(userId);
 
@@ -27,7 +27,7 @@ public class EventService : IEventService
         var weekEnd = weekStart.AddDays(7).AddTicks(-1);
 
         // Obtener eventos de la semana
-        var events = await _eventRepository.GetWeeklyEventsAsync(currentUserId, weekStart);
+        var events = await _eventRepository.GetWeeklyEventsAsync(currentUserId, weekStart, categoryId);
 
         // Obtener categorías disponibles para el usuario
         var categories = await _categoryRepository.GetAvailableCategoriesForUserAsync(currentUserId);
@@ -46,6 +46,37 @@ public class EventService : IEventService
             Categories = categoryDtos,
             TotalEvents = eventDtos.Count,
             HasMoreEvents = false // TODO: Implementar lógica de paginación si es necesario
+        };
+    }
+
+    public async Task<WeeklyEventsResponseDto> GetMonthlyEventsAsync(Guid? userId, int year, int month, Guid? categoryId = null)
+    {
+        var currentUserId = DevelopmentUserService.GetCurrentUserId(userId);
+
+        // Calcular inicio y fin del mes
+        var monthStart = new DateTime(year, month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
+
+        // Obtener eventos del mes
+        var events = await _eventRepository.GetMonthlyEventsAsync(currentUserId, year, month, categoryId);
+
+        // Obtener categorías disponibles para el usuario
+        var categories = await _categoryRepository.GetAvailableCategoriesForUserAsync(currentUserId);
+
+        // Convertir eventos a DTOs
+        var eventDtos = events.Select(MapEventToDto).ToList();
+
+        // Convertir categorías a DTOs
+        var categoryDtos = categories.Select(MapCategoryToDto).ToList();
+
+        return new WeeklyEventsResponseDto
+        {
+            Events = eventDtos,
+            WeekStart = monthStart,
+            WeekEnd = monthEnd,
+            Categories = categoryDtos,
+            TotalEvents = eventDtos.Count,
+            HasMoreEvents = false
         };
     }
 

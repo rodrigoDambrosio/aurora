@@ -1,17 +1,21 @@
 import { Filter } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import type { EventDto, WeeklyEventsResponseDto } from '../services/apiService';
+import type { EventCategoryDto, EventDto, WeeklyEventsResponseDto } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './AuroraWeeklyCalendar.css';
 
 interface AuroraWeeklyCalendarProps {
   onEventClick?: (event: EventDto) => void;
   onAddEvent?: (date: Date) => void;
+  selectedCategoryId?: string | null;
+  onCategoriesLoaded?: (categories: EventCategoryDto[]) => void;
 }
 
 const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   onEventClick,
-  onAddEvent
+  onAddEvent,
+  selectedCategoryId,
+  onCategoriesLoaded
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showFilters, setShowFilters] = useState(false);
@@ -49,8 +53,18 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
 
     try {
       const weekStartISO = weekStartDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-      const response = await apiService.getWeeklyEvents(weekStartISO);
+      const response = await apiService.getWeeklyEvents(
+        weekStartISO,
+        undefined,
+        selectedCategoryId || undefined
+      );
       setWeeklyData(response);
+
+      // Notificar categorías cargadas al padre
+      if (onCategoriesLoaded && response.categories) {
+        onCategoriesLoaded(response.categories);
+      }
+
       console.log('Weekly events loaded successfully:', response);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -61,10 +75,11 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     }
   };
 
-  // Load events when component mounts or current date changes
+  // Load events when component mounts, current date changes, or category filter changes
   useEffect(() => {
     loadWeeklyEvents(weekStart);
-  }, [weekStart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekStart, selectedCategoryId]);
 
   // Navigation functions
   const goToPreviousWeek = () => {
