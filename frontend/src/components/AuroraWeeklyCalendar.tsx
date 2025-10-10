@@ -305,6 +305,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
               className={`settings-btn ${showFilters ? 'active' : ''}`}
               onClick={onToggleFilters}
               title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+              aria-label="Filtrar por categoría"
             >
               <Filter className="w-4 h-4" />
             </button>
@@ -383,6 +384,15 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                           color: categoryColor
                         }}
                         onClick={() => onEventClick?.(event)}
+                        onKeyDown={(keyboardEvent) => {
+                          if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                            keyboardEvent.preventDefault();
+                            onEventClick?.(event);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Ver detalle del evento ${event.title}`}
                       >
                         <div className="event-title">{event.title}</div>
                         <div className="event-time">{getEventTimeRange(event)}</div>

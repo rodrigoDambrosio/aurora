@@ -1,21 +1,27 @@
 import { Calendar, Clock, FileText, MapPin, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import type { CreateEventDto, EventCategoryDto } from '../services/apiService';
+import type { CreateEventDto, EventCategoryDto, EventDto } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './EventFormModal.css';
 
 interface EventFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onEventCreated: () => void;
+  onEventCreated?: () => void;
+  onEventUpdated?: () => void;
   initialDate?: Date;
+  mode?: 'create' | 'edit';
+  eventToEdit?: EventDto | null;
 }
 
 export const EventFormModal: React.FC<EventFormModalProps> = ({
   isOpen,
   onClose,
   onEventCreated,
-  initialDate
+  onEventUpdated,
+  initialDate,
+  mode = 'create',
+  eventToEdit
 }) => {
   const [categories, setCategories] = useState<EventCategoryDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,24 +38,63 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
 
+  const isCreateMode = mode === 'create';
+
+  const extractDatePart = (isoDate: string | undefined) =>
+    isoDate && isoDate.length >= 10 ? isoDate.slice(0, 10) : '';
+
+  const extractTimePart = (isoDate: string | undefined) =>
+    isoDate && isoDate.length >= 16 ? isoDate.slice(11, 16) : '';
+
   // Load categories on mount
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
     const loadCategories = async () => {
       try {
         const cats = await apiService.getEventCategories();
         setCategories(cats);
-        if (cats.length > 0 && !categoryId) {
-          setCategoryId(cats[0].id);
+        if (cats.length > 0) {
+          if (!isCreateMode && eventToEdit?.eventCategory?.id) {
+            setCategoryId(eventToEdit.eventCategory.id);
+          } else {
+            setCategoryId((currentId) => currentId || cats[0].id);
+          }
         }
       } catch (err) {
         console.error('Error loading categories:', err);
       }
     };
 
-    if (isOpen) {
-      loadCategories();
+    loadCategories();
+  }, [isOpen, isCreateMode, eventToEdit]);
 
-      // Set initial date if provided
+  // Prefill form data when opening the modal
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (!isCreateMode && eventToEdit) {
+      setTitle(eventToEdit.title);
+      setDescription(eventToEdit.description ?? '');
+      setIsAllDay(eventToEdit.isAllDay);
+      setStartDate(extractDatePart(eventToEdit.startDate));
+      setEndDate(extractDatePart(eventToEdit.endDate));
+      setStartTime(extractTimePart(eventToEdit.startDate) || '09:00');
+      setEndTime(extractTimePart(eventToEdit.endDate) || '10:00');
+      setLocation(eventToEdit.location ?? '');
+      setCategoryId(eventToEdit.eventCategory?.id ?? '');
+    } else {
+      setTitle('');
+      setDescription('');
+      setIsAllDay(false);
+      setStartTime('09:00');
+      setEndTime('10:00');
+      setLocation('');
+
       if (initialDate) {
         const dateStr = initialDate.toISOString().split('T')[0];
         setStartDate(dateStr);
@@ -60,7 +105,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         setEndDate(today);
       }
     }
-  }, [isOpen, initialDate, categoryId]);
+  }, [isOpen, isCreateMode, eventToEdit, initialDate]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -71,7 +116,10 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setIsAllDay(false);
       setStartTime('09:00');
       setEndTime('10:00');
+      setStartDate('');
+      setEndDate('');
       setError('');
+      setCategoryId('');
     }
   }, [isOpen]);
 
@@ -111,15 +159,24 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
       console.log('Creating event:', eventDto);
 
-      await apiService.createEvent(eventDto);
+      if (isCreateMode) {
+        await apiService.createEvent(eventDto);
+        console.log('Event created successfully');
+        onEventCreated?.();
+      } else if (eventToEdit) {
+        await apiService.updateEvent(eventToEdit.id, eventDto);
+        console.log('Event updated successfully');
+        onEventUpdated?.();
+      }
 
-      console.log('Event created successfully');
-      onEventCreated();
       onClose();
     } catch (err) {
       const error = err as Error;
-      console.error('Error creating event:', error);
-      setError(error.message || 'Error al crear el evento');
+      console.error('Error saving event:', error);
+      setError(
+        error.message ||
+        (isCreateMode ? 'Error al crear el evento' : 'Error al actualizar el evento')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -157,7 +214,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             <div className="event-modal-icon">
               <Calendar size={20} />
             </div>
-            <h2>Crear Nuevo Evento</h2>
+            <h2>{isCreateMode ? 'Crear Nuevo Evento' : 'Editar Evento'}</h2>
           </div>
           <button
             type="button"
@@ -341,7 +398,13 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               className="event-form-button event-form-button-submit"
               disabled={isLoading || !title.trim()}
             >
-              {isLoading ? 'Creando...' : 'Crear Evento'}
+              {isLoading
+                ? isCreateMode
+                  ? 'Creando...'
+                  : 'Actualizando...'
+                : isCreateMode
+                  ? 'Crear Evento'
+                  : 'Actualizar Evento'}
             </button>
           </div>
         </form>

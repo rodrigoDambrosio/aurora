@@ -2,12 +2,44 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MainDashboard from '../../components/MainDashboard'
+import { apiService } from '../../services/apiService'
+
+vi.mock('../../services/apiService', () => ({
+  apiService: {
+    deleteEvent: vi.fn().mockResolvedValue(undefined),
+    getEventCategories: vi.fn().mockResolvedValue([]),
+    createEvent: vi.fn().mockResolvedValue({}),
+    updateEvent: vi.fn().mockResolvedValue({})
+  }
+}))
 
 // Mock the child components
+const mockEvent = {
+  id: '1',
+  title: 'Test Event',
+  description: 'Descripción de prueba',
+  startDate: '2025-10-10T10:00:00',
+  endDate: '2025-10-10T11:00:00',
+  isAllDay: false,
+  location: 'Sala 1',
+  color: '#1447e6',
+  notes: 'Alta',
+  isRecurring: false,
+  eventCategory: {
+    id: 'cat-1',
+    name: 'Trabajo',
+    description: 'Eventos laborales',
+    color: '#1447e6',
+    icon: undefined,
+    isSystemDefault: true,
+    sortOrder: 1
+  }
+};
+
 vi.mock('../../components/AuroraWeeklyCalendar', () => ({
-  default: ({ onEventClick, onAddEvent }: { onEventClick: Function, onAddEvent: Function }) => (
+  default: ({ onEventClick, onAddEvent }: { onEventClick: (event: typeof mockEvent) => void, onAddEvent: (date: Date) => void }) => (
     <div data-testid="weekly-calendar">
-      <button onClick={() => onEventClick({ id: '1', title: 'Test Event' })}>
+      <button onClick={() => onEventClick(mockEvent)}>
         Mock Event
       </button>
       <button onClick={() => onAddEvent(new Date())}>
@@ -18,7 +50,7 @@ vi.mock('../../components/AuroraWeeklyCalendar', () => ({
 }))
 
 vi.mock('../../components/Navigation', () => ({
-  default: ({ activeView, onViewChange }: { activeView: string, onViewChange: Function }) => (
+  default: ({ activeView, onViewChange }: { activeView: string, onViewChange: (view: string) => void }) => (
     <nav data-testid="navigation">
       <button
         onClick={() => onViewChange('calendar-week')}
@@ -43,7 +75,7 @@ vi.mock('../../components/Navigation', () => ({
 }))
 
 vi.mock('../../components/FloatingNLPInput', () => ({
-  FloatingNLPInput: ({ onEventCreated }: { onEventCreated: Function }) => (
+  FloatingNLPInput: ({ onEventCreated }: { onEventCreated: () => void }) => (
     <button data-testid="nlp-input" onClick={() => onEventCreated()}>
       NLP Input
     </button>
@@ -90,30 +122,27 @@ describe('MainDashboard', () => {
 
   it('handles event click from weekly calendar', async () => {
     const user = userEvent.setup()
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { })
 
     render(<MainDashboard />)
 
     const mockEventButton = screen.getByText('Mock Event')
     await user.click(mockEventButton)
 
-    expect(consoleSpy).toHaveBeenCalledWith('Event clicked:', { id: '1', title: 'Test Event' })
-
-    consoleSpy.mockRestore()
+    expect(screen.getByRole('dialog', { name: /Test Event/i })).toBeInTheDocument()
+    expect(screen.getByText('Horario')).toBeInTheDocument()
   })
 
   it('handles add event from weekly calendar', async () => {
     const user = userEvent.setup()
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { })
 
     render(<MainDashboard />)
 
     const mockAddEventButton = screen.getByText('Mock Add Event')
     await user.click(mockAddEventButton)
 
-    expect(consoleSpy).toHaveBeenCalledWith('Adding event for date:', expect.any(Date))
-
-    consoleSpy.mockRestore()
+    await waitFor(() => {
+      expect(screen.getByText('Crear Nuevo Evento')).toBeInTheDocument()
+    })
   })
 
   it('handles event created from NLP input', async () => {
@@ -128,6 +157,27 @@ describe('MainDashboard', () => {
     expect(consoleSpy).toHaveBeenCalledWith('Evento creado - refrescando calendario')
 
     consoleSpy.mockRestore()
+  })
+
+  it('allows deleting an event from the detail modal', async () => {
+    const user = userEvent.setup()
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<MainDashboard />)
+
+    const mockEventButton = screen.getByText('Mock Event')
+    await user.click(mockEventButton)
+
+    const deleteButton = screen.getByText('Eliminar')
+    await user.click(deleteButton)
+
+    await waitFor(() => {
+      expect(apiService.deleteEvent).toHaveBeenCalledWith('1')
+    })
+
+    expect(screen.queryByRole('dialog', { name: /Test Event/i })).not.toBeInTheDocument()
+
+    confirmSpy.mockRestore()
   })
 
   it('shows placeholder for wellness view', async () => {
