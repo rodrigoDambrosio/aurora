@@ -129,6 +129,15 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
     onClose();
   };
 
+  const handleStartDateChange = (newStartDate: string) => {
+    setStartDate(newStartDate);
+
+    // Si la fecha de fin es anterior a la nueva fecha de inicio, ajustarla
+    if (endDate && newStartDate > endDate) {
+      setEndDate(newStartDate);
+    }
+  };
+
   const getSelectedCategory = () => {
     return categories.find(c => c.id === categoryId);
   };
@@ -233,7 +242,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 type="date"
                 className="event-form-input"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => handleStartDateChange(e.target.value)}
                 required
               />
             </div>
@@ -245,6 +254,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 className="event-form-input"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                min={startDate}
                 required
               />
             </div>
