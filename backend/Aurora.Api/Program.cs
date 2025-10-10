@@ -2,6 +2,7 @@ using Aurora.Application.Interfaces;
 using Aurora.Application.Services;
 using Aurora.Infrastructure.Data;
 using Aurora.Infrastructure.Repositories;
+using Aurora.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +33,12 @@ builder.Services.AddScoped<IEventCategoryRepository, EventCategoryRepository>();
 
 // Application Services
 builder.Services.AddScoped<IEventService, EventService>();
+
+// AI Validation Service with HttpClient
+builder.Services.AddHttpClient<IAIValidationService, GeminiAIValidationService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // API Controllers
 builder.Services.AddControllers();

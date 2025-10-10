@@ -19,6 +19,10 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
+  // Drag and drop state
+  const [draggedEvent, setDraggedEvent] = useState<EventDto | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<Date | null>(null);
+
   // Get start of the week (Monday)
   const getWeekStart = (date: Date): Date => {
     const d = new Date(date);
@@ -146,6 +150,99 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (event: EventDto, e: React.DragEvent) => {
+    setDraggedEvent(event);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add visual feedback
+    e.currentTarget.classList.add('dragging');
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setDraggedEvent(null);
+    setDragOverDate(null);
+    e.currentTarget.classList.remove('dragging');
+  };
+
+  const handleDragOver = (date: Date, e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverDate(date);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverDate(null);
+  };
+
+  const handleDrop = async (targetDate: Date, e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverDate(null);
+
+    if (!draggedEvent) return;
+
+    try {
+      // Get the original date (without time)
+      const originalStart = new Date(draggedEvent.startDate);
+      const originalDateOnly = originalStart.toISOString().split('T')[0];
+      const targetDateOnly = targetDate.toISOString().split('T')[0];
+
+      // Check if the date actually changed
+      if (originalDateOnly === targetDateOnly) {
+        console.log('Event dropped on same day, no update needed');
+        setDraggedEvent(null);
+        return;
+      }
+
+      const originalEnd = new Date(draggedEvent.endDate);
+
+      // Calculate day difference
+      const originalDateObj = new Date(originalDateOnly);
+      const targetDateObj = new Date(targetDateOnly);
+      const dayDiff = Math.floor((targetDateObj.getTime() - originalDateObj.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Create new dates by adding the day difference
+      const newStartDate = new Date(originalStart);
+      newStartDate.setDate(newStartDate.getDate() + dayDiff);
+
+      const newEndDate = new Date(originalEnd);
+      newEndDate.setDate(newEndDate.getDate() + dayDiff);
+
+      // Format dates to ISO string without timezone conversion
+      const formatToLocalISO = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      };
+
+      // Update event via API
+      const updatedEvent = {
+        title: draggedEvent.title,
+        description: draggedEvent.description,
+        startDate: formatToLocalISO(newStartDate),
+        endDate: formatToLocalISO(newEndDate),
+        location: draggedEvent.location,
+        eventCategoryId: draggedEvent.eventCategory?.id || '',
+        isAllDay: draggedEvent.isAllDay
+      };
+
+      console.log('Moving event from', originalDateOnly, 'to', targetDateOnly);
+      await apiService.updateEvent(draggedEvent.id, updatedEvent);
+      console.log('Event moved successfully');
+
+      // Reload events
+      await loadWeeklyEvents(weekStart);
+    } catch (err) {
+      console.error('Error moving event:', err);
+      setError('Error al mover el evento');
+    } finally {
+      setDraggedEvent(null);
+    }
+  };
+
   const totalEvents = weeklyData?.events.length || 0;
 
   // Show loading state
@@ -232,7 +329,13 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
           const dayEvents = getEventsByDate(date);
 
           return (
-            <div key={dayIndex} className="day-column">
+            <div
+              key={dayIndex}
+              className={`day-column ${dragOverDate?.toDateString() === date.toDateString() ? 'drag-over' : ''}`}
+              onDragOver={(e) => handleDragOver(date, e)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(date, e)}
+            >
               {dayEvents.length === 0 ? (
                 <div className="add-event-placeholder" onClick={() => onAddEvent?.(date)}>
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -249,6 +352,9 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                       <div
                         key={event.id}
                         className="event-card"
+                        draggable
+                        onDragStart={(e) => handleDragStart(event, e)}
+                        onDragEnd={handleDragEnd}
                         style={{
                           backgroundColor: colors.bg,
                           borderLeftColor: colors.border,
@@ -268,6 +374,13 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                       </div>
                     );
                   })}
+                  {/* Add event button at the bottom */}
+                  <div className="add-event-placeholder compact" onClick={() => onAddEvent?.(date)}>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+                    <span>Agregar evento</span>
+                  </div>
                 </div>
               )}
             </div>

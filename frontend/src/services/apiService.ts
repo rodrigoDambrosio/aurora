@@ -67,6 +67,25 @@ export interface CreateEventDto {
   eventCategoryId: string;
 }
 
+export interface ParseNaturalLanguageRequestDto {
+  text: string;
+  timezoneOffsetMinutes: number;
+}
+
+export interface AIValidationResult {
+  isApproved: boolean;
+  recommendationMessage: string;
+  severity: 'Info' | 'Warning' | 'Critical' | 0 | 1 | 2 | number;
+  suggestions: string[];
+}
+
+export interface ParseNaturalLanguageResponseDto {
+  success: boolean;
+  event: CreateEventDto;
+  validation?: AIValidationResult;
+  errorMessage?: string;
+}
+
 // Legacy interfaces for backward compatibility
 export interface TestDataItem {
   id: number;
@@ -251,6 +270,24 @@ export const apiService = {
   async deleteEvent(id: string): Promise<void> {
     return this.fetchApi<void>(`/events/${id}`, {
       method: 'DELETE'
+    });
+  },
+
+  /**
+   * Parse natural language text to event using AI
+   */
+  async parseNaturalLanguage(text: string): Promise<ParseNaturalLanguageResponseDto> {
+    // Obtener el offset de zona horaria del navegador en minutos
+    const timezoneOffsetMinutes = -new Date().getTimezoneOffset();
+
+    const request: ParseNaturalLanguageRequestDto = {
+      text,
+      timezoneOffsetMinutes
+    };
+
+    return this.fetchApi<ParseNaturalLanguageResponseDto>('/events/from-text', {
+      method: 'POST',
+      body: JSON.stringify(request)
     });
   }
 };

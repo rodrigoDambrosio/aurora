@@ -1,18 +1,16 @@
 import { MessageSquare, Send, Sparkles, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { type FormEvent, useState } from 'react';
+import type { AIValidationResult, CreateEventDto } from '../services/apiService';
+import { apiService } from '../services/apiService';
 import './FloatingNLPInput.css';
 
 interface FloatingNLPInputProps {
   onEventCreated: () => void;
 }
 
-interface ParsedEvent {
-  title: string;
-  date: string;
-  time: string;
-  category: string;
-  confidence: number;
+interface ParsedEvent extends CreateEventDto {
+  categoryName: string;
 }
 
 export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
@@ -20,6 +18,10 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [parsedEvent, setParsedEvent] = useState<ParsedEvent | null>(null);
+  const [validation, setValidation] = useState<AIValidationResult | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const examples = [
     "reunión con cliente mañana a las 3pm",
@@ -28,42 +30,150 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
     "cena familiar el viernes 8pm"
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const resetState = () => {
+    setInput('');
+    setParsedEvent(null);
+    setValidation(null);
+    setIsProcessing(false);
+    setIsCreating(false);
+    setError(null);
+    setIsEditing(false);
+    setIsOpen(false);
+  };
+
+  const formatDate = (isoDate: string) => {
+    try {
+      return new Intl.DateTimeFormat('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+      }).format(new Date(isoDate));
+    } catch {
+      return 'Fecha no disponible';
+    }
+  };
+
+  const formatTime = (isoDate: string) => {
+    try {
+      return new Intl.DateTimeFormat('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date(isoDate));
+    } catch {
+      return '--:--';
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
+    console.log('[FloatingNLPInput] Iniciando análisis:', input);
+    setError(null);
     setIsProcessing(true);
+    setParsedEvent(null);
+    setValidation(null);
 
-    // Simular procesamiento de NLP
-    setTimeout(() => {
-      // Mock parsing result
-      const mockResult: ParsedEvent = {
-        title: input.charAt(0).toUpperCase() + input.slice(1),
-        date: 'Mañana',
-        time: '15:00',
-        category: 'Trabajo',
-        confidence: 0.85
+    try {
+      // Llamar al backend para parsear el texto con IA
+      console.log('[FloatingNLPInput] Llamando a parseNaturalLanguage...');
+      const response = await apiService.parseNaturalLanguage(input);
+      console.log('[FloatingNLPInput] Respuesta recibida:', response);
+
+      if (!response.success || !response.event) {
+        throw new Error(response.errorMessage || 'No se pudo interpretar el texto');
+      }
+
+      // Obtener el nombre de la categoría para mostrar
+      console.log('[FloatingNLPInput] Obteniendo categorías...');
+      const categories = await apiService.getEventCategories();
+      const category = categories.find(c => c.id === response.event.eventCategoryId);
+
+      const parsed = {
+        ...response.event,
+        categoryName: category?.name || 'Sin categoría'
       };
 
-      setParsedEvent(mockResult);
+      console.log('[FloatingNLPInput] ParsedEvent a setear:', parsed);
+      console.log('[FloatingNLPInput] Estado actual - isProcessing:', isProcessing, 'parsedEvent:', parsedEvent);
+
+      setParsedEvent(parsed);
+
+      if (response.validation) {
+        console.log('[FloatingNLPInput] Validation a setear:', response.validation);
+        setValidation(response.validation);
+      }
+
+      console.log('[FloatingNLPInput] Análisis completado exitosamente');
+    } catch (err) {
+      console.error('[FloatingNLPInput] Error interpretando el mensaje:', err);
+      const message = err instanceof Error
+        ? err.message
+        : 'No pudimos interpretar tu solicitud. Inténtalo nuevamente.';
+      setError(message);
+    } finally {
+      console.log('[FloatingNLPInput] Finalizando análisis, setIsProcessing(false)');
       setIsProcessing(false);
-    }, 1500);
+
+      // Log después de setear para verificar
+      setTimeout(() => {
+        console.log('[FloatingNLPInput] Estado después del finally - isProcessing:', isProcessing, 'parsedEvent:', parsedEvent);
+      }, 100);
+    }
   };
 
-  const handleConfirm = () => {
-    // Simular creación del evento
-    setTimeout(() => {
+  const handleConfirm = async () => {
+    if (!parsedEvent || isCreating) return;
+
+    setError(null);
+    setIsCreating(true);
+
+    try {
+      // El evento ya viene parseado del backend, solo crearlo
+      const { categoryName, ...eventData } = parsedEvent;
+      await apiService.createEvent(eventData);
       onEventCreated();
-      setInput('');
-      setParsedEvent(null);
-      setIsOpen(false);
-    }, 500);
+      resetState();
+    } catch (err) {
+      console.error('Error creando el evento:', err);
+      const message = err instanceof Error
+        ? err.message
+        : 'No pudimos crear el evento. Inténtalo nuevamente.';
+      setError(message);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleCancel = () => {
     setInput('');
     setParsedEvent(null);
+    setValidation(null);
     setIsProcessing(false);
+    setIsEditing(false);
+    setError(null);
+  };
+
+  // Helper para convertir severity numérica a string
+  const getSeverityString = (severity: string | number | undefined): string => {
+    if (typeof severity === 'string') return severity;
+    if (severity === 2) return 'Critical';
+    if (severity === 1) return 'Warning';
+    return 'Info';
+  };
+
+  const getSeverityEmoji = (severity: string | number | undefined): string => {
+    const severityStr = getSeverityString(severity);
+    if (severityStr === 'Critical') return '⚠️';
+    if (severityStr === 'Warning') return '⚡';
+    return 'ℹ️';
+  };
+
+  const getSeverityLabel = (severity: string | number | undefined): string => {
+    const severityStr = getSeverityString(severity);
+    if (severityStr === 'Critical') return 'Conflicto';
+    if (severityStr === 'Warning') return 'Advertencia';
+    return 'Información';
   };
 
   return (
@@ -111,8 +221,18 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
               </button>
             </div>
 
+            {/* Error State */}
+            {error && (
+              <div className="nlp-feedback nlp-feedback-error">
+                <p>{error}</p>
+                <button onClick={() => setError(null)} className="nlp-feedback-close">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
             {/* Input Form */}
-            {!parsedEvent && (
+            {!parsedEvent && !isProcessing && (
               <div className="nlp-form">
                 <form onSubmit={handleSubmit}>
                   <div className="nlp-input-container">
@@ -147,6 +267,7 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
                         key={index}
                         onClick={() => setInput(example)}
                         className="nlp-example-button"
+                        disabled={isProcessing}
                       >
                         {example}
                       </button>
@@ -171,32 +292,136 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
             {/* Confirmation */}
             {parsedEvent && !isProcessing && (
               <div className="nlp-confirmation">
-                <div className="nlp-event-preview">
-                  <div className="nlp-event-header">
-                    <h4 className="nlp-event-title">{parsedEvent.title}</h4>
-                    <span className="nlp-confidence-badge">
-                      {(parsedEvent.confidence * 100).toFixed(0)}% seguro
-                    </span>
+                {/* Validation Feedback */}
+                {validation && validation.recommendationMessage && (
+                  <div className={`nlp-validation nlp-validation-${getSeverityString(validation.severity).toLowerCase()}`}>
+                    <div className="nlp-validation-header">
+                      <span>{getSeverityEmoji(validation.severity)}</span>
+                      <span className="nlp-validation-severity">
+                        {getSeverityLabel(validation.severity)}
+                      </span>
+                    </div>
+                    <p className="nlp-validation-message">{validation.recommendationMessage}</p>
+                    {validation.suggestions && validation.suggestions.length > 0 && (
+                      <ul className="nlp-validation-suggestions">
+                        {validation.suggestions.map((suggestion, idx) => (
+                          <li key={idx}>{suggestion}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <div className="nlp-event-details">
-                    <p>📅 {parsedEvent.date}</p>
-                    <p>🕐 {parsedEvent.time}</p>
-                    <p>🏷️ {parsedEvent.category}</p>
+                )}
+
+                {/* Event Preview or Edit Mode */}
+                {!isEditing ? (
+                  <div className="nlp-event-preview">
+                    <div className="nlp-event-header">
+                      <h4 className="nlp-event-title">{parsedEvent.title}</h4>
+                      <span className="nlp-confidence-badge">
+                        Parseado con IA ✨
+                      </span>
+                    </div>
+                    <div className="nlp-event-details">
+                      <p>📅 {formatDate(parsedEvent.startDate)}</p>
+                      <p>🕐 {formatTime(parsedEvent.startDate)} - {formatTime(parsedEvent.endDate)}</p>
+                      <p>🏷️ {parsedEvent.categoryName}</p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="nlp-edit-form">
+                    <div className="nlp-form-field">
+                      <label className="nlp-form-label">Título</label>
+                      <input
+                        type="text"
+                        value={parsedEvent.title}
+                        onChange={(e) => setParsedEvent({ ...parsedEvent, title: e.target.value })}
+                        className="nlp-form-input"
+                      />
+                    </div>
+
+                    <div className="nlp-form-row">
+                      <div className="nlp-form-field">
+                        <label className="nlp-form-label">Fecha</label>
+                        <input
+                          type="date"
+                          value={parsedEvent.startDate.split('T')[0]}
+                          onChange={(e) => {
+                            const [, time] = parsedEvent.startDate.split('T');
+                            const startTime = new Date(`${e.target.value}T${time}`);
+                            const endTime = new Date(startTime);
+                            endTime.setTime(new Date(parsedEvent.endDate).getTime());
+                            setParsedEvent({
+                              ...parsedEvent,
+                              startDate: startTime.toISOString(),
+                              endDate: endTime.toISOString()
+                            });
+                          }}
+                          className="nlp-form-input"
+                        />
+                      </div>
+
+                      <div className="nlp-form-field">
+                        <label className="nlp-form-label">Hora inicio</label>
+                        <input
+                          type="time"
+                          value={parsedEvent.startDate.split('T')[1]?.substring(0, 5) || ''}
+                          onChange={(e) => {
+                            const [date] = parsedEvent.startDate.split('T');
+                            const startTime = new Date(`${date}T${e.target.value}:00.000Z`);
+                            const duration = new Date(parsedEvent.endDate).getTime() - new Date(parsedEvent.startDate).getTime();
+                            const endTime = new Date(startTime.getTime() + duration);
+                            setParsedEvent({
+                              ...parsedEvent,
+                              startDate: startTime.toISOString(),
+                              endDate: endTime.toISOString()
+                            });
+                          }}
+                          className="nlp-form-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="nlp-form-field">
+                      <label className="nlp-form-label">Duración (minutos)</label>
+                      <input
+                        type="number"
+                        min="15"
+                        step="15"
+                        value={Math.round((new Date(parsedEvent.endDate).getTime() - new Date(parsedEvent.startDate).getTime()) / 60000)}
+                        onChange={(e) => {
+                          const duration = parseInt(e.target.value) * 60000;
+                          const endTime = new Date(new Date(parsedEvent.startDate).getTime() + duration);
+                          setParsedEvent({ ...parsedEvent, endDate: endTime.toISOString() });
+                        }}
+                        className="nlp-form-input"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="nlp-actions">
                   <button
-                    onClick={handleConfirm}
-                    className="nlp-confirm-button"
-                  >
-                    Crear Evento
-                  </button>
-                  <button
                     onClick={handleCancel}
                     className="nlp-cancel-button"
+                    disabled={isCreating}
                   >
                     Cancelar
+                  </button>
+
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="nlp-edit-toggle-button"
+                    disabled={isCreating}
+                  >
+                    {isEditing ? '👁️ Ver' : '✏️ Editar'}
+                  </button>
+
+                  <button
+                    onClick={handleConfirm}
+                    className={`nlp-confirm-button ${!validation?.isApproved ? 'nlp-button-warning' : ''}`}
+                    disabled={isCreating || !parsedEvent.title.trim()}
+                  >
+                    {isCreating ? 'Creando...' : (validation?.isApproved ? 'Confirmar' : 'Crear de todas formas')}
                   </button>
                 </div>
               </div>

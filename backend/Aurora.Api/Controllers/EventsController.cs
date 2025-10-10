@@ -14,11 +14,19 @@ namespace Aurora.Api.Controllers;
 public class EventsController : ControllerBase
 {
     private readonly IEventService _eventService;
+    private readonly IAIValidationService _aiValidationService;
+    private readonly IEventCategoryRepository _eventCategoryRepository;
     private readonly ILogger<EventsController> _logger;
 
-    public EventsController(IEventService eventService, ILogger<EventsController> logger)
+    public EventsController(
+        IEventService eventService,
+        IAIValidationService aiValidationService,
+        IEventCategoryRepository eventCategoryRepository,
+        ILogger<EventsController> logger)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
+        _aiValidationService = aiValidationService ?? throw new ArgumentNullException(nameof(aiValidationService));
+        _eventCategoryRepository = eventCategoryRepository ?? throw new ArgumentNullException(nameof(eventCategoryRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -163,7 +171,7 @@ public class EventsController : ControllerBase
     /// <param name="createEventDto">Datos del evento a crear</param>
     /// <returns>Evento creado</returns>
     /// <response code="201">Evento creado exitosamente</response>
-    /// <response code="400">Datos de entrada inválidos</response>
+    /// <response code="400">Datos de entrada inválidos o recomendación de IA</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpPost]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status201Created)]
@@ -175,7 +183,41 @@ public class EventsController : ControllerBase
         {
             _logger.LogInformation("Creando nuevo evento: {Title}", createEventDto.Title);
 
-            var createdEvent = await _eventService.CreateEventAsync(DomainConstants.DemoUser.Id, createEventDto);
+            // En desarrollo, usar usuario demo si no se especifica
+            var userId = DomainConstants.DemoUser.Id;
+
+            // 1. Obtener eventos cercanos para dar contexto a la IA
+            // Buscar eventos desde 1 día antes hasta 1 semana después del evento a crear
+            var contextStartDate = createEventDto.StartDate.AddDays(-1);
+            var contextEndDate = createEventDto.StartDate.AddDays(7);
+
+            _logger.LogInformation("Obteniendo contexto del calendario para validación de IA");
+            var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, contextStartDate, contextEndDate);
+
+            _logger.LogInformation("Se encontraron {EventCount} eventos en el rango de contexto", existingEvents.Count());
+
+            // 2. Validar el evento con IA usando el contexto del calendario
+            _logger.LogInformation("Validando evento con IA usando contexto del calendario");
+            var aiValidation = await _aiValidationService.ValidateEventCreationAsync(
+                createEventDto,
+                userId,
+                existingEvents);
+
+            // 3. Registrar el resultado de la validación pero SIEMPRE crear el evento
+            if (!aiValidation.IsApproved)
+            {
+                _logger.LogWarning("IA detectó advertencia: {Message} (Severity: {Severity}) - Creando de todas formas",
+                    aiValidation.RecommendationMessage,
+                    aiValidation.Severity);
+            }
+            else
+            {
+                _logger.LogInformation("IA aprobó el evento sin advertencias");
+            }
+
+            // 4. Crear el evento siempre (independiente de la validación de IA)
+            _logger.LogInformation("Procediendo a crear el evento");
+            var createdEvent = await _eventService.CreateEventAsync(userId, createEventDto);
 
             _logger.LogInformation("Evento creado exitosamente con ID: {EventId}", createdEvent.Id);
 
@@ -201,6 +243,98 @@ public class EventsController : ControllerBase
             {
                 Title = "Error interno",
                 Detail = "Ocurrió un error procesando la solicitud",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// Parsea texto en lenguaje natural a un evento estructurado usando IA
+    /// </summary>
+    /// <param name="request">Texto en lenguaje natural</param>
+    /// <returns>Evento parseado y validación de IA</returns>
+    /// <response code="200">Texto parseado exitosamente</response>
+    /// <response code="400">Texto inválido o no se pudo parsear</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpPost("from-text")]
+    [ProducesResponseType(typeof(ParseNaturalLanguageResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ParseNaturalLanguageResponseDto>> ParseFromText(
+        [FromBody] ParseNaturalLanguageRequestDto request)
+    {
+        try
+        {
+            _logger.LogInformation("Parseando texto natural: {Text}", request.Text);
+
+            // En desarrollo, usar usuario demo
+            var userId = DomainConstants.DemoUser.Id;
+
+            // Obtener categorías disponibles
+            var categories = await _eventCategoryRepository.GetAvailableCategoriesForUserAsync(userId);
+            var categoryDtos = categories.Select(c => new EventCategoryDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                Color = c.Color,
+                Icon = c.Icon,
+                IsSystemDefault = c.IsSystemDefault,
+                SortOrder = c.SortOrder
+            }).ToList();
+
+            _logger.LogInformation("Categorías disponibles: {CategoryCount}", categoryDtos.Count);
+
+            // Obtener eventos cercanos para dar contexto a la IA
+            var now = DateTime.UtcNow;
+            var contextStartDate = now.AddDays(-1);
+            var contextEndDate = now.AddDays(7);
+
+            var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, contextStartDate, contextEndDate);
+            _logger.LogInformation("Contexto: {EventCount} eventos existentes", existingEvents.Count());
+
+            // Parsear el texto con IA
+            var parsedEvent = await _aiValidationService.ParseNaturalLanguageAsync(
+                request.Text,
+                userId,
+                categoryDtos,
+                request.TimezoneOffsetMinutes,
+                existingEvents);
+
+            _logger.LogInformation("Evento parseado: {Title} - {StartDate}", parsedEvent.Title, parsedEvent.StartDate);
+
+            // Opcionalmente validar el evento parseado
+            var validation = await _aiValidationService.ValidateEventCreationAsync(
+                parsedEvent,
+                userId,
+                existingEvents);
+
+            _logger.LogInformation("Validación: {IsApproved} - {Message}", validation.IsApproved, validation.RecommendationMessage);
+
+            return Ok(new ParseNaturalLanguageResponseDto
+            {
+                Success = true,
+                Event = parsedEvent,
+                Validation = validation
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("No se pudo parsear el texto: {Message}", ex.Message);
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Texto no válido",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error parseando texto natural");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Error interno",
+                Detail = "Ocurrió un error procesando el texto",
                 Status = StatusCodes.Status500InternalServerError
             });
         }
