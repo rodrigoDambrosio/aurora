@@ -71,7 +71,7 @@ public class EventServiceTests
         var categories = new List<EventCategory> { category };
 
         _eventRepositoryMock
-            .Setup(x => x.GetWeeklyEventsAsync(It.IsAny<Guid>(), weekStart))
+            .Setup(x => x.GetWeeklyEventsAsync(It.IsAny<Guid>(), weekStart, It.IsAny<Guid?>()))
             .ReturnsAsync(events);
 
         _categoryRepositoryMock

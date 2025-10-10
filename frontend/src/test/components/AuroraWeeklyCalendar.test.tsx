@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Use vi.hoisted to ensure mock functions are available
@@ -126,6 +126,111 @@ describe('AuroraWeeklyCalendar', () => {
     await waitFor(() => {
       const addEventElements = screen.getAllByText('Agregar evento')
       expect(addEventElements).toHaveLength(7) // One for each day
+    })
+  })
+
+  it('debería mostrar el botón de filtro', async () => {
+    const mockOnToggleFilters = vi.fn()
+
+    render(
+      <AuroraWeeklyCalendar
+        showFilters={false}
+        onToggleFilters={mockOnToggleFilters}
+        categories={[]}
+        onCategoryChange={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      const filterButton = screen.getByLabelText('Filtrar por categoría')
+      expect(filterButton).toBeInTheDocument()
+    })
+  })
+
+  it('debería llamar onToggleFilters cuando se hace clic en el botón de filtro', async () => {
+    const mockOnToggleFilters = vi.fn()
+
+    render(
+      <AuroraWeeklyCalendar
+        showFilters={false}
+        onToggleFilters={mockOnToggleFilters}
+        categories={[]}
+        onCategoryChange={vi.fn()}
+      />
+    )
+
+    await waitFor(async () => {
+      const filterButton = screen.getByLabelText('Filtrar por categoría')
+      fireEvent.click(filterButton)
+      expect(mockOnToggleFilters).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('debería mostrar CategoryFilter cuando showFilters es true', async () => {
+    const mockCategories = [
+      {
+        id: '1',
+        name: 'Trabajo',
+        color: '#2b7fff',
+        isSystemDefault: true,
+        sortOrder: 1
+      }
+    ]
+
+    render(
+      <AuroraWeeklyCalendar
+        showFilters={true}
+        onToggleFilters={vi.fn()}
+        categories={mockCategories}
+        onCategoryChange={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Todas')).toBeInTheDocument()
+      expect(screen.getByText('Trabajo')).toBeInTheDocument()
+    })
+  })
+
+  it('debería ocultar CategoryFilter cuando showFilters es false', async () => {
+    const mockCategories = [
+      {
+        id: '1',
+        name: 'Trabajo',
+        color: '#2b7fff',
+        isSystemDefault: true,
+        sortOrder: 1
+      }
+    ]
+
+    render(
+      <AuroraWeeklyCalendar
+        showFilters={false}
+        onToggleFilters={vi.fn()}
+        categories={mockCategories}
+        onCategoryChange={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByText('Todas')).not.toBeInTheDocument()
+      expect(screen.queryByText('Trabajo')).not.toBeInTheDocument()
+    })
+  })
+
+  it('debería marcar el botón de filtro como activo cuando showFilters es true', async () => {
+    render(
+      <AuroraWeeklyCalendar
+        showFilters={true}
+        onToggleFilters={vi.fn()}
+        categories={[]}
+        onCategoryChange={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      const filterButton = screen.getByLabelText('Filtrar por categoría')
+      expect(filterButton).toHaveClass('active')
     })
   })
 
