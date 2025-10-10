@@ -202,10 +202,11 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
             className={`settings-btn ${showFilters ? 'active' : ''}`}
             onClick={onToggleFilters}
             title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+            aria-label="Filtrar por categoría"
           >
             <Filter className="w-4 h-4" />
           </button>
-          <button className="add-event-btn" onClick={() => onAddEvent?.(new Date())}>
+          <button className="add-event-btn" onClick={() => onAddEvent?.(new Date())} aria-label="Crear nuevo evento">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" />
             </svg>

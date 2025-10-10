@@ -12,6 +12,7 @@ public class EventsControllerTests
 {
     private readonly Mock<IEventService> _eventServiceMock;
     private readonly Mock<IAIValidationService> _aiValidationServiceMock;
+    private readonly Mock<IEventCategoryRepository> _categoryRepositoryMock;
     private readonly Mock<ILogger<EventsController>> _loggerMock;
     private readonly EventsController _controller;
 
@@ -19,15 +20,16 @@ public class EventsControllerTests
     {
         _eventServiceMock = new Mock<IEventService>();
         _aiValidationServiceMock = new Mock<IAIValidationService>();
+        _categoryRepositoryMock = new Mock<IEventCategoryRepository>();
         _loggerMock = new Mock<ILogger<EventsController>>();
-        _controller = new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _loggerMock.Object);
+        _controller = new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _loggerMock.Object);
     }
 
     [Fact]
     public void Constructor_WithNullEventService_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(null!, _aiValidationServiceMock.Object, _loggerMock.Object);
+        var act = () => new EventsController(null!, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _loggerMock.Object);
         act.Should().Throw<ArgumentNullException>().WithParameterName("eventService");
     }
 
@@ -35,7 +37,7 @@ public class EventsControllerTests
     public void Constructor_WithNullAIValidationService_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(_eventServiceMock.Object, null!, _loggerMock.Object);
+        var act = () => new EventsController(_eventServiceMock.Object, null!, _categoryRepositoryMock.Object, _loggerMock.Object);
         act.Should().Throw<ArgumentNullException>().WithParameterName("aiValidationService");
     }
 
@@ -43,7 +45,7 @@ public class EventsControllerTests
     public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, null!);
+        var act = () => new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, null!);
         act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
     }
 
@@ -72,7 +74,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetWeeklyEventsAsync(It.IsAny<Guid?>(), request.WeekStart))
+            .Setup(x => x.GetWeeklyEventsAsync(It.IsAny<Guid?>(), request.WeekStart, null))
             .ReturnsAsync(response);
 
         // Act
@@ -211,21 +213,34 @@ public class EventsControllerTests
             .ReturnsAsync(new AIValidationResult
             {
                 IsApproved = false,
-                RecommendationMessage = "No es recomendable programar este evento a las 2 AM después de un día de trabajo",
+                RecommendationMessage = "No es recomendable programar este evento a las 2 AM despuï¿½s de un dï¿½a de trabajo",
                 Severity = AIValidationSeverity.Warning,
-                Suggestions = new List<string> { "Considera programarlo en horario diurno", "Asegúrate de descansar adecuadamente" }
+                Suggestions = new List<string> { "Considera programarlo en horario diurno", "Asegï¿½rate de descansar adecuadamente" }
             });
+
+        var createdEvent = new EventDto
+        {
+            Id = Guid.NewGuid(),
+            Title = createEventDto.Title,
+            StartDate = createEventDto.StartDate,
+            EndDate = createEventDto.EndDate,
+            EventCategoryId = createEventDto.EventCategoryId
+        };
+
+        _eventServiceMock
+            .Setup(x => x.CreateEventAsync(It.IsAny<Guid?>(), It.IsAny<CreateEventDto>()))
+            .ReturnsAsync(createdEvent);
 
         // Act
         var result = await _controller.CreateEvent(createEventDto);
 
-        // Assert
-        result.Result.Should().BeOfType<BadRequestObjectResult>();
-        var badRequestResult = result.Result as BadRequestObjectResult;
-        badRequestResult!.Value.Should().BeOfType<ProblemDetails>();
-        
-        // Verify that event service was never called
-        _eventServiceMock.Verify(x => x.CreateEventAsync(It.IsAny<Guid?>(), It.IsAny<CreateEventDto>()), Times.Never);
+        // Assert - El evento se crea a pesar de la advertencia de la IA
+        result.Result.Should().BeOfType<CreatedAtActionResult>();
+        var createdResult = result.Result as CreatedAtActionResult;
+        createdResult!.Value.Should().BeEquivalentTo(createdEvent);
+
+        // Verify that event service WAS called even with AI warning
+        _eventServiceMock.Verify(x => x.CreateEventAsync(It.IsAny<Guid?>(), It.IsAny<CreateEventDto>()), Times.Once);
     }
 
     [Fact]
@@ -357,5 +372,177 @@ public class EventsControllerTests
         result.Should().BeOfType<NotFoundObjectResult>();
 
         _eventServiceMock.Verify(x => x.DeleteEventAsync(eventId, It.IsAny<Guid?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMonthlyEvents_WithDefaultParameters_ShouldReturnOkWithCurrentMonthEvents()
+    {
+        // Arrange
+        var currentDate = DateTime.Now;
+        var response = new WeeklyEventsResponseDto
+        {
+            Categories = new List<EventCategoryDto>
+            {
+                new EventCategoryDto { Id = Guid.NewGuid(), Name = "Trabajo", Color = "#2b7fff" }
+            },
+            Events = new List<EventDto>
+            {
+                new EventDto
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Test Event",
+                    StartDate = currentDate,
+                    EndDate = currentDate.AddHours(1),
+                    EventCategory = new EventCategoryDto { Id = Guid.NewGuid(), Name = "Trabajo", Color = "#2b7fff" }
+                }
+            }
+        };
+
+        _eventServiceMock
+            .Setup(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), currentDate.Year, currentDate.Month, null))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _controller.GetMonthlyEvents();
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Result as OkObjectResult;
+        okResult!.Value.Should().BeEquivalentTo(response);
+
+        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), currentDate.Year, currentDate.Month, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMonthlyEvents_WithSpecificYearAndMonth_ShouldReturnEventsForThatMonth()
+    {
+        // Arrange
+        var year = 2025;
+        var month = 10;
+        var response = new WeeklyEventsResponseDto
+        {
+            Categories = new List<EventCategoryDto>(),
+            Events = new List<EventDto>()
+        };
+
+        _eventServiceMock
+            .Setup(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), year, month, null))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _controller.GetMonthlyEvents(year: year, month: month);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+
+        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), year, month, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMonthlyEvents_WithCategoryFilter_ShouldReturnFilteredEvents()
+    {
+        // Arrange
+        var year = 2025;
+        var month = 10;
+        var categoryId = Guid.NewGuid();
+        var response = new WeeklyEventsResponseDto
+        {
+            Categories = new List<EventCategoryDto>
+            {
+                new EventCategoryDto { Id = categoryId, Name = "Trabajo", Color = "#2b7fff" }
+            },
+            Events = new List<EventDto>
+            {
+                new EventDto
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Work Event",
+                    StartDate = new DateTime(year, month, 15),
+                    EndDate = new DateTime(year, month, 15).AddHours(1),
+                    EventCategory = new EventCategoryDto { Id = categoryId, Name = "Trabajo", Color = "#2b7fff" }
+                }
+            }
+        };
+
+        _eventServiceMock
+            .Setup(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), year, month, categoryId))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _controller.GetMonthlyEvents(year: year, month: month, categoryId: categoryId);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Result as OkObjectResult;
+        var actualResponse = okResult!.Value as WeeklyEventsResponseDto;
+        actualResponse.Should().NotBeNull();
+        actualResponse!.Events.Should().AllSatisfy(e => e.EventCategory.Id.Should().Be(categoryId));
+
+        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), year, month, categoryId), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMonthlyEvents_WithInvalidMonth_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var year = 2025;
+        var invalidMonth = 13;
+
+        // Act
+        var result = await _controller.GetMonthlyEvents(year: year, month: invalidMonth);
+
+        // Assert
+        result.Result.Should().BeOfType<BadRequestObjectResult>();
+        var badRequestResult = result.Result as BadRequestObjectResult;
+        badRequestResult!.Value.Should().NotBeNull();
+
+        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Guid?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetWeeklyEvents_WithCategoryFilter_ShouldReturnFilteredEvents()
+    {
+        // Arrange
+        var startDate = new DateTime(2025, 10, 1);
+        var categoryId = Guid.NewGuid();
+        var request = new WeeklyEventsRequestDto
+        {
+            WeekStart = startDate
+        };
+
+        var response = new WeeklyEventsResponseDto
+        {
+            Categories = new List<EventCategoryDto>
+            {
+                new EventCategoryDto { Id = categoryId, Name = "Estudio", Color = "#00c950" }
+            },
+            Events = new List<EventDto>
+            {
+                new EventDto
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Study Session",
+                    StartDate = startDate,
+                    EndDate = startDate.AddHours(2),
+                    EventCategory = new EventCategoryDto { Id = categoryId, Name = "Estudio", Color = "#00c950" }
+                }
+            }
+        };
+
+        _eventServiceMock
+            .Setup(x => x.GetWeeklyEventsAsync(It.IsAny<Guid?>(), startDate, categoryId))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _controller.GetWeeklyEvents(request, categoryId);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Result as OkObjectResult;
+        var actualResponse = okResult!.Value as WeeklyEventsResponseDto;
+        actualResponse.Should().NotBeNull();
+        actualResponse!.Events.Should().AllSatisfy(e => e.EventCategory.Id.Should().Be(categoryId));
+
+        _eventServiceMock.Verify(x => x.GetWeeklyEventsAsync(It.IsAny<Guid?>(), startDate, categoryId), Times.Once);
     }
 }

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MainDashboard from '../../components/MainDashboard'
@@ -82,7 +82,10 @@ describe('MainDashboard', () => {
     const monthlyButton = screen.getByText('Monthly')
     await user.click(monthlyButton)
 
-    expect(screen.getByText('Vista Mensual')).toBeInTheDocument()
+    // Verificar que se muestra el calendario mensual con algún elemento característico
+    await waitFor(() => {
+      expect(screen.getByText('octubre de 2025')).toBeInTheDocument()
+    })
   })
 
   it('handles event click from weekly calendar', async () => {
@@ -122,7 +125,7 @@ describe('MainDashboard', () => {
     const nlpInputButton = screen.getByTestId('nlp-input')
     await user.click(nlpInputButton)
 
-    expect(consoleSpy).toHaveBeenCalledWith('Evento creado mediante IA')
+    expect(consoleSpy).toHaveBeenCalledWith('Evento creado - refrescando calendario')
 
     consoleSpy.mockRestore()
   })

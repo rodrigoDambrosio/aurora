@@ -321,6 +321,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
               className={`settings-btn ${showFilters ? 'active' : ''}`}
               onClick={onToggleFilters}
               title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+              aria-label="Filtrar por categoría"
             >
               <Filter className="w-4 h-4" />
             </button>
