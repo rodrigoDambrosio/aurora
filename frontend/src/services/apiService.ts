@@ -75,7 +75,7 @@ export interface ParseNaturalLanguageRequestDto {
 export interface AIValidationResult {
   isApproved: boolean;
   recommendationMessage: string;
-  severity: 'Info' | 'Warning' | 'Critical';
+  severity: 'Info' | 'Warning' | 'Critical' | 0 | 1 | 2 | number;
   suggestions: string[];
 }
 

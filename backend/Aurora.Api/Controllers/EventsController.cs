@@ -190,39 +190,33 @@ public class EventsController : ControllerBase
             // Buscar eventos desde 1 día antes hasta 1 semana después del evento a crear
             var contextStartDate = createEventDto.StartDate.AddDays(-1);
             var contextEndDate = createEventDto.StartDate.AddDays(7);
-            
+
             _logger.LogInformation("Obteniendo contexto del calendario para validación de IA");
             var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, contextStartDate, contextEndDate);
-            
+
             _logger.LogInformation("Se encontraron {EventCount} eventos en el rango de contexto", existingEvents.Count());
 
             // 2. Validar el evento con IA usando el contexto del calendario
             _logger.LogInformation("Validando evento con IA usando contexto del calendario");
             var aiValidation = await _aiValidationService.ValidateEventCreationAsync(
-                createEventDto, 
-                userId, 
+                createEventDto,
+                userId,
                 existingEvents);
 
-            // 3. Si la IA no aprueba el evento, retornar recomendación
+            // 3. Registrar el resultado de la validación pero SIEMPRE crear el evento
             if (!aiValidation.IsApproved)
             {
-                _logger.LogWarning("IA no aprobó el evento: {Message}", aiValidation.RecommendationMessage);
-                
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Recomendación de IA",
-                    Detail = aiValidation.RecommendationMessage,
-                    Status = StatusCodes.Status400BadRequest,
-                    Extensions =
-                    {
-                        ["severity"] = aiValidation.Severity.ToString(),
-                        ["suggestions"] = aiValidation.Suggestions ?? new List<string>()
-                    }
-                });
+                _logger.LogWarning("IA detectó advertencia: {Message} (Severity: {Severity}) - Creando de todas formas",
+                    aiValidation.RecommendationMessage,
+                    aiValidation.Severity);
+            }
+            else
+            {
+                _logger.LogInformation("IA aprobó el evento sin advertencias");
             }
 
-            // 4. Si la IA aprueba, crear el evento
-            _logger.LogInformation("IA aprobó el evento, procediendo a crear");
+            // 4. Crear el evento siempre (independiente de la validación de IA)
+            _logger.LogInformation("Procediendo a crear el evento");
             var createdEvent = await _eventService.CreateEventAsync(userId, createEventDto);
 
             _logger.LogInformation("Evento creado exitosamente con ID: {EventId}", createdEvent.Id);
@@ -295,13 +289,13 @@ public class EventsController : ControllerBase
             var now = DateTime.UtcNow;
             var contextStartDate = now.AddDays(-1);
             var contextEndDate = now.AddDays(7);
-            
+
             var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, contextStartDate, contextEndDate);
             _logger.LogInformation("Contexto: {EventCount} eventos existentes", existingEvents.Count());
 
             // Parsear el texto con IA
             var parsedEvent = await _aiValidationService.ParseNaturalLanguageAsync(
-                request.Text, 
+                request.Text,
                 userId,
                 categoryDtos,
                 request.TimezoneOffsetMinutes,

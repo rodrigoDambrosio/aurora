@@ -89,12 +89,18 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
       const categories = await apiService.getEventCategories();
       const category = categories.find(c => c.id === response.event.eventCategoryId);
 
-      setParsedEvent({
+      const parsed = {
         ...response.event,
         categoryName: category?.name || 'Sin categoría'
-      });
+      };
+
+      console.log('[FloatingNLPInput] ParsedEvent a setear:', parsed);
+      console.log('[FloatingNLPInput] Estado actual - isProcessing:', isProcessing, 'parsedEvent:', parsedEvent);
+
+      setParsedEvent(parsed);
 
       if (response.validation) {
+        console.log('[FloatingNLPInput] Validation a setear:', response.validation);
         setValidation(response.validation);
       }
 
@@ -108,6 +114,11 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
     } finally {
       console.log('[FloatingNLPInput] Finalizando análisis, setIsProcessing(false)');
       setIsProcessing(false);
+
+      // Log después de setear para verificar
+      setTimeout(() => {
+        console.log('[FloatingNLPInput] Estado después del finally - isProcessing:', isProcessing, 'parsedEvent:', parsedEvent);
+      }, 100);
     }
   };
 
@@ -141,6 +152,28 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
     setIsProcessing(false);
     setIsEditing(false);
     setError(null);
+  };
+
+  // Helper para convertir severity numérica a string
+  const getSeverityString = (severity: string | number | undefined): string => {
+    if (typeof severity === 'string') return severity;
+    if (severity === 2) return 'Critical';
+    if (severity === 1) return 'Warning';
+    return 'Info';
+  };
+
+  const getSeverityEmoji = (severity: string | number | undefined): string => {
+    const severityStr = getSeverityString(severity);
+    if (severityStr === 'Critical') return '⚠️';
+    if (severityStr === 'Warning') return '⚡';
+    return 'ℹ️';
+  };
+
+  const getSeverityLabel = (severity: string | number | undefined): string => {
+    const severityStr = getSeverityString(severity);
+    if (severityStr === 'Critical') return 'Conflicto';
+    if (severityStr === 'Warning') return 'Advertencia';
+    return 'Información';
   };
 
   return (
@@ -261,14 +294,11 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
               <div className="nlp-confirmation">
                 {/* Validation Feedback */}
                 {validation && validation.recommendationMessage && (
-                  <div className={`nlp-validation nlp-validation-${(validation.severity || 'Info').toLowerCase()}`}>
+                  <div className={`nlp-validation nlp-validation-${getSeverityString(validation.severity).toLowerCase()}`}>
                     <div className="nlp-validation-header">
-                      {validation.severity === 'Critical' && '⚠️'}
-                      {validation.severity === 'Warning' && '⚡'}
-                      {(!validation.severity || validation.severity === 'Info') && 'ℹ️'}
+                      <span>{getSeverityEmoji(validation.severity)}</span>
                       <span className="nlp-validation-severity">
-                        {validation.severity === 'Critical' ? 'Conflicto' :
-                          validation.severity === 'Warning' ? 'Advertencia' : 'Información'}
+                        {getSeverityLabel(validation.severity)}
                       </span>
                     </div>
                     <p className="nlp-validation-message">{validation.recommendationMessage}</p>

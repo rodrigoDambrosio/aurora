@@ -7,6 +7,7 @@ import Navigation from './Navigation';
 
 const MainDashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('calendar-week');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
@@ -14,8 +15,9 @@ const MainDashboard: React.FC = () => {
   };
 
   const handleEventCreated = () => {
-    console.log('Evento creado mediante IA');
-    // TODO: Refresh calendar data or show success notification
+    console.log('Evento creado mediante IA - refrescando calendario');
+    // Forzar re-render del calendario incrementando la key
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleEventClick = (event: EventDto) => {
@@ -33,6 +35,7 @@ const MainDashboard: React.FC = () => {
       case 'calendar-week':
         return (
           <AuroraWeeklyCalendar
+            key={refreshKey}
             onEventClick={handleEventClick}
             onAddEvent={handleAddEvent}
           />
