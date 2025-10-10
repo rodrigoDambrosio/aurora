@@ -3,22 +3,30 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { EventCategoryDto, EventDto, WeeklyEventsResponseDto } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './AuroraWeeklyCalendar.css';
+import { CategoryFilter } from './CategoryFilter';
 
 interface AuroraWeeklyCalendarProps {
   onEventClick?: (event: EventDto) => void;
   onAddEvent?: (date: Date) => void;
   selectedCategoryId?: string | null;
   onCategoriesLoaded?: (categories: EventCategoryDto[]) => void;
+  showFilters?: boolean;
+  onToggleFilters?: () => void;
+  categories?: EventCategoryDto[];
+  onCategoryChange?: (categoryId: string | null) => void;
 }
 
 const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   onEventClick,
   onAddEvent,
   selectedCategoryId,
-  onCategoriesLoaded
+  onCategoriesLoaded,
+  showFilters = true,
+  onToggleFilters,
+  categories = [],
+  onCategoryChange
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showFilters, setShowFilters] = useState(false);
   const [weeklyData, setWeeklyData] = useState<WeeklyEventsResponseDto | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -310,8 +318,9 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
               Hoy
             </button>
             <button
-              className={`settings-btn ${showFilters ? 'bg-primary text-primary-foreground' : ''}`}
-              onClick={() => setShowFilters(!showFilters)}
+              className={`settings-btn ${showFilters ? 'active' : ''}`}
+              onClick={onToggleFilters}
+              title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
             >
               <Filter className="w-4 h-4" />
             </button>
@@ -323,6 +332,20 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Category Filter */}
+        {showFilters && categories.length > 0 && (
+          <div style={{ marginLeft: '-16px', marginRight: '-16px', padding: '8px 16px' }}>
+            <CategoryFilter
+              categories={categories}
+              selectedCategoryId={selectedCategoryId || null}
+              onCategoryChange={onCategoryChange || (() => { })}
+            />
+          </div>
+        )}
+
+        {/* Separator line */}
+        <div style={{ marginLeft: '-16px', marginRight: '-16px', borderBottom: '1px solid #c8cde2' }} />
 
         {/* Week Days Header */}
         <div className="week-header">

@@ -15,6 +15,7 @@ const MainDashboard: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [categories, setCategories] = useState<EventCategoryDto[]>([]);
+  const [showFilters, setShowFilters] = useState(true);
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
@@ -51,24 +52,17 @@ const MainDashboard: React.FC = () => {
     switch (activeView) {
       case 'calendar-week':
         return (
-          <>
-            {categories.length > 0 && (
-              <div style={{ padding: '16px', borderBottom: '1px solid #c8cde2' }}>
-                <CategoryFilter
-                  categories={categories}
-                  selectedCategoryId={selectedCategoryId}
-                  onCategoryChange={handleCategoryChange}
-                />
-              </div>
-            )}
-            <AuroraWeeklyCalendar
-              key={refreshKey}
-              onEventClick={handleEventClick}
-              onAddEvent={handleAddEvent}
-              selectedCategoryId={selectedCategoryId}
-              onCategoriesLoaded={handleCategoriesLoaded}
-            />
-          </>
+          <AuroraWeeklyCalendar
+            key={refreshKey}
+            onEventClick={handleEventClick}
+            onAddEvent={handleAddEvent}
+            selectedCategoryId={selectedCategoryId}
+            onCategoriesLoaded={handleCategoriesLoaded}
+            showFilters={showFilters}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            categories={categories}
+            onCategoryChange={handleCategoryChange}
+          />
         );
       case 'calendar-month':
         return (
