@@ -142,10 +142,6 @@
     opacity: 0.4;
 }
 
-.calendar-day.today {
-    background: rgba(237, 241, 255, 0.3);
-}
-
 .day-number {
     font-size: 14px;
     color: #312785;
@@ -159,8 +155,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #8B5CF6;
-    color: white;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white !important;
     border-radius: 50%;
     font-weight: 500;
 }
