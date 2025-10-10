@@ -144,22 +144,6 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     );
   };
 
-  const getCategoryColor = (event: EventDto): { bg: string, border: string, text: string } => {
-    const category = event.eventCategory;
-    if (!category) return { bg: '#e4edff', border: '#1447e6', text: '#1447e6' };
-
-    // Category color mapping based on Aurora design
-    const colorMap: Record<string, { bg: string, border: string, text: string }> = {
-      'trabajo': { bg: '#dbeafe', border: '#1447e6', text: '#1447e6' },
-      'personal': { bg: '#fef3c7', border: '#ca3500', text: '#ca3500' },
-      'estudio': { bg: '#dcfce7', border: '#008236', text: '#008236' },
-      'salud': { bg: '#ffedd4', border: '#ca3500', text: '#ca3500' },
-      'ejercicio': { bg: '#ffedd4', border: '#ca3500', text: '#ca3500' },
-    };
-
-    return colorMap[category.name.toLowerCase()] || { bg: '#e4edff', border: '#1447e6', text: '#1447e6' };
-  };
-
   const isToday = (date: Date): boolean => {
     const today = new Date();
     return date.toDateString() === today.toDateString();
@@ -321,7 +305,6 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
               className={`settings-btn ${showFilters ? 'active' : ''}`}
               onClick={onToggleFilters}
               title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
-              aria-label="Filtrar por categoría"
             >
               <Filter className="w-4 h-4" />
             </button>
@@ -385,7 +368,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
               ) : (
                 <div className="events-container">
                   {dayEvents.map((event) => {
-                    const colors = getCategoryColor(event);
+                    const categoryColor = event.eventCategory?.color || '#1447e6';
 
                     return (
                       <div
@@ -395,9 +378,9 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                         onDragStart={(e) => handleDragStart(event, e)}
                         onDragEnd={handleDragEnd}
                         style={{
-                          backgroundColor: colors.bg,
-                          borderLeftColor: colors.border,
-                          color: colors.text
+                          backgroundColor: categoryColor + '33',
+                          borderLeftColor: categoryColor,
+                          color: categoryColor
                         }}
                         onClick={() => onEventClick?.(event)}
                       >
