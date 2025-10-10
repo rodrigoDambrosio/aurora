@@ -93,6 +93,45 @@
     border-color: #7c3aed;
 }
 
+/* Filter button */
+.settings-btn {
+    background: white;
+    border: 0.667px solid #c8cde2;
+    border-radius: 8px;
+    width: 37.333px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+    background: #f8fafc;
+}
+
+.settings-btn svg {
+    color: #312785;
+}
+
+.settings-btn.active {
+    background: #8B5CF6 !important;
+    border-color: #8B5CF6 !important;
+}
+
+.settings-btn.active svg {
+    color: white !important;
+}
+
+.w-4 {
+    width: 1rem;
+}
+
+.h-4 {
+    height: 1rem;
+}
+
 /* Weekdays header */
 .monthly-calendar-weekdays {
     display: grid;

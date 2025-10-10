@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import type { EventCategoryDto, EventDto } from '../services/apiService';
 import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
 import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
-import { CategoryFilter } from './CategoryFilter';
 import { EventFormModal } from './EventFormModal';
 import { FloatingNLPInput } from './FloatingNLPInput';
 import './MainDashboard.css';
@@ -66,24 +65,17 @@ const MainDashboard: React.FC = () => {
         );
       case 'calendar-month':
         return (
-          <>
-            {categories.length > 0 && (
-              <div style={{ padding: '16px', borderBottom: '1px solid #c8cde2' }}>
-                <CategoryFilter
-                  categories={categories}
-                  selectedCategoryId={selectedCategoryId}
-                  onCategoryChange={handleCategoryChange}
-                />
-              </div>
-            )}
-            <AuroraMonthlyCalendar
-              key={refreshKey}
-              onEventClick={handleEventClick}
-              onAddEvent={handleAddEvent}
-              selectedCategoryId={selectedCategoryId}
-              onCategoriesLoaded={handleCategoriesLoaded}
-            />
-          </>
+          <AuroraMonthlyCalendar
+            key={refreshKey}
+            onEventClick={handleEventClick}
+            onAddEvent={handleAddEvent}
+            selectedCategoryId={selectedCategoryId}
+            onCategoriesLoaded={handleCategoriesLoaded}
+            showFilters={showFilters}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            categories={categories}
+            onCategoryChange={handleCategoryChange}
+          />
         );
       case 'wellness':
         return (

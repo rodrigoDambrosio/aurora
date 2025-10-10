@@ -1,13 +1,18 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { apiService, type EventCategoryDto, type EventDto } from '../services/apiService';
 import './AuroraMonthlyCalendar.css';
+import { CategoryFilter } from './CategoryFilter';
 
 interface AuroraMonthlyCalendarProps {
   onEventClick: (event: EventDto) => void;
   onAddEvent: (date: Date) => void;
   selectedCategoryId?: string | null;
   onCategoriesLoaded?: (categories: EventCategoryDto[]) => void;
+  showFilters?: boolean;
+  onToggleFilters?: () => void;
+  categories?: EventCategoryDto[];
+  onCategoryChange?: (categoryId: string | null) => void;
 }
 
 interface CalendarDay {
@@ -22,7 +27,11 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
   onEventClick,
   onAddEvent,
   selectedCategoryId,
-  onCategoriesLoaded
+  onCategoriesLoaded,
+  showFilters = true,
+  onToggleFilters,
+  categories = [],
+  onCategoryChange
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -189,6 +198,13 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
           <button className="action-button today-button" onClick={goToToday}>
             Hoy
           </button>
+          <button
+            className={`settings-btn ${showFilters ? 'active' : ''}`}
+            onClick={onToggleFilters}
+            title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+          >
+            <Filter className="w-4 h-4" />
+          </button>
           <button className="add-event-btn" onClick={() => onAddEvent?.(new Date())}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" />
@@ -197,6 +213,20 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Category Filter */}
+      {showFilters && categories.length > 0 && (
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #c8cde2' }}>
+          <CategoryFilter
+            categories={categories}
+            selectedCategoryId={selectedCategoryId || null}
+            onCategoryChange={onCategoryChange || (() => { })}
+          />
+        </div>
+      )}
+
+      {/* Separator line */}
+      <div style={{ borderBottom: '1px solid #c8cde2' }} />
 
       {/* Days of week header */}
       <div className="monthly-calendar-weekdays">
