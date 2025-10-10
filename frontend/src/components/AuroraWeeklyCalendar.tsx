@@ -335,7 +335,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
 
         {/* Category Filter */}
         {showFilters && categories.length > 0 && (
-          <div style={{ marginLeft: '-16px', marginRight: '-16px', padding: '8px 16px' }}>
+          <div style={{ padding: '8px 16px' }}>
             <CategoryFilter
               categories={categories}
               selectedCategoryId={selectedCategoryId || null}
@@ -345,7 +345,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
         )}
 
         {/* Separator line */}
-        <div style={{ marginLeft: '-16px', marginRight: '-16px', borderBottom: '1px solid #c8cde2' }} />
+        <div style={{ borderBottom: '1px solid #c8cde2' }} />
 
         {/* Week Days Header */}
         <div className="week-header">
