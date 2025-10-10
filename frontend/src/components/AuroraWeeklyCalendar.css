@@ -357,6 +357,26 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Drag and drop styles */
+.event-card[draggable="true"] {
+    cursor: grab;
+}
+
+.event-card[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.event-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.day-column.drag-over {
+    background: #f1f4ff;
+    border: 2px dashed #8B5CF6;
+    border-radius: 10px;
+}
+
 .event-title {
     font-family: 'Arial', sans-serif;
     font-size: 14px;
