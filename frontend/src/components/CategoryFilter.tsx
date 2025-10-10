@@ -26,7 +26,14 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         <button
           key={category.id}
           className={`category-filter-button ${selectedCategoryId === category.id ? 'active' : ''}`}
-          onClick={() => onCategoryChange(category.id)}
+          onClick={() => {
+            // Toggle: si la categoría ya está seleccionada, deseleccionar (null)
+            if (selectedCategoryId === category.id) {
+              onCategoryChange(null);
+            } else {
+              onCategoryChange(category.id);
+            }
+          }}
         >
           <span
             className="category-filter-dot"
