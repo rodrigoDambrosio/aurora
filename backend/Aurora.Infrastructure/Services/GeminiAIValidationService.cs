@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Globalization;
@@ -275,7 +276,7 @@ public class GeminiAIValidationService : IAIValidationService
         }
     }
 
-    public async Task<CreateEventDto> ParseNaturalLanguageAsync(
+    public async Task<ParseNaturalLanguageResponseDto> ParseNaturalLanguageAsync(
         string naturalLanguageText,
         Guid userId,
         IEnumerable<EventCategoryDto> availableCategories,
@@ -349,12 +350,29 @@ public class GeminiAIValidationService : IAIValidationService
             }
 
             // Parsear la respuesta de la IA a CreateEventDto garantizando categoría válida
-            var eventDto = ParseEventFromAIResponse(aiText, categoryList, timezoneOffsetMinutes);
+            using var document = ParseAiJson(aiText);
+            var rootElement = document.RootElement.Clone();
 
-            _logger.LogInformation("Texto parseado exitosamente: {Title} - {StartDate}",
-                eventDto.Title, eventDto.StartDate);
+            var eventDto = ParseEventFromAIResponse(rootElement, categoryList, timezoneOffsetMinutes);
+            var validation = ParseValidationFromJson(rootElement);
 
-            return eventDto;
+            if (validation != null)
+            {
+                validation.UsedAi = true;
+            }
+
+            _logger.LogInformation(
+                "Texto parseado exitosamente: {Title} - {StartDate} (Análisis IA: {HasAnalysis})",
+                eventDto.Title,
+                eventDto.StartDate,
+                validation != null);
+
+            return new ParseNaturalLanguageResponseDto
+            {
+                Success = true,
+                Event = eventDto,
+                Validation = validation
+            };
         }
         catch (Exception ex)
         {
@@ -429,122 +447,127 @@ public class GeminiAIValidationService : IAIValidationService
         sb.AppendLine();
         sb.AppendLine("Responde en formato JSON con esta estructura exacta:");
         sb.AppendLine(@"{");
-        sb.AppendLine(@"  ""title"": ""Título del evento"",");
-        sb.AppendLine(@"  ""description"": ""Descripción opcional"",");
-        sb.AppendLine(@"  ""startDate"": ""2025-10-10T15:00:00Z"",");
-        sb.AppendLine(@"  ""endDate"": ""2025-10-10T16:00:00Z"",");
-        sb.AppendLine(@"  ""isAllDay"": false,");
-        sb.AppendLine(@"  ""location"": ""Ubicación opcional"",");
-        sb.AppendLine(@"  ""priority"": 2,");
+        sb.AppendLine(@"  ""event"": {");
+        sb.AppendLine(@"    ""title"": ""Título del evento"",");
+        sb.AppendLine(@"    ""description"": ""Descripción opcional"",");
+        sb.AppendLine(@"    ""startDate"": ""2025-10-10T15:00:00Z"",");
+        sb.AppendLine(@"    ""endDate"": ""2025-10-10T16:00:00Z"",");
+        sb.AppendLine(@"    ""isAllDay"": false,");
+        sb.AppendLine(@"    ""location"": ""Ubicación opcional"",");
+        sb.AppendLine(@"    ""priority"": 2,");
         var sampleCategoryId = categoryList.FirstOrDefault()?.Id ?? Guid.Empty;
-        sb.AppendLine($@"  ""eventCategoryId"": ""{sampleCategoryId}""");
+        sb.AppendLine($@"    ""eventCategoryId"": ""{sampleCategoryId}""");
+        sb.AppendLine(@"  },");
+        sb.AppendLine(@"  ""analysis"": {");
+        sb.AppendLine(@"    ""approved"": true/false,");
+        sb.AppendLine(@"    ""severity"": ""info""/""warning""/""critical"",");
+        sb.AppendLine(@"    ""message"": ""Tu mensaje personalizado aquí (sé específico y menciona el contexto)"",");
+        sb.AppendLine(@"    ""suggestions"": [""sugerencia específica 1"", ""sugerencia específica 2""]");
+        sb.AppendLine(@"  }");
         sb.AppendLine(@"}");
         sb.AppendLine();
         sb.AppendLine("IMPORTANTE:");
         sb.AppendLine("- eventCategoryId DEBE ser un string con el GUID exacto de la lista de categorías");
         sb.AppendLine("- priority debe ser un entero entre 1 y 4 siguiendo la escala indicada");
         sb.AppendLine("- Usa formato ISO 8601 con zona horaria Z (UTC) para las fechas");
+        sb.AppendLine("- Incluye SIEMPRE el objeto analysis aplicando los mismos criterios que la validación manual");
         sb.AppendLine("- Sé inteligente al inferir contexto y categoría apropiada");
 
         return sb.ToString();
     }
 
-    private CreateEventDto ParseEventFromAIResponse(string aiText, IReadOnlyList<EventCategoryDto> availableCategories, int timezoneOffsetMinutes)
+    private CreateEventDto ParseEventFromAIResponse(JsonElement aiRoot, IReadOnlyList<EventCategoryDto> availableCategories, int timezoneOffsetMinutes)
     {
         try
         {
-            // Intentar extraer JSON de la respuesta
-            var jsonStart = aiText.IndexOf('{');
-            var jsonEnd = aiText.LastIndexOf('}') + 1;
+            var eventElement = aiRoot;
 
-            if (jsonStart >= 0 && jsonEnd > jsonStart)
+            if (TryGetObjectProperty(aiRoot, out var nestedEvent, "event", "evento", "eventData", "event_details"))
             {
-                var jsonText = aiText.Substring(jsonStart, jsonEnd - jsonStart);
+                eventElement = nestedEvent;
+            }
 
-                using var document = JsonDocument.Parse(jsonText);
+            var parsed = JsonSerializer.Deserialize<CreateEventDto>(eventElement.GetRawText(), new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
 
-                var parsed = JsonSerializer.Deserialize<CreateEventDto>(jsonText, new JsonSerializerOptions
+            if (parsed == null || string.IsNullOrWhiteSpace(parsed.Title))
+            {
+                throw new InvalidOperationException("No se pudo parsear la respuesta de la IA como evento válido");
+            }
+
+            var rawStart = ExtractJsonString(eventElement, "startDate");
+            var rawEnd = ExtractJsonString(eventElement, "endDate");
+
+            if (!Enum.IsDefined(typeof(EventPriority), parsed.Priority) || parsed.Priority == 0)
+            {
+                parsed.Priority = EventPriority.Medium;
+            }
+
+            var normalizedStart = NormalizeAiDate(rawStart, parsed.StartDate, timezoneOffsetMinutes);
+            var normalizedEnd = NormalizeAiDate(rawEnd, parsed.EndDate, timezoneOffsetMinutes);
+
+            if (normalizedStart == default)
+            {
+                normalizedStart = DateTime.UtcNow;
+            }
+
+            if (normalizedEnd == default)
+            {
+                normalizedEnd = normalizedStart.AddHours(1);
+            }
+
+            if (normalizedEnd <= normalizedStart)
+            {
+                normalizedEnd = normalizedStart.AddHours(1);
+            }
+
+            parsed.StartDate = normalizedStart;
+            parsed.EndDate = normalizedEnd;
+
+            var resolvedCategoryId = parsed.EventCategoryId;
+
+            if (resolvedCategoryId == Guid.Empty || !availableCategories.Any(c => c.Id == resolvedCategoryId))
+            {
+                var categoryName = ExtractCategoryName(eventElement);
+
+                if (!string.IsNullOrWhiteSpace(categoryName))
                 {
-                    PropertyNameCaseInsensitive = true
-                });
+                    var matched = availableCategories
+                        .FirstOrDefault(c => string.Equals(c.Name, categoryName, StringComparison.OrdinalIgnoreCase));
 
-                if (parsed != null && !string.IsNullOrEmpty(parsed.Title))
-                {
-                    var rawStart = ExtractJsonString(document.RootElement, "startDate");
-                    var rawEnd = ExtractJsonString(document.RootElement, "endDate");
-
-                    if (!Enum.IsDefined(typeof(EventPriority), parsed.Priority) || parsed.Priority == 0)
+                    if (matched != null)
                     {
-                        parsed.Priority = EventPriority.Medium;
+                        resolvedCategoryId = matched.Id;
                     }
-
-                    var normalizedStart = NormalizeAiDate(rawStart, parsed.StartDate, timezoneOffsetMinutes);
-                    var normalizedEnd = NormalizeAiDate(rawEnd, parsed.EndDate, timezoneOffsetMinutes);
-
-                    if (normalizedStart == default)
-                    {
-                        normalizedStart = DateTime.UtcNow;
-                    }
-
-                    if (normalizedEnd == default)
-                    {
-                        normalizedEnd = normalizedStart.AddHours(1);
-                    }
-
-                    if (normalizedEnd <= normalizedStart)
-                    {
-                        normalizedEnd = normalizedStart.AddHours(1);
-                    }
-
-                    parsed.StartDate = normalizedStart;
-                    parsed.EndDate = normalizedEnd;
-
-                    var resolvedCategoryId = parsed.EventCategoryId;
-
-                    if (resolvedCategoryId == Guid.Empty || !availableCategories.Any(c => c.Id == resolvedCategoryId))
-                    {
-                        var categoryName = ExtractCategoryName(document.RootElement);
-
-                        if (!string.IsNullOrWhiteSpace(categoryName))
-                        {
-                            var matched = availableCategories
-                                .FirstOrDefault(c => string.Equals(c.Name, categoryName, StringComparison.OrdinalIgnoreCase));
-
-                            if (matched != null)
-                            {
-                                resolvedCategoryId = matched.Id;
-                            }
-                        }
-                    }
-
-                    if (resolvedCategoryId == Guid.Empty || !availableCategories.Any(c => c.Id == resolvedCategoryId))
-                    {
-                        var fallback = availableCategories
-                            .OrderBy(c => c.SortOrder)
-                            .ThenBy(c => c.Name)
-                            .FirstOrDefault();
-
-                        if (fallback == null)
-                        {
-                            throw new InvalidOperationException("No hay categorías disponibles para asignar al evento sugerido por IA.");
-                        }
-
-                        _logger.LogWarning("La IA no devolvió una categoría válida. Usando '{CategoryName}' como fallback.", fallback.Name);
-                        resolvedCategoryId = fallback.Id;
-                    }
-
-                    parsed.EventCategoryId = resolvedCategoryId;
-                    parsed.TimezoneOffsetMinutes = timezoneOffsetMinutes;
-
-                    return parsed;
                 }
             }
 
-            throw new InvalidOperationException("No se pudo parsear la respuesta de la IA como evento válido");
+            if (resolvedCategoryId == Guid.Empty || !availableCategories.Any(c => c.Id == resolvedCategoryId))
+            {
+                var fallback = availableCategories
+                    .OrderBy(c => c.SortOrder)
+                    .ThenBy(c => c.Name)
+                    .FirstOrDefault();
+
+                if (fallback == null)
+                {
+                    throw new InvalidOperationException("No hay categorías disponibles para asignar al evento sugerido por IA.");
+                }
+
+                _logger.LogWarning("La IA no devolvió una categoría válida. Usando '{CategoryName}' como fallback.", fallback.Name);
+                resolvedCategoryId = fallback.Id;
+            }
+
+            parsed.EventCategoryId = resolvedCategoryId;
+            parsed.TimezoneOffsetMinutes = timezoneOffsetMinutes;
+
+            return parsed;
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Error al parsear JSON de la respuesta de IA: {Text}", aiText);
+            _logger.LogError(ex, "Error al parsear JSON de la respuesta de IA");
             throw new InvalidOperationException("Error al interpretar la respuesta de la IA", ex);
         }
     }
@@ -584,6 +607,77 @@ public class GeminiAIValidationService : IAIValidationService
         }
 
         return DateTime.SpecifyKind(unspecified, DateTimeKind.Utc);
+    }
+
+    private static bool TryGetObjectProperty(JsonElement root, out JsonElement candidate, params string[] propertyNames)
+    {
+        foreach (var propertyName in propertyNames)
+        {
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.Object)
+            {
+                candidate = value;
+                return true;
+            }
+        }
+
+        candidate = default;
+        return false;
+    }
+
+    private JsonDocument ParseAiJson(string aiText)
+    {
+        var jsonStart = aiText.IndexOf('{');
+        var jsonEnd = aiText.LastIndexOf('}') + 1;
+
+        if (jsonStart >= 0 && jsonEnd > jsonStart)
+        {
+            var jsonFragment = aiText.Substring(jsonStart, jsonEnd - jsonStart);
+            return JsonDocument.Parse(jsonFragment);
+        }
+
+        _logger.LogWarning("No se encontró contenido JSON en la respuesta de la IA: {Snippet}",
+            aiText.Length > 200 ? aiText[..200] : aiText);
+        throw new InvalidOperationException("La IA no devolvió un JSON válido para el evento sugerido.");
+    }
+
+    private AIValidationResult? ParseValidationFromJson(JsonElement aiRoot)
+    {
+        if (!TryGetObjectProperty(aiRoot, out var analysisElement, "analysis", "validation", "aiValidation", "review"))
+        {
+            return null;
+        }
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<AIResponseParsed>(analysisElement.GetRawText(), new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (parsed == null)
+            {
+                return null;
+            }
+
+            return new AIValidationResult
+            {
+                IsApproved = parsed.Approved,
+                RecommendationMessage = string.IsNullOrWhiteSpace(parsed.Message) ? string.Empty : parsed.Message,
+                Severity = parsed.Severity?.ToLower() switch
+                {
+                    "critical" => AIValidationSeverity.Critical,
+                    "warning" => AIValidationSeverity.Warning,
+                    _ => AIValidationSeverity.Info
+                },
+                Suggestions = parsed.Suggestions ?? new List<string>(),
+                UsedAi = true
+            };
+        }
+        catch (Exception ex) when (ex is JsonException or FormatException)
+        {
+            _logger.LogWarning(ex, "No se pudo interpretar la sección de análisis devuelta por la IA");
+            return null;
+        }
     }
 
     // Clase auxiliar para parsear la respuesta JSON de la IA

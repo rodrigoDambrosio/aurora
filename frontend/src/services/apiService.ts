@@ -95,6 +95,7 @@ export interface AIValidationResult {
   recommendationMessage: string;
   severity: 'Info' | 'Warning' | 'Critical' | 0 | 1 | 2 | number;
   suggestions: string[];
+  usedAi?: boolean;
 }
 
 export interface ParseNaturalLanguageResponseDto {
@@ -364,6 +365,16 @@ export const apiService = {
    */
   async createEvent(eventData: CreateEventDto): Promise<EventDto> {
     return this.fetchApi<EventDto>('/events', {
+      method: 'POST',
+      body: JSON.stringify(eventData)
+    });
+  },
+
+  /**
+   * Request an AI validation for an event without creating it
+   */
+  async validateEvent(eventData: CreateEventDto): Promise<AIValidationResult> {
+    return this.fetchApi<AIValidationResult>('/events/validate', {
       method: 'POST',
       body: JSON.stringify(eventData)
     });

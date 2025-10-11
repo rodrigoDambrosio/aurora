@@ -3,6 +3,8 @@ using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Aurora.Api.Controllers;
 
@@ -269,7 +271,7 @@ public class EventsController : ControllerBase
     /// <param name="createEventDto">Datos del evento a crear</param>
     /// <returns>Evento creado</returns>
     /// <response code="201">Evento creado exitosamente</response>
-    /// <response code="400">Datos de entrada inválidos o recomendación de IA</response>
+    /// <response code="400">Datos de entrada inválidos</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpPost]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status201Created)]
@@ -286,37 +288,6 @@ public class EventsController : ControllerBase
 
             _logger.LogInformation("Creando nuevo evento: {Title} para usuario: {UserId}", createEventDto.Title, userId);
 
-            // 1. Obtener eventos cercanos para dar contexto a la IA
-            // Buscar eventos desde 1 día antes hasta 1 semana después del evento a crear
-            var contextStartDate = createEventDto.StartDate.AddDays(-1);
-            var contextEndDate = createEventDto.StartDate.AddDays(7);
-
-            _logger.LogInformation("Obteniendo contexto del calendario para validación de IA");
-            var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, contextStartDate, contextEndDate);
-
-            _logger.LogInformation("Se encontraron {EventCount} eventos en el rango de contexto", existingEvents.Count());
-
-            // 2. Validar el evento con IA usando el contexto del calendario
-            _logger.LogInformation("Validando evento con IA usando contexto del calendario");
-            var aiValidation = await _aiValidationService.ValidateEventCreationAsync(
-                createEventDto,
-                userId,
-                existingEvents);
-
-            // 3. Registrar el resultado de la validación pero SIEMPRE crear el evento
-            if (!aiValidation.IsApproved)
-            {
-                _logger.LogWarning("IA detectó advertencia: {Message} (Severity: {Severity}) - Creando de todas formas",
-                    aiValidation.RecommendationMessage,
-                    aiValidation.Severity);
-            }
-            else
-            {
-                _logger.LogInformation("IA aprobó el evento sin advertencias");
-            }
-
-            // 4. Crear el evento siempre (independiente de la validación de IA)
-            _logger.LogInformation("Procediendo a crear el evento");
             var createdEvent = await _eventService.CreateEventAsync(userId, createEventDto);
 
             _logger.LogInformation("Evento creado exitosamente con ID: {EventId}", createdEvent.Id);
@@ -339,6 +310,74 @@ public class EventsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creando evento");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Error interno",
+                Detail = "Ocurrió un error procesando la solicitud",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// Ejecuta un análisis con IA sobre los datos de un evento sin crearlo
+    /// </summary>
+    /// <param name="createEventDto">Datos del evento a validar</param>
+    /// <returns>Resultado del análisis de IA</returns>
+    /// <response code="200">Análisis ejecutado exitosamente</response>
+    /// <response code="400">Datos de entrada inválidos</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpPost("validate")]
+    [ProducesResponseType(typeof(AIValidationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AIValidationResult>> ValidateEvent([FromBody] CreateEventDto createEventDto)
+    {
+        try
+        {
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            _logger.LogInformation(
+                "Ejecutando validación manual con IA para evento: {Title} del usuario: {UserId}",
+                createEventDto.Title,
+                userId);
+
+            var contextStartDate = createEventDto.StartDate.AddDays(-1);
+            var contextEndDate = createEventDto.StartDate.AddDays(7);
+
+            var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, contextStartDate, contextEndDate);
+            _logger.LogInformation("Contexto cargado con {EventCount} eventos", existingEvents.Count());
+
+            AIValidationResult validation;
+
+            try
+            {
+                validation = await _aiValidationService.ValidateEventCreationAsync(createEventDto, userId, existingEvents);
+            }
+            catch (Exception aiEx)
+            {
+                _logger.LogError(aiEx, "La validación de IA falló; aplicando validación básica de respaldo");
+                validation = RunFallbackValidation(createEventDto, existingEvents);
+            }
+
+            return Ok(validation);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Datos inválidos para validación manual: {Message}", ex.Message);
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Datos inválidos",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error ejecutando validación manual de IA");
             return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
             {
                 Title = "Error interno",
@@ -395,30 +434,30 @@ public class EventsController : ControllerBase
             var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, contextStartDate, contextEndDate);
             _logger.LogInformation("Contexto: {EventCount} eventos existentes", existingEvents.Count());
 
-            // Parsear el texto con IA
-            var parsedEvent = await _aiValidationService.ParseNaturalLanguageAsync(
+            // Parsear el texto con IA (incluyendo análisis)
+            var parseResult = await _aiValidationService.ParseNaturalLanguageAsync(
                 request.Text,
                 userId,
                 categoryDtos,
                 request.TimezoneOffsetMinutes,
                 existingEvents);
 
-            _logger.LogInformation("Evento parseado: {Title} - {StartDate}", parsedEvent.Title, parsedEvent.StartDate);
+            _logger.LogInformation("Evento parseado: {Title} - {StartDate}", parseResult.Event.Title, parseResult.Event.StartDate);
 
-            // Opcionalmente validar el evento parseado
-            var validation = await _aiValidationService.ValidateEventCreationAsync(
-                parsedEvent,
-                userId,
-                existingEvents);
-
-            _logger.LogInformation("Validación: {IsApproved} - {Message}", validation.IsApproved, validation.RecommendationMessage);
-
-            return Ok(new ParseNaturalLanguageResponseDto
+            if (parseResult.Validation == null)
             {
-                Success = true,
-                Event = parsedEvent,
-                Validation = validation
-            });
+                _logger.LogWarning("La respuesta de la IA no incluyó análisis; aplicando validación básica");
+                parseResult.Validation = RunFallbackValidation(parseResult.Event, existingEvents);
+            }
+
+            _logger.LogInformation(
+                "Validación: {IsApproved} - {Message} (Usó IA: {UsedAi})",
+                parseResult.Validation.IsApproved,
+                parseResult.Validation.RecommendationMessage,
+                parseResult.Validation.UsedAi);
+
+            parseResult.Success = true;
+            return Ok(parseResult);
         }
         catch (InvalidOperationException ex)
         {
@@ -557,5 +596,72 @@ public class EventsController : ControllerBase
                 Status = StatusCodes.Status500InternalServerError
             });
         }
+    }
+
+    private static AIValidationSeverity MaxSeverity(AIValidationSeverity first, AIValidationSeverity second)
+    {
+        return (AIValidationSeverity)Math.Max((int)first, (int)second);
+    }
+
+    private AIValidationResult RunFallbackValidation(CreateEventDto createEventDto, IEnumerable<EventDto>? existingEvents)
+    {
+        // Validación crítica: fin anterior al inicio
+        if (createEventDto.EndDate <= createEventDto.StartDate)
+        {
+            return new AIValidationResult
+            {
+                IsApproved = false,
+                Severity = AIValidationSeverity.Critical,
+                RecommendationMessage = "La hora de fin debe ser posterior a la hora de inicio.",
+                Suggestions = new List<string>
+                {
+                    "Revisa la duración del evento y ajusta la hora de finalización."
+                },
+                UsedAi = false
+            };
+        }
+
+        var issues = new List<string>();
+        var suggestions = new List<string>();
+        var severity = AIValidationSeverity.Info;
+
+        if (!createEventDto.IsAllDay)
+        {
+            var duration = createEventDto.EndDate - createEventDto.StartDate;
+            if (duration > TimeSpan.FromHours(12))
+            {
+                severity = MaxSeverity(severity, AIValidationSeverity.Warning);
+                issues.Add("El evento dura más de 12 horas seguidas.");
+                suggestions.Add("Divide el evento en bloques más cortos o márcalo como 'Todo el día'.");
+            }
+        }
+
+        var contextEvents = existingEvents?.ToList() ?? new List<EventDto>();
+        if (contextEvents.Any())
+        {
+            var overlaps = contextEvents.Any(e =>
+                e.StartDate < createEventDto.EndDate &&
+                createEventDto.StartDate < e.EndDate);
+
+            if (overlaps)
+            {
+                severity = MaxSeverity(severity, AIValidationSeverity.Warning);
+                issues.Add("Se detectó un posible solapamiento con otro evento cercano.");
+                suggestions.Add("Revisa la agenda para evitar conflictos de horario.");
+            }
+        }
+
+        var message = issues.Count > 0
+            ? string.Join(" ", issues)
+            : "Validación básica sin IA: no se detectaron problemas importantes.";
+
+        return new AIValidationResult
+        {
+            IsApproved = issues.Count == 0,
+            Severity = severity,
+            RecommendationMessage = message,
+            Suggestions = issues.Count > 0 ? suggestions : new List<string>(),
+            UsedAi = false
+        };
     }
 }
