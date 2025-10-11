@@ -48,7 +48,7 @@
     z-index: 1;
 }
 
-.calendar-view-panel > * {
+.calendar-view-panel>* {
     flex: 1;
     min-width: 0;
 }

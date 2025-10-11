@@ -96,7 +96,7 @@ const MainDashboard: React.FC = () => {
       setDetailError('');
       await apiService.deleteEvent(event.id);
       closeEventDetailModal();
-  bumpRefreshToken();
+      bumpRefreshToken();
     } catch (error) {
       console.error('Error deleting event:', error);
       const message = error instanceof Error ? error.message : 'Error al eliminar el evento';
