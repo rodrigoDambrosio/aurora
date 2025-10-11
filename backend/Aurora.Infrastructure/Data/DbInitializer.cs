@@ -4,6 +4,7 @@ using Aurora.Domain.Enums;
 using Aurora.Domain.Services;
 using Aurora.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Aurora.Infrastructure.Data;
 
@@ -23,6 +24,9 @@ public static class DbInitializer
 
         // Asegurar que la columna Priority exista incluso si la base ya se creó antes del cambio
         await EnsurePriorityColumnAsync(context);
+
+        // Asegurar que la tabla UserSessions exista (por compatibilidad con bases creadas antes de introducirla)
+        await EnsureUserSessionsTableAsync(context);
 
         // Si ya hay usuarios, no hacer nada
         if (await context.Users.AnyAsync())
@@ -57,6 +61,63 @@ public static class DbInitializer
 
         // Crear eventos de ejemplo
         await CreateSampleEventsAsync(context, developmentUser.Id, defaultCategories);
+    }
+
+    /// <summary>
+    /// Garantiza que la tabla UserSessions exista incluso para bases creadas antes de introducir la entidad.
+    /// </summary>
+    private static async Task EnsureUserSessionsTableAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var checkCommand = connection.CreateCommand();
+            checkCommand.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='UserSessions';";
+
+            var exists = false;
+            await using (var reader = await checkCommand.ExecuteReaderAsync())
+            {
+                exists = await reader.ReadAsync();
+            }
+
+            if (!exists)
+            {
+                using var createCommand = connection.CreateCommand();
+                // Crear la tabla con las columnas necesarias para mapear con la entidad
+                createCommand.CommandText = @"
+CREATE TABLE UserSessions (
+    Id TEXT NOT NULL PRIMARY KEY,
+    UserId TEXT NOT NULL,
+    TokenId TEXT NOT NULL,
+    ExpiresAtUtc TEXT NOT NULL,
+    RevokedAtUtc TEXT,
+    RevokedReason TEXT,
+    CreatedAt TEXT NOT NULL,
+    UpdatedAt TEXT NOT NULL,
+    IsActive INTEGER NOT NULL
+);";
+                await createCommand.ExecuteNonQueryAsync();
+
+                using var indexCommand = connection.CreateCommand();
+                indexCommand.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS IX_UserSessions_TokenId ON UserSessions(TokenId);";
+                await indexCommand.ExecuteNonQueryAsync();
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
     }
 
     /// <summary>

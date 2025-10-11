@@ -399,13 +399,14 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
                           value={parsedEvent.startDate.split('T')[1]?.substring(0, 5) || ''}
                           onChange={(e) => {
                             const [date] = parsedEvent.startDate.split('T');
-                            const startTime = new Date(`${date}T${e.target.value}:00.000Z`);
-                            const duration = new Date(parsedEvent.endDate).getTime() - new Date(parsedEvent.startDate).getTime();
-                            const endTime = new Date(startTime.getTime() + duration);
+                            const parsedStart = new Date(parsedEvent.startDate);
+                            const startTimeLocal = new Date(`${date}T${e.target.value}:00`);
+                            const duration = new Date(parsedEvent.endDate).getTime() - parsedStart.getTime();
+                            const endTimeLocal = new Date(startTimeLocal.getTime() + duration);
                             setParsedEvent({
                               ...parsedEvent,
-                              startDate: startTime.toISOString(),
-                              endDate: endTime.toISOString()
+                              startDate: startTimeLocal.toISOString(),
+                              endDate: endTimeLocal.toISOString()
                             });
                           }}
                           className="nlp-form-input"

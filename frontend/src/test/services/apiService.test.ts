@@ -73,7 +73,9 @@ describe('ApiService', () => {
         startDate: '2025-09-30T10:00:00.000Z',
         endDate: '2025-09-30T11:00:00.000Z',
         isAllDay: false,
-        eventCategoryId: '1'
+        eventCategoryId: '1',
+        priority: 2,
+        timezoneOffsetMinutes: 0
       }
 
       const result = await apiService.createEvent(eventData)
@@ -84,7 +86,8 @@ describe('ApiService', () => {
         startDate: '2025-09-30T10:00:00.000Z',
         endDate: '2025-09-30T11:00:00.000Z',
         isAllDay: false,
-        eventCategoryId: '1',
+        isRecurring: false,
+        priority: 2,
         eventCategory: expect.objectContaining({
           id: '1',
           name: 'Trabajo'
@@ -105,6 +108,7 @@ describe('ApiService', () => {
         endDate: '2025-09-29T10:00:00.000Z',
         isAllDay: false,
         isRecurring: false,
+        priority: expect.any(Number),
         eventCategory: expect.objectContaining({
           id: '1',
           name: 'Trabajo'
@@ -113,7 +117,7 @@ describe('ApiService', () => {
     })
 
     it('should handle not found errors', async () => {
-      await expect(apiService.getEvent('nonexistent')).rejects.toThrow('HTTP 404')
+      await expect(apiService.getEvent('nonexistent')).rejects.toMatchObject({ status: 404 })
     })
   })
 
@@ -124,7 +128,9 @@ describe('ApiService', () => {
         startDate: '2025-09-30T10:00:00.000Z',
         endDate: '2025-09-30T11:00:00.000Z',
         isAllDay: false,
-        eventCategoryId: '1'
+        eventCategoryId: '1',
+        priority: 3,
+        timezoneOffsetMinutes: 0
       }
 
       const result = await apiService.updateEvent('1', eventData)
@@ -135,9 +141,9 @@ describe('ApiService', () => {
         startDate: '2025-09-30T10:00:00.000Z',
         endDate: '2025-09-30T11:00:00.000Z',
         isAllDay: false,
-        eventCategoryId: '1',
-        description: 'Reunión semanal del equipo', // From existing data
         isRecurring: false,
+        priority: 3,
+        description: 'Reunión semanal del equipo', // From existing data
         eventCategory: expect.objectContaining({
           id: '1',
           name: 'Trabajo'
@@ -151,10 +157,12 @@ describe('ApiService', () => {
         startDate: '2025-09-30T10:00:00.000Z',
         endDate: '2025-09-30T11:00:00.000Z',
         isAllDay: false,
-        eventCategoryId: '1'
+        eventCategoryId: '1',
+        priority: 2,
+        timezoneOffsetMinutes: 0
       }
 
-      await expect(apiService.updateEvent('nonexistent', eventData)).rejects.toThrow('HTTP 404')
+      await expect(apiService.updateEvent('nonexistent', eventData)).rejects.toMatchObject({ status: 404 })
     })
   })
 
@@ -165,7 +173,7 @@ describe('ApiService', () => {
     })
 
     it('should handle not found errors when deleting', async () => {
-      await expect(apiService.deleteEvent('nonexistent')).rejects.toThrow('HTTP 404')
+      await expect(apiService.deleteEvent('nonexistent')).rejects.toMatchObject({ status: 404 })
     })
   })
 })

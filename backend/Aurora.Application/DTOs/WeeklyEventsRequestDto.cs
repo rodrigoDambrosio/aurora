@@ -6,11 +6,6 @@ namespace Aurora.Application.DTOs;
 public class WeeklyEventsRequestDto
 {
     /// <summary>
-    /// ID del usuario (opcional en modo desarrollo)
-    /// </summary>
-    public Guid? UserId { get; set; }
-
-    /// <summary>
     /// Fecha de inicio de la semana
     /// </summary>
     public DateTime WeekStart { get; set; }

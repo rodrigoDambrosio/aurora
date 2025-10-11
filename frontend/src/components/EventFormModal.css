@@ -163,6 +163,37 @@
     height: 36px;
 }
 
+.event-form-time-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.event-form-time-input {
+    flex: 1;
+}
+
+.event-form-time-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 0.667px solid transparent;
+    background: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.event-form-time-button:hover,
+.event-form-time-button:focus-visible {
+    background: var(--color-surface);
+    color: var(--gradient-primary-end);
+    border-color: var(--gradient-primary-end);
+    outline: none;
+}
+
 .event-form-textarea {
     min-height: 80px;
     resize: vertical;

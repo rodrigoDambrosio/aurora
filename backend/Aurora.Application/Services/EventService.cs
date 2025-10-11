@@ -105,13 +105,16 @@ public class EventService : IEventService
             throw new InvalidOperationException("La categoría especificada no está disponible para este usuario");
         }
 
+        var categoryEntity = await _categoryRepository.GetByIdAsync(createEventDto.EventCategoryId)
+            ?? throw new InvalidOperationException("La categoría seleccionada no existe.");
+
         // Crear entidad evento
         var eventEntity = new Event
         {
             Title = createEventDto.Title,
             Description = createEventDto.Description,
-            StartDate = createEventDto.StartDate,
-            EndDate = createEventDto.EndDate,
+            StartDate = EnsureUtc(createEventDto.StartDate),
+            EndDate = EnsureUtc(createEventDto.EndDate),
             IsAllDay = createEventDto.IsAllDay,
             Location = createEventDto.Location,
             Notes = createEventDto.Notes,
@@ -120,11 +123,19 @@ public class EventService : IEventService
             RecurrencePattern = createEventDto.RecurrencePattern,
             Priority = createEventDto.Priority,
             EventCategoryId = createEventDto.EventCategoryId,
+            EventCategory = categoryEntity,
             UserId = currentUserId
         };
 
         var createdEvent = await _eventRepository.AddAsync(eventEntity);
         await _eventRepository.SaveChangesAsync();
+
+        // Asegurarse de que la navegación esté cargada al devolver el DTO
+        if (createdEvent.EventCategory == null)
+        {
+            createdEvent = await _eventRepository.GetByIdAsync(createdEvent.Id)
+                           ?? createdEvent;
+        }
 
         return MapEventToDto(createdEvent);
     }
@@ -147,11 +158,14 @@ public class EventService : IEventService
             throw new InvalidOperationException("La categoría especificada no está disponible para este usuario");
         }
 
+        var categoryEntity = await _categoryRepository.GetByIdAsync(updateEventDto.EventCategoryId)
+            ?? throw new InvalidOperationException("La categoría seleccionada no existe.");
+
         // Actualizar propiedades
         eventEntity.Title = updateEventDto.Title;
         eventEntity.Description = updateEventDto.Description;
-        eventEntity.StartDate = updateEventDto.StartDate;
-        eventEntity.EndDate = updateEventDto.EndDate;
+        eventEntity.StartDate = EnsureUtc(updateEventDto.StartDate);
+        eventEntity.EndDate = EnsureUtc(updateEventDto.EndDate);
         eventEntity.IsAllDay = updateEventDto.IsAllDay;
         eventEntity.Location = updateEventDto.Location;
         eventEntity.Notes = updateEventDto.Notes;
@@ -160,10 +174,17 @@ public class EventService : IEventService
         eventEntity.RecurrencePattern = updateEventDto.RecurrencePattern;
         eventEntity.Priority = updateEventDto.Priority;
         eventEntity.EventCategoryId = updateEventDto.EventCategoryId;
+        eventEntity.EventCategory = categoryEntity;
         eventEntity.UpdatedAt = DateTime.UtcNow;
 
         var updatedEvent = await _eventRepository.UpdateAsync(eventEntity);
         await _eventRepository.SaveChangesAsync();
+
+        if (updatedEvent.EventCategory == null)
+        {
+            updatedEvent = await _eventRepository.GetByIdAsync(updatedEvent.Id)
+                          ?? updatedEvent;
+        }
 
         return MapEventToDto(updatedEvent);
     }
@@ -224,8 +245,8 @@ public class EventService : IEventService
             Id = eventEntity.Id,
             Title = eventEntity.Title,
             Description = eventEntity.Description,
-            StartDate = eventEntity.StartDate,
-            EndDate = eventEntity.EndDate,
+            StartDate = EnsureUtc(eventEntity.StartDate),
+            EndDate = EnsureUtc(eventEntity.EndDate),
             IsAllDay = eventEntity.IsAllDay,
             Location = eventEntity.Location,
             Notes = eventEntity.Notes,
@@ -256,5 +277,25 @@ public class EventService : IEventService
             CreatedAt = categoryEntity.CreatedAt,
             UpdatedAt = categoryEntity.UpdatedAt
         };
+    }
+
+    private static DateTime EnsureUtc(DateTime value)
+    {
+        if (value == default)
+        {
+            return value;
+        }
+
+        if (value.Kind == DateTimeKind.Utc)
+        {
+            return value;
+        }
+
+        if (value.Kind == DateTimeKind.Local)
+        {
+            return value.ToUniversalTime();
+        }
+
+        return DateTime.SpecifyKind(value, DateTimeKind.Utc);
     }
 }

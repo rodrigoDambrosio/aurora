@@ -45,4 +45,9 @@ public class User : BaseEntity
     /// Preferencias del usuario
     /// </summary>
     public virtual UserPreferences? Preferences { get; set; }
+
+    /// <summary>
+    /// Sesiones de autenticación activas del usuario
+    /// </summary>
+    public virtual ICollection<UserSession> Sessions { get; set; } = new List<UserSession>();
 }

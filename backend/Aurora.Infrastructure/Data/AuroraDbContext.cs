@@ -33,6 +33,11 @@ public class AuroraDbContext : DbContext
     /// </summary>
     public DbSet<UserPreferences> UserPreferences { get; set; }
 
+    /// <summary>
+    /// Conjunto de sesiones activas de usuarios
+    /// </summary>
+    public DbSet<UserSession> UserSessions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -42,12 +47,14 @@ public class AuroraDbContext : DbContext
         modelBuilder.ApplyConfiguration(new EventConfiguration());
         modelBuilder.ApplyConfiguration(new EventCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new UserPreferencesConfiguration());
+        modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
 
         // Configurar filtros globales para soft delete
         modelBuilder.Entity<User>().HasQueryFilter(e => e.IsActive);
         modelBuilder.Entity<Event>().HasQueryFilter(e => e.IsActive);
         modelBuilder.Entity<EventCategory>().HasQueryFilter(e => e.IsActive);
         modelBuilder.Entity<UserPreferences>().HasQueryFilter(e => e.IsActive);
+        modelBuilder.Entity<UserSession>().HasQueryFilter(e => e.IsActive);
     }
 
     /// <summary>

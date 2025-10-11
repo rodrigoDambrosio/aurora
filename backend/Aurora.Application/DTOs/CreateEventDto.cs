@@ -66,4 +66,8 @@ public class CreateEventDto
     /// ID de la categoría del evento
     /// </summary>
     public Guid EventCategoryId { get; set; }
+    /// <summary>
+    /// Desplazamiento de la zona horaria en minutos (opcional)
+    /// </summary>
+    public int? TimezoneOffsetMinutes { get; set; }
 }

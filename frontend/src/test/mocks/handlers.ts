@@ -1,5 +1,11 @@
 import { http, HttpResponse } from 'msw'
-import type { EventCategoryDto, EventDto, WeeklyEventsResponseDto } from '../../services/apiService'
+import type {
+  CreateEventDto,
+  EventCategoryDto,
+  EventDto,
+  EventPriority,
+  WeeklyEventsResponseDto,
+} from '../../services/apiService'
 
 // Mock data for testing
 const mockCategories: EventCategoryDto[] = [
@@ -30,6 +36,7 @@ const mockEvents: EventDto[] = [
     endDate: '2025-09-29T10:00:00.000Z',
     isAllDay: false,
     isRecurring: false,
+    priority: 2 as EventPriority,
     eventCategory: mockCategories[0],
   },
   {
@@ -40,6 +47,7 @@ const mockEvents: EventDto[] = [
     endDate: '2025-09-30T15:00:00.000Z',
     isAllDay: false,
     isRecurring: false,
+    priority: 2 as EventPriority,
     eventCategory: mockCategories[1],
   },
 ]
@@ -91,11 +99,22 @@ export const handlers = [
 
   // Create event
   http.post('/api/events', async ({ request }) => {
-    const newEvent = await request.json() as EventDto
+    const newEvent = await request.json() as CreateEventDto
+    const category = mockCategories.find((cat) => cat.id === newEvent.eventCategoryId) ?? mockCategories[0]
+
     const createdEvent: EventDto = {
-      ...newEvent,
+      title: newEvent.title,
+      description: newEvent.description,
+      startDate: newEvent.startDate,
+      endDate: newEvent.endDate,
+      isAllDay: newEvent.isAllDay,
+      isRecurring: false,
+      priority: newEvent.priority,
+      location: newEvent.location,
+      color: newEvent.color,
+      notes: newEvent.notes,
       id: Math.random().toString(36).substr(2, 9),
-      eventCategory: mockCategories[0],
+      eventCategory: category,
     }
 
     return HttpResponse.json(createdEvent, { status: 201 })
@@ -104,17 +123,30 @@ export const handlers = [
   // Update event
   http.put('/api/events/:id', async ({ params, request }) => {
     const eventId = params.id as string
-    const updatedData = await request.json() as Partial<EventDto>
+    const updatedData = await request.json() as Partial<CreateEventDto>
 
     const existingEvent = mockEvents.find(e => e.id === eventId)
     if (!existingEvent) {
       return new HttpResponse(null, { status: 404 })
     }
 
+    const category = updatedData.eventCategoryId
+      ? mockCategories.find((cat) => cat.id === updatedData.eventCategoryId) ?? existingEvent.eventCategory
+      : existingEvent.eventCategory
+
     const updatedEvent: EventDto = {
       ...existingEvent,
-      ...updatedData,
-      id: eventId,
+      title: updatedData.title ?? existingEvent.title,
+      description: updatedData.description ?? existingEvent.description,
+      startDate: updatedData.startDate ?? existingEvent.startDate,
+      endDate: updatedData.endDate ?? existingEvent.endDate,
+      isAllDay: updatedData.isAllDay ?? existingEvent.isAllDay,
+      isRecurring: existingEvent.isRecurring,
+      priority: updatedData.priority ?? existingEvent.priority,
+      location: updatedData.location ?? existingEvent.location,
+      color: updatedData.color ?? existingEvent.color,
+      notes: updatedData.notes ?? existingEvent.notes,
+      eventCategory: category,
     }
 
     return HttpResponse.json(updatedEvent)

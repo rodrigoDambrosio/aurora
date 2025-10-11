@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Globalization;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
 using Aurora.Infrastructure.DTOs.Gemini;
@@ -141,9 +142,13 @@ public class GeminiAIValidationService : IAIValidationService
 
     private string BuildValidationPrompt(CreateEventDto eventDto, IEnumerable<EventDto>? existingEvents)
     {
-        var dayOfWeek = eventDto.StartDate.DayOfWeek.ToString();
-        var dateFormatted = eventDto.StartDate.ToString("yyyy-MM-dd HH:mm");
-        var duration = (eventDto.EndDate - eventDto.StartDate).TotalHours;
+        var localStart = ConvertToUserLocalTime(eventDto.StartDate, eventDto.TimezoneOffsetMinutes);
+        var localEnd = ConvertToUserLocalTime(eventDto.EndDate, eventDto.TimezoneOffsetMinutes);
+
+        var dayOfWeek = localStart.DayOfWeek.ToString();
+        var dateFormatted = localStart.ToString("yyyy-MM-dd HH:mm");
+        var duration = (localEnd - localStart).TotalHours;
+        var timezoneLabel = FormatUserTimezone(eventDto.TimezoneOffsetMinutes);
 
         var sb = new StringBuilder();
         sb.AppendLine("Eres un asistente de calendario inteligente y personal. Analiza el siguiente evento considerando el contexto del calendario del usuario.");
@@ -151,13 +156,12 @@ public class GeminiAIValidationService : IAIValidationService
         sb.AppendLine("EVENTO A VALIDAR:");
         sb.AppendLine($"- T�tulo: {eventDto.Title}");
         sb.AppendLine($"- Descripci�n: {eventDto.Description ?? "Sin descripci�n"}");
-        sb.AppendLine($"- Fecha y hora: {dateFormatted} ({dayOfWeek})");
+        sb.AppendLine($"- Fecha y hora: {dateFormatted} ({dayOfWeek}) [{timezoneLabel}]");
         sb.AppendLine($"- Duraci�n: {duration:F1} horas");
         sb.AppendLine($"- Todo el d�a: {(eventDto.IsAllDay ? "S�" : "No")}");
         sb.AppendLine($"- Ubicaci�n: {eventDto.Location ?? "Sin ubicaci�n"}");
         sb.AppendLine();
 
-        // Agregar contexto del calendario si existe
         if (existingEvents != null && existingEvents.Any())
         {
             sb.AppendLine("CONTEXTO DEL CALENDARIO (eventos cercanos):");
@@ -169,9 +173,12 @@ public class GeminiAIValidationService : IAIValidationService
 
             foreach (var evt in sortedEvents)
             {
-                var evtDuration = (evt.EndDate - evt.StartDate).TotalHours;
-                var evtDay = evt.StartDate.DayOfWeek.ToString();
-                var evtTime = evt.StartDate.ToString("yyyy-MM-dd HH:mm");
+                var evtStartLocal = ConvertToUserLocalTime(evt.StartDate, eventDto.TimezoneOffsetMinutes);
+                var evtEndLocal = ConvertToUserLocalTime(evt.EndDate, eventDto.TimezoneOffsetMinutes);
+
+                var evtDuration = (evtEndLocal - evtStartLocal).TotalHours;
+                var evtDay = evtStartLocal.DayOfWeek.ToString();
+                var evtTime = evtStartLocal.ToString("yyyy-MM-dd HH:mm");
                 var category = evt.EventCategory?.Name ?? "Sin categor�a";
 
                 sb.AppendLine($"� [{evtTime} ({evtDay})] \"{evt.Title}\" - {evtDuration:F1}h - {category}");
@@ -219,7 +226,6 @@ public class GeminiAIValidationService : IAIValidationService
     {
         try
         {
-            // Intentar extraer JSON de la respuesta
             var jsonStart = aiText.IndexOf('{');
             var jsonEnd = aiText.LastIndexOf('}') + 1;
 
@@ -249,7 +255,6 @@ public class GeminiAIValidationService : IAIValidationService
                 }
             }
 
-            // Si no se puede parsear, aprobar por defecto
             _logger.LogWarning("No se pudo parsear la respuesta de la IA como JSON");
             return new AIValidationResult
             {
@@ -281,8 +286,10 @@ public class GeminiAIValidationService : IAIValidationService
         {
             _logger.LogInformation("Parseando texto natural: {Text} (Timezone offset: {Offset})", naturalLanguageText, timezoneOffsetMinutes);
 
+            var categoryList = availableCategories.ToList();
+
             // Construir el prompt para parsear el texto
-            var prompt = BuildParsingPrompt(naturalLanguageText, availableCategories, timezoneOffsetMinutes, existingEvents);
+            var prompt = BuildParsingPrompt(naturalLanguageText, categoryList, timezoneOffsetMinutes, existingEvents);
 
             // Crear la solicitud a Gemini
             var geminiRequest = new GeminiRequest
@@ -341,8 +348,8 @@ public class GeminiAIValidationService : IAIValidationService
                 throw new InvalidOperationException("No se pudo obtener respuesta de la IA para parsear el texto.");
             }
 
-            // Parsear la respuesta de la IA a CreateEventDto
-            var eventDto = ParseEventFromAIResponse(aiText);
+            // Parsear la respuesta de la IA a CreateEventDto garantizando categoría válida
+            var eventDto = ParseEventFromAIResponse(aiText, categoryList, timezoneOffsetMinutes);
 
             _logger.LogInformation("Texto parseado exitosamente: {Title} - {StartDate}",
                 eventDto.Title, eventDto.StartDate);
@@ -442,7 +449,7 @@ public class GeminiAIValidationService : IAIValidationService
         return sb.ToString();
     }
 
-    private CreateEventDto ParseEventFromAIResponse(string aiText)
+    private CreateEventDto ParseEventFromAIResponse(string aiText, IReadOnlyList<EventCategoryDto> availableCategories, int timezoneOffsetMinutes)
     {
         try
         {
@@ -454,6 +461,8 @@ public class GeminiAIValidationService : IAIValidationService
             {
                 var jsonText = aiText.Substring(jsonStart, jsonEnd - jsonStart);
 
+                using var document = JsonDocument.Parse(jsonText);
+
                 var parsed = JsonSerializer.Deserialize<CreateEventDto>(jsonText, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -461,10 +470,71 @@ public class GeminiAIValidationService : IAIValidationService
 
                 if (parsed != null && !string.IsNullOrEmpty(parsed.Title))
                 {
+                    var rawStart = ExtractJsonString(document.RootElement, "startDate");
+                    var rawEnd = ExtractJsonString(document.RootElement, "endDate");
+
                     if (!Enum.IsDefined(typeof(EventPriority), parsed.Priority) || parsed.Priority == 0)
                     {
                         parsed.Priority = EventPriority.Medium;
                     }
+
+                    var normalizedStart = NormalizeAiDate(rawStart, parsed.StartDate, timezoneOffsetMinutes);
+                    var normalizedEnd = NormalizeAiDate(rawEnd, parsed.EndDate, timezoneOffsetMinutes);
+
+                    if (normalizedStart == default)
+                    {
+                        normalizedStart = DateTime.UtcNow;
+                    }
+
+                    if (normalizedEnd == default)
+                    {
+                        normalizedEnd = normalizedStart.AddHours(1);
+                    }
+
+                    if (normalizedEnd <= normalizedStart)
+                    {
+                        normalizedEnd = normalizedStart.AddHours(1);
+                    }
+
+                    parsed.StartDate = normalizedStart;
+                    parsed.EndDate = normalizedEnd;
+
+                    var resolvedCategoryId = parsed.EventCategoryId;
+
+                    if (resolvedCategoryId == Guid.Empty || !availableCategories.Any(c => c.Id == resolvedCategoryId))
+                    {
+                        var categoryName = ExtractCategoryName(document.RootElement);
+
+                        if (!string.IsNullOrWhiteSpace(categoryName))
+                        {
+                            var matched = availableCategories
+                                .FirstOrDefault(c => string.Equals(c.Name, categoryName, StringComparison.OrdinalIgnoreCase));
+
+                            if (matched != null)
+                            {
+                                resolvedCategoryId = matched.Id;
+                            }
+                        }
+                    }
+
+                    if (resolvedCategoryId == Guid.Empty || !availableCategories.Any(c => c.Id == resolvedCategoryId))
+                    {
+                        var fallback = availableCategories
+                            .OrderBy(c => c.SortOrder)
+                            .ThenBy(c => c.Name)
+                            .FirstOrDefault();
+
+                        if (fallback == null)
+                        {
+                            throw new InvalidOperationException("No hay categorías disponibles para asignar al evento sugerido por IA.");
+                        }
+
+                        _logger.LogWarning("La IA no devolvió una categoría válida. Usando '{CategoryName}' como fallback.", fallback.Name);
+                        resolvedCategoryId = fallback.Id;
+                    }
+
+                    parsed.EventCategoryId = resolvedCategoryId;
+                    parsed.TimezoneOffsetMinutes = timezoneOffsetMinutes;
 
                     return parsed;
                 }
@@ -479,6 +549,43 @@ public class GeminiAIValidationService : IAIValidationService
         }
     }
 
+    private static DateTime NormalizeAiDate(string? rawValue, DateTime fallback, int timezoneOffsetMinutes)
+    {
+        if (!string.IsNullOrWhiteSpace(rawValue))
+        {
+            var sanitized = rawValue.Trim();
+
+            if (DateTimeOffset.TryParse(sanitized, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dto))
+            {
+                return dto.ToUniversalTime().UtcDateTime;
+            }
+
+            if (DateTime.TryParse(sanitized, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var localParsed))
+            {
+                return ConvertLocalToUtc(localParsed, timezoneOffsetMinutes);
+            }
+        }
+
+        if (fallback == default)
+        {
+            return DateTime.UtcNow;
+        }
+
+        return ConvertLocalToUtc(fallback, timezoneOffsetMinutes);
+    }
+
+    private static DateTime ConvertLocalToUtc(DateTime value, int timezoneOffsetMinutes)
+    {
+        var unspecified = DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
+
+        if (timezoneOffsetMinutes != 0)
+        {
+            unspecified = unspecified.AddMinutes(-timezoneOffsetMinutes);
+        }
+
+        return DateTime.SpecifyKind(unspecified, DateTimeKind.Utc);
+    }
+
     // Clase auxiliar para parsear la respuesta JSON de la IA
     private class AIResponseParsed
     {
@@ -486,5 +593,81 @@ public class GeminiAIValidationService : IAIValidationService
         public string? Severity { get; set; }
         public string? Message { get; set; }
         public List<string>? Suggestions { get; set; }
+    }
+
+    private static string? ExtractCategoryName(JsonElement root)
+    {
+        var candidateProperties = new[]
+        {
+            "categoryName",
+            "category",
+            "eventCategoryName",
+            "eventCategory",
+            "category_label"
+        };
+
+        foreach (var property in candidateProperties)
+        {
+            if (root.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String)
+            {
+                var name = value.GetString();
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    return name;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static string? ExtractJsonString(JsonElement root, string propertyName)
+    {
+        if (root.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String)
+        {
+            return value.GetString();
+        }
+
+        return null;
+    }
+
+    private static DateTime ConvertToUserLocalTime(DateTime dateTime, int? timezoneOffsetMinutes)
+    {
+        if (dateTime == default)
+        {
+            return dateTime;
+        }
+
+        DateTime utcDateTime = dateTime.Kind switch
+        {
+            DateTimeKind.Utc => dateTime,
+            DateTimeKind.Local => dateTime.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+        };
+
+        if (timezoneOffsetMinutes.HasValue)
+        {
+            return utcDateTime.AddMinutes(timezoneOffsetMinutes.Value);
+        }
+
+        return utcDateTime.ToLocalTime();
+    }
+
+    private static string FormatUserTimezone(int? timezoneOffsetMinutes)
+    {
+        if (!timezoneOffsetMinutes.HasValue)
+        {
+            return "zona horaria no especificada";
+        }
+
+        if (timezoneOffsetMinutes.Value == 0)
+        {
+            return "UTC±00:00";
+        }
+
+        var offset = TimeSpan.FromMinutes(timezoneOffsetMinutes.Value);
+        var sign = timezoneOffsetMinutes.Value >= 0 ? "+" : "-";
+        var formatted = offset.Duration().ToString(@"hh\:mm");
+        return $"UTC{sign}{formatted}";
     }
 }

@@ -1,5 +1,5 @@
 import { Filter } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EventDto, WeeklyEventsResponseDto } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './WeeklyCalendar.css';
@@ -63,8 +63,8 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ userId }) => {
   }, []);
 
   // Generate week days array
-  const weekDays = useMemo(() => {
-    const days = [];
+  const weekDays = useMemo<Date[]>(() => {
+    const days: Date[] = [];
     for (let i = 0; i < 7; i++) {
       const date = new Date(currentWeekStart);
       date.setDate(currentWeekStart.getDate() + i);
@@ -74,7 +74,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ userId }) => {
   }, [currentWeekStart]);
 
   // Load weekly events
-  const loadWeeklyEvents = async (weekStart: Date) => {
+  const loadWeeklyEvents = useCallback(async (weekStart: Date) => {
     setLoading(true);
     setError('');
 
@@ -91,14 +91,14 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ userId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   // Load events when week changes
   useEffect(() => {
     if (currentWeekStart) {
-      loadWeeklyEvents(currentWeekStart);
+      void loadWeeklyEvents(currentWeekStart);
     }
-  }, [currentWeekStart, userId]);
+  }, [currentWeekStart, loadWeeklyEvents]);
 
   // Navigation functions
   const goToPreviousWeek = () => {
@@ -247,7 +247,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ userId }) => {
 
       {/* Calendar grid */}
       <div className="calendar-grid">
-        {weekDays.map((date, index) => {
+        {weekDays.map((date: Date, index: number) => {
           const dayEvents = getEventsForDay(date);
           const dayName = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][index];
 

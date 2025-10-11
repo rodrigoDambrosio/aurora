@@ -213,6 +213,10 @@ public class EventServiceTests
             .Setup(x => x.UserCanUseCategoryAsync(categoryId, It.IsAny<Guid>()))
             .ReturnsAsync(true);
 
+        _categoryRepositoryMock
+            .Setup(x => x.GetByIdAsync(categoryId))
+            .ReturnsAsync(category);
+
         _eventRepositoryMock
             .Setup(x => x.AddAsync(It.IsAny<Event>()))
             .ReturnsAsync(createdEvent);
@@ -220,6 +224,10 @@ public class EventServiceTests
         _eventRepositoryMock
             .Setup(x => x.SaveChangesAsync())
             .ReturnsAsync(1);
+
+        _eventRepositoryMock
+            .Setup(x => x.GetByIdAsync(createdEvent.Id))
+            .ReturnsAsync(createdEvent);
 
         // Act
         var result = await _eventService.CreateEventAsync(userId, createEventDto);
@@ -278,21 +286,34 @@ public class EventServiceTests
             EventCategoryId = categoryId
         };
 
+        var category = new EventCategory
+        {
+            Id = categoryId,
+            Name = "Trabajo",
+            UserId = userId
+        };
+
         var updatedEvent = new Event
         {
             Id = eventId,
             Title = updateEventDto.Title,
             UserId = userId,
-            EventCategoryId = categoryId
+            EventCategoryId = categoryId,
+            EventCategory = category
         };
 
         _eventRepositoryMock
-            .Setup(x => x.GetByIdAsync(eventId))
-            .ReturnsAsync(existingEvent);
+            .SetupSequence(x => x.GetByIdAsync(eventId))
+            .ReturnsAsync(existingEvent)
+            .ReturnsAsync(updatedEvent);
 
         _categoryRepositoryMock
             .Setup(x => x.UserCanUseCategoryAsync(categoryId, It.IsAny<Guid>()))
             .ReturnsAsync(true);
+
+        _categoryRepositoryMock
+            .Setup(x => x.GetByIdAsync(categoryId))
+            .ReturnsAsync(category);
 
         _eventRepositoryMock
             .Setup(x => x.UpdateAsync(It.IsAny<Event>()))

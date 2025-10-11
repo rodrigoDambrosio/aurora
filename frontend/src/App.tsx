@@ -1,5 +1,7 @@
+import { useMemo, useState } from 'react';
 import './App.css';
 import ApiTest from './components/ApiTest';
+import AuthScreen from './components/Auth/AuthScreen';
 import MainDashboard from './components/MainDashboard';
 
 /**
@@ -8,8 +10,10 @@ import MainDashboard from './components/MainDashboard';
  * Aurora Personal Planner - Mobile-First Weekly Calendar
  */
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   // Toggle between dashboard view and API test (for development)
   const showApiTest = import.meta.env.DEV && new URLSearchParams(window.location.search).has('test');
+  const shouldShowAuthScreen = useMemo(() => !isAuthenticated && !showApiTest, [isAuthenticated, showApiTest]);
 
   return (
     <div className="App">
@@ -28,6 +32,8 @@ function App() {
             <ApiTest />
           </main>
         </div>
+      ) : shouldShowAuthScreen ? (
+        <AuthScreen onAuthSuccess={() => setIsAuthenticated(true)} />
       ) : (
         <div className="aurora-app">
           <MainDashboard />

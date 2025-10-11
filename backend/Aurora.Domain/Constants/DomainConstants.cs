@@ -46,7 +46,7 @@ public static class DomainConstants
         /// <summary>
         /// Indica si estamos en modo de desarrollo sin autenticación
         /// </summary>
-        public const bool AllowAnonymousAccess = true;
+        public const bool AllowAnonymousAccess = false;
 
         /// <summary>
         /// Número de eventos demo a crear automáticamente
