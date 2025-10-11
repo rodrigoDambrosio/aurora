@@ -1,6 +1,7 @@
+using Aurora.Api.Extensions;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
-using Aurora.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Aurora.Api.Controllers;
@@ -11,6 +12,7 @@ namespace Aurora.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class EventsController : ControllerBase
 {
     private readonly IEventService _eventService;
@@ -30,8 +32,29 @@ public class EventsController : ControllerBase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    private bool TryGetAuthenticatedUserId(out Guid userId, out ActionResult? errorResult)
+    {
+        var userIdClaim = User.GetUserId();
+        if (!userIdClaim.HasValue)
+        {
+            _logger.LogWarning("No se encontró el identificador de usuario en el token");
+            errorResult = Unauthorized(new ProblemDetails
+            {
+                Title = "Usuario no autenticado",
+                Detail = "No se pudo determinar el usuario autenticado.",
+                Status = StatusCodes.Status401Unauthorized
+            });
+            userId = Guid.Empty;
+            return false;
+        }
+
+        userId = userIdClaim.Value;
+        errorResult = null;
+        return true;
+    }
+
     /// <summary>
-    /// Obtiene eventos de una semana específica para un usuario
+    /// Obtiene eventos de una semana específica para el usuario autenticado
     /// </summary>
     /// <param name="request">Parámetros de la consulta semanal</param>
     /// <param name="categoryId">ID de categoría para filtrar (opcional)</param>
@@ -49,12 +72,14 @@ public class EventsController : ControllerBase
     {
         try
         {
-            _logger.LogInformation(
-                "Obteniendo eventos semanales para fecha: {WeekStart}, categoría: {CategoryId}",
-                request.WeekStart, categoryId);
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
 
-            // En desarrollo, usar usuario demo si no se especifica
-            var userId = request.UserId ?? DomainConstants.DemoUser.Id;
+            _logger.LogInformation(
+                "Obteniendo eventos semanales para usuario: {UserId}, fecha: {WeekStart}, categoría: {CategoryId}",
+                userId, request.WeekStart, categoryId);
 
             var response = await _eventService.GetWeeklyEventsAsync(userId, request.WeekStart, categoryId);
 
@@ -85,9 +110,8 @@ public class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene eventos de un mes específico para un usuario
+    /// Obtiene eventos de un mes específico para el usuario autenticado
     /// </summary>
-    /// <param name="userId">ID del usuario (opcional)</param>
     /// <param name="year">Año del mes a consultar</param>
     /// <param name="month">Mes a consultar (1-12)</param>
     /// <param name="categoryId">ID de categoría para filtrar (opcional)</param>
@@ -100,7 +124,6 @@ public class EventsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<WeeklyEventsResponseDto>> GetMonthlyEvents(
-        [FromQuery] Guid? userId = null,
         [FromQuery] int? year = null,
         [FromQuery] int? month = null,
         [FromQuery] Guid? categoryId = null)
@@ -121,14 +144,16 @@ public class EventsController : ControllerBase
                 });
             }
 
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
+
             _logger.LogInformation(
-                "Obteniendo eventos mensuales para {Year}-{Month}, categoría: {CategoryId}",
-                currentYear, currentMonth, categoryId);
+                "Obteniendo eventos mensuales para usuario: {UserId}, {Year}-{Month}, categoría: {CategoryId}",
+                userId, currentYear, currentMonth, categoryId);
 
-            // En desarrollo, usar usuario demo si no se especifica
-            var effectiveUserId = userId ?? DomainConstants.DemoUser.Id;
-
-            var response = await _eventService.GetMonthlyEventsAsync(effectiveUserId, currentYear, currentMonth, categoryId);
+            var response = await _eventService.GetMonthlyEventsAsync(userId, currentYear, currentMonth, categoryId);
 
             _logger.LogInformation("Se encontraron {EventCount} eventos para el mes", response.Events.Count());
 
@@ -147,29 +172,30 @@ public class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene todos los eventos de un usuario
+    /// Obtiene todos los eventos del usuario autenticado
     /// </summary>
-    /// <param name="userId">ID del usuario (opcional, usa usuario demo si no se especifica)</param>
     /// <returns>Lista de eventos del usuario</returns>
     /// <response code="200">Eventos obtenidos exitosamente</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<EventDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<EventDto>>> GetEvents([FromQuery] Guid? userId = null)
+    public async Task<ActionResult<IEnumerable<EventDto>>> GetEvents()
     {
         try
         {
-            // En desarrollo, usar usuario demo si no se especifica
-            var effectiveUserId = userId ?? DomainConstants.DemoUser.Id;
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
 
-            _logger.LogInformation("Obteniendo todos los eventos para usuario: {UserId}", effectiveUserId);
+            _logger.LogInformation("Obteniendo todos los eventos para usuario: {UserId}", userId);
 
             // Por ahora obtener eventos de un rango amplio (último año y próximo año)
             var startDate = DateTime.UtcNow.AddYears(-1);
             var endDate = DateTime.UtcNow.AddYears(1);
 
-            var events = await _eventService.GetEventsByDateRangeAsync(effectiveUserId, startDate, endDate);
+            var events = await _eventService.GetEventsByDateRangeAsync(userId, startDate, endDate);
 
             _logger.LogInformation("Se encontraron {EventCount} eventos", events.Count());
 
@@ -203,9 +229,14 @@ public class EventsController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Obteniendo evento con ID: {EventId}", id);
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
 
-            var eventDto = await _eventService.GetEventAsync(id, DomainConstants.DemoUser.Id);
+            _logger.LogInformation("Obteniendo evento con ID: {EventId} para usuario: {UserId}", id, userId);
+
+            var eventDto = await _eventService.GetEventAsync(id, userId);
 
             if (eventDto == null)
             {
@@ -248,10 +279,12 @@ public class EventsController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Creando nuevo evento: {Title}", createEventDto.Title);
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
 
-            // En desarrollo, usar usuario demo si no se especifica
-            var userId = DomainConstants.DemoUser.Id;
+            _logger.LogInformation("Creando nuevo evento: {Title} para usuario: {UserId}", createEventDto.Title, userId);
 
             // 1. Obtener eventos cercanos para dar contexto a la IA
             // Buscar eventos desde 1 día antes hasta 1 semana después del evento a crear
@@ -334,8 +367,10 @@ public class EventsController : ControllerBase
         {
             _logger.LogInformation("Parseando texto natural: {Text}", request.Text);
 
-            // En desarrollo, usar usuario demo
-            var userId = DomainConstants.DemoUser.Id;
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
 
             // Obtener categorías disponibles
             var categories = await _eventCategoryRepository.GetAvailableCategoriesForUserAsync(userId);
@@ -426,9 +461,14 @@ public class EventsController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Actualizando evento con ID: {EventId}", id);
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
 
-            var updatedEvent = await _eventService.UpdateEventAsync(id, DomainConstants.DemoUser.Id, updateEventDto);
+            _logger.LogInformation("Actualizando evento con ID: {EventId} para usuario: {UserId}", id, userId);
+
+            var updatedEvent = await _eventService.UpdateEventAsync(id, userId, updateEventDto);
 
             if (updatedEvent == null)
             {
@@ -483,9 +523,14 @@ public class EventsController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Eliminando evento con ID: {EventId}", id);
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
 
-            var result = await _eventService.DeleteEventAsync(id, DomainConstants.DemoUser.Id);
+            _logger.LogInformation("Eliminando evento con ID: {EventId} para usuario: {UserId}", id, userId);
+
+            var result = await _eventService.DeleteEventAsync(id, userId);
 
             if (!result)
             {

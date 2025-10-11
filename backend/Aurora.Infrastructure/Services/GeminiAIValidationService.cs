@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Linq;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
 using Aurora.Infrastructure.DTOs.Gemini;
@@ -281,8 +282,10 @@ public class GeminiAIValidationService : IAIValidationService
         {
             _logger.LogInformation("Parseando texto natural: {Text} (Timezone offset: {Offset})", naturalLanguageText, timezoneOffsetMinutes);
 
+            var categoryList = availableCategories.ToList();
+
             // Construir el prompt para parsear el texto
-            var prompt = BuildParsingPrompt(naturalLanguageText, availableCategories, timezoneOffsetMinutes, existingEvents);
+            var prompt = BuildParsingPrompt(naturalLanguageText, categoryList, timezoneOffsetMinutes, existingEvents);
 
             // Crear la solicitud a Gemini
             var geminiRequest = new GeminiRequest
@@ -341,8 +344,8 @@ public class GeminiAIValidationService : IAIValidationService
                 throw new InvalidOperationException("No se pudo obtener respuesta de la IA para parsear el texto.");
             }
 
-            // Parsear la respuesta de la IA a CreateEventDto
-            var eventDto = ParseEventFromAIResponse(aiText);
+            // Parsear la respuesta de la IA a CreateEventDto garantizando categoría válida
+            var eventDto = ParseEventFromAIResponse(aiText, categoryList, timezoneOffsetMinutes);
 
             _logger.LogInformation("Texto parseado exitosamente: {Title} - {StartDate}",
                 eventDto.Title, eventDto.StartDate);
@@ -442,7 +445,7 @@ public class GeminiAIValidationService : IAIValidationService
         return sb.ToString();
     }
 
-    private CreateEventDto ParseEventFromAIResponse(string aiText)
+    private CreateEventDto ParseEventFromAIResponse(string aiText, IReadOnlyList<EventCategoryDto> availableCategories, int timezoneOffsetMinutes)
     {
         try
         {
@@ -453,6 +456,8 @@ public class GeminiAIValidationService : IAIValidationService
             if (jsonStart >= 0 && jsonEnd > jsonStart)
             {
                 var jsonText = aiText.Substring(jsonStart, jsonEnd - jsonStart);
+
+                using var document = JsonDocument.Parse(jsonText);
 
                 var parsed = JsonSerializer.Deserialize<CreateEventDto>(jsonText, new JsonSerializerOptions
                 {
@@ -465,6 +470,63 @@ public class GeminiAIValidationService : IAIValidationService
                     {
                         parsed.Priority = EventPriority.Medium;
                     }
+
+                    var normalizedStart = NormalizeDateToUtc(parsed.StartDate, timezoneOffsetMinutes);
+                    var normalizedEnd = NormalizeDateToUtc(parsed.EndDate, timezoneOffsetMinutes);
+
+                    if (normalizedStart == default)
+                    {
+                        normalizedStart = DateTime.UtcNow;
+                    }
+
+                    if (normalizedEnd == default)
+                    {
+                        normalizedEnd = normalizedStart.AddHours(1);
+                    }
+
+                    if (normalizedEnd <= normalizedStart)
+                    {
+                        normalizedEnd = normalizedStart.AddHours(1);
+                    }
+
+                    parsed.StartDate = normalizedStart;
+                    parsed.EndDate = normalizedEnd;
+
+                    var resolvedCategoryId = parsed.EventCategoryId;
+
+                    if (resolvedCategoryId == Guid.Empty || !availableCategories.Any(c => c.Id == resolvedCategoryId))
+                    {
+                        var categoryName = ExtractCategoryName(document.RootElement);
+
+                        if (!string.IsNullOrWhiteSpace(categoryName))
+                        {
+                            var matched = availableCategories
+                                .FirstOrDefault(c => string.Equals(c.Name, categoryName, StringComparison.OrdinalIgnoreCase));
+
+                            if (matched != null)
+                            {
+                                resolvedCategoryId = matched.Id;
+                            }
+                        }
+                    }
+
+                    if (resolvedCategoryId == Guid.Empty || !availableCategories.Any(c => c.Id == resolvedCategoryId))
+                    {
+                        var fallback = availableCategories
+                            .OrderBy(c => c.SortOrder)
+                            .ThenBy(c => c.Name)
+                            .FirstOrDefault();
+
+                        if (fallback == null)
+                        {
+                            throw new InvalidOperationException("No hay categorías disponibles para asignar al evento sugerido por IA.");
+                        }
+
+                        _logger.LogWarning("La IA no devolvió una categoría válida. Usando '{CategoryName}' como fallback.", fallback.Name);
+                        resolvedCategoryId = fallback.Id;
+                    }
+
+                    parsed.EventCategoryId = resolvedCategoryId;
 
                     return parsed;
                 }
@@ -479,6 +541,32 @@ public class GeminiAIValidationService : IAIValidationService
         }
     }
 
+    private static DateTime NormalizeDateToUtc(DateTime dateTime, int timezoneOffsetMinutes)
+    {
+        if (dateTime == default)
+        {
+            return dateTime;
+        }
+
+        if (dateTime.Kind == DateTimeKind.Utc)
+        {
+            return dateTime;
+        }
+
+        if (dateTime.Kind == DateTimeKind.Local)
+        {
+            return dateTime.ToUniversalTime();
+        }
+
+        if (timezoneOffsetMinutes != 0)
+        {
+            var adjusted = dateTime.AddMinutes(-timezoneOffsetMinutes);
+            return DateTime.SpecifyKind(adjusted, DateTimeKind.Utc);
+        }
+
+        return DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+    }
+
     // Clase auxiliar para parsear la respuesta JSON de la IA
     private class AIResponseParsed
     {
@@ -486,5 +574,31 @@ public class GeminiAIValidationService : IAIValidationService
         public string? Severity { get; set; }
         public string? Message { get; set; }
         public List<string>? Suggestions { get; set; }
+    }
+
+    private static string? ExtractCategoryName(JsonElement root)
+    {
+        var candidateProperties = new[]
+        {
+            "categoryName",
+            "category",
+            "eventCategoryName",
+            "eventCategory",
+            "category_label"
+        };
+
+        foreach (var property in candidateProperties)
+        {
+            if (root.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String)
+            {
+                var name = value.GetString();
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    return name;
+                }
+            }
+        }
+
+        return null;
     }
 }

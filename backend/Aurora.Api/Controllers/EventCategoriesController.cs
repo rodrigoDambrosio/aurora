@@ -1,3 +1,4 @@
+using Aurora.Api.Extensions;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
 using Aurora.Domain.Constants;
@@ -36,8 +37,7 @@ public class EventCategoriesController : ControllerBase
     {
         try
         {
-            // En desarrollo, usar usuario demo si no se especifica
-            var effectiveUserId = userId ?? DomainConstants.DemoUser.Id;
+            var effectiveUserId = ResolveUserId(userId);
 
             _logger.LogInformation("Obteniendo categorías para usuario: {UserId}", effectiveUserId);
 
@@ -186,8 +186,7 @@ public class EventCategoriesController : ControllerBase
     {
         try
         {
-            // En desarrollo, usar usuario demo si no se especifica
-            var effectiveUserId = userId ?? DomainConstants.DemoUser.Id;
+            var effectiveUserId = ResolveUserId(userId);
 
             _logger.LogInformation("Obteniendo categorías personalizadas para usuario: {UserId}", effectiveUserId);
 
@@ -219,5 +218,21 @@ public class EventCategoriesController : ControllerBase
                 Status = StatusCodes.Status500InternalServerError
             });
         }
+    }
+
+    private Guid ResolveUserId(Guid? requestedUserId)
+    {
+        if (requestedUserId.HasValue)
+        {
+            return requestedUserId.Value;
+        }
+
+        var authenticatedUserId = User.GetUserId();
+        if (authenticatedUserId.HasValue)
+        {
+            return authenticatedUserId.Value;
+        }
+
+        return DomainConstants.DemoUser.Id;
     }
 }

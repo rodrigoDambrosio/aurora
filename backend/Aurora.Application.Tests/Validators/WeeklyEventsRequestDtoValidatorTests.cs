@@ -100,7 +100,6 @@ public class WeeklyEventsRequestDtoValidatorTests
         var dto = new WeeklyEventsRequestDto
         {
             WeekStart = DateTime.Now,
-            UserId = Guid.NewGuid(),
             IncludeCategories = false,
             IncludeAllDayEvents = false,
             IncludeRecurringEvents = false

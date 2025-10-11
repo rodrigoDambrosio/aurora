@@ -2,9 +2,11 @@ using Aurora.Api.Controllers;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Security.Claims;
 
 namespace Aurora.Api.Tests.Controllers;
 
@@ -15,6 +17,7 @@ public class EventsControllerTests
     private readonly Mock<IEventCategoryRepository> _categoryRepositoryMock;
     private readonly Mock<ILogger<EventsController>> _loggerMock;
     private readonly EventsController _controller;
+    private readonly Guid _currentUserId = Guid.NewGuid();
 
     public EventsControllerTests()
     {
@@ -23,7 +26,19 @@ public class EventsControllerTests
         _categoryRepositoryMock = new Mock<IEventCategoryRepository>();
         _loggerMock = new Mock<ILogger<EventsController>>();
         _controller = new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _loggerMock.Object);
+        SetAuthenticatedUser(_currentUserId);
     }
+
+    private void SetAuthenticatedUser(Guid userId)
+    {
+        var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, "TestAuth");
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+    }
+
+    private bool BeCurrentUser(Guid? userId) => userId.HasValue && userId.Value == _currentUserId;
+
+    private bool BeCurrentUser(Guid userId) => userId == _currentUserId;
 
     [Fact]
     public void Constructor_WithNullEventService_ShouldThrowArgumentNullException()
@@ -74,7 +89,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetWeeklyEventsAsync(It.IsAny<Guid?>(), request.WeekStart, null))
+            .Setup(x => x.GetWeeklyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), request.WeekStart, null))
             .ReturnsAsync(response);
 
         // Act
@@ -100,7 +115,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetEventAsync(eventId, It.IsAny<Guid?>()))
+            .Setup(x => x.GetEventAsync(eventId, It.Is<Guid?>(userId => BeCurrentUser(userId))))
             .ReturnsAsync(eventDto);
 
         // Act
@@ -119,7 +134,7 @@ public class EventsControllerTests
         var eventId = Guid.NewGuid();
 
         _eventServiceMock
-            .Setup(x => x.GetEventAsync(eventId, It.IsAny<Guid?>()))
+            .Setup(x => x.GetEventAsync(eventId, It.Is<Guid?>(userId => BeCurrentUser(userId))))
             .ReturnsAsync((EventDto?)null);
 
         // Act
@@ -152,12 +167,12 @@ public class EventsControllerTests
 
         // Mock GetEventsByDateRangeAsync to return empty list (no existing events)
         _eventServiceMock
-            .Setup(x => x.GetEventsByDateRangeAsync(It.IsAny<Guid?>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Setup(x => x.GetEventsByDateRangeAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync(new List<EventDto>());
 
         // Mock AI validation to approve
         _aiValidationServiceMock
-            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.IsAny<Guid>(), It.IsAny<IEnumerable<EventDto>>()))
+            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), It.IsAny<IEnumerable<EventDto>>()))
             .ReturnsAsync(new AIValidationResult
             {
                 IsApproved = true,
@@ -165,7 +180,7 @@ public class EventsControllerTests
             });
 
         _eventServiceMock
-            .Setup(x => x.CreateEventAsync(It.IsAny<Guid?>(), createEventDto))
+            .Setup(x => x.CreateEventAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), createEventDto))
             .ReturnsAsync(createdEventDto);
 
         // Act
@@ -179,7 +194,7 @@ public class EventsControllerTests
     }
 
     [Fact]
-    public async Task CreateEvent_WhenAIRejectsEvent_ShouldReturnBadRequest()
+    public async Task CreateEvent_WhenAIRejectsEvent_ShouldStillCreateEvent()
     {
         // Arrange
         var createEventDto = new CreateEventDto
@@ -204,18 +219,18 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetEventsByDateRangeAsync(It.IsAny<Guid?>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Setup(x => x.GetEventsByDateRangeAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync(existingEvents);
 
         // Mock AI validation to reject
         _aiValidationServiceMock
-            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.IsAny<Guid>(), It.IsAny<IEnumerable<EventDto>>()))
+            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), It.IsAny<IEnumerable<EventDto>>()))
             .ReturnsAsync(new AIValidationResult
             {
                 IsApproved = false,
-                RecommendationMessage = "No es recomendable programar este evento a las 2 AM despu�s de un d�a de trabajo",
+                RecommendationMessage = "No es recomendable programar este evento a las 2 AM despues de un dia de trabajo",
                 Severity = AIValidationSeverity.Warning,
-                Suggestions = new List<string> { "Considera programarlo en horario diurno", "Aseg�rate de descansar adecuadamente" }
+                Suggestions = new List<string> { "Considera programarlo en horario diurno", "Asegurate de descansar adecuadamente" }
             });
 
         var createdEvent = new EventDto
@@ -228,7 +243,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.CreateEventAsync(It.IsAny<Guid?>(), It.IsAny<CreateEventDto>()))
+            .Setup(x => x.CreateEventAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<CreateEventDto>()))
             .ReturnsAsync(createdEvent);
 
         // Act
@@ -240,7 +255,7 @@ public class EventsControllerTests
         createdResult!.Value.Should().BeEquivalentTo(createdEvent);
 
         // Verify that event service WAS called even with AI warning
-        _eventServiceMock.Verify(x => x.CreateEventAsync(It.IsAny<Guid?>(), It.IsAny<CreateEventDto>()), Times.Once);
+        _eventServiceMock.Verify(x => x.CreateEventAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<CreateEventDto>()), Times.Once);
     }
 
     [Fact]
@@ -256,12 +271,12 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetEventsByDateRangeAsync(It.IsAny<Guid?>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Setup(x => x.GetEventsByDateRangeAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync(new List<EventDto>());
 
         // Mock AI validation to approve
         _aiValidationServiceMock
-            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.IsAny<Guid>(), It.IsAny<IEnumerable<EventDto>>()))
+            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), It.IsAny<IEnumerable<EventDto>>()))
             .ReturnsAsync(new AIValidationResult
             {
                 IsApproved = true,
@@ -269,7 +284,7 @@ public class EventsControllerTests
             });
 
         _eventServiceMock
-            .Setup(x => x.CreateEventAsync(It.IsAny<Guid?>(), createEventDto))
+            .Setup(x => x.CreateEventAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), createEventDto))
             .ThrowsAsync(new ArgumentException("Invalid category"));
 
         // Act
@@ -302,7 +317,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.UpdateEventAsync(eventId, It.IsAny<Guid?>(), updateEventDto))
+            .Setup(x => x.UpdateEventAsync(eventId, It.Is<Guid?>(userId => BeCurrentUser(userId)), updateEventDto))
             .ReturnsAsync(updatedEventDto);
 
         // Act
@@ -326,7 +341,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.UpdateEventAsync(eventId, It.IsAny<Guid?>(), updateEventDto))
+            .Setup(x => x.UpdateEventAsync(eventId, It.Is<Guid?>(userId => BeCurrentUser(userId)), updateEventDto))
             .ThrowsAsync(new ArgumentException("Invalid event"));
 
         // Act
@@ -343,7 +358,7 @@ public class EventsControllerTests
         var eventId = Guid.NewGuid();
 
         _eventServiceMock
-            .Setup(x => x.DeleteEventAsync(eventId, It.IsAny<Guid?>()))
+            .Setup(x => x.DeleteEventAsync(eventId, It.Is<Guid?>(userId => BeCurrentUser(userId))))
             .ReturnsAsync(true);
 
         // Act
@@ -352,7 +367,7 @@ public class EventsControllerTests
         // Assert
         result.Should().BeOfType<NoContentResult>();
 
-        _eventServiceMock.Verify(x => x.DeleteEventAsync(eventId, It.IsAny<Guid?>()), Times.Once);
+        _eventServiceMock.Verify(x => x.DeleteEventAsync(eventId, It.Is<Guid?>(userId => BeCurrentUser(userId))), Times.Once);
     }
 
     [Fact]
@@ -362,7 +377,7 @@ public class EventsControllerTests
         var eventId = Guid.NewGuid();
 
         _eventServiceMock
-            .Setup(x => x.DeleteEventAsync(eventId, It.IsAny<Guid?>()))
+            .Setup(x => x.DeleteEventAsync(eventId, It.Is<Guid?>(userId => BeCurrentUser(userId))))
             .ReturnsAsync(false);
 
         // Act
@@ -371,7 +386,7 @@ public class EventsControllerTests
         // Assert
         result.Should().BeOfType<NotFoundObjectResult>();
 
-        _eventServiceMock.Verify(x => x.DeleteEventAsync(eventId, It.IsAny<Guid?>()), Times.Once);
+        _eventServiceMock.Verify(x => x.DeleteEventAsync(eventId, It.Is<Guid?>(userId => BeCurrentUser(userId))), Times.Once);
     }
 
     [Fact]
@@ -399,7 +414,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), currentDate.Year, currentDate.Month, null))
+            .Setup(x => x.GetMonthlyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), currentDate.Year, currentDate.Month, null))
             .ReturnsAsync(response);
 
         // Act
@@ -410,7 +425,7 @@ public class EventsControllerTests
         var okResult = result.Result as OkObjectResult;
         okResult!.Value.Should().BeEquivalentTo(response);
 
-        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), currentDate.Year, currentDate.Month, null), Times.Once);
+        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), currentDate.Year, currentDate.Month, null), Times.Once);
     }
 
     [Fact]
@@ -426,7 +441,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), year, month, null))
+            .Setup(x => x.GetMonthlyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), year, month, null))
             .ReturnsAsync(response);
 
         // Act
@@ -435,7 +450,7 @@ public class EventsControllerTests
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
 
-        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), year, month, null), Times.Once);
+        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), year, month, null), Times.Once);
     }
 
     [Fact]
@@ -465,7 +480,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), year, month, categoryId))
+            .Setup(x => x.GetMonthlyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), year, month, categoryId))
             .ReturnsAsync(response);
 
         // Act
@@ -476,9 +491,16 @@ public class EventsControllerTests
         var okResult = result.Result as OkObjectResult;
         var actualResponse = okResult!.Value as WeeklyEventsResponseDto;
         actualResponse.Should().NotBeNull();
-        actualResponse!.Events.Should().AllSatisfy(e => e.EventCategory.Id.Should().Be(categoryId));
+        var responseValue = actualResponse!;
+        responseValue.Events.Should().NotBeNull();
+        var responseEvents = responseValue.Events!;
+        responseEvents.Should().AllSatisfy(e =>
+        {
+            e.EventCategory.Should().NotBeNull();
+            e.EventCategory!.Id.Should().Be(categoryId);
+        });
 
-        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), year, month, categoryId), Times.Once);
+        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), year, month, categoryId), Times.Once);
     }
 
     [Fact]
@@ -496,7 +518,7 @@ public class EventsControllerTests
         var badRequestResult = result.Result as BadRequestObjectResult;
         badRequestResult!.Value.Should().NotBeNull();
 
-        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.IsAny<Guid?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Guid?>()), Times.Never);
+        _eventServiceMock.Verify(x => x.GetMonthlyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Guid?>()), Times.Never);
     }
 
     [Fact]
@@ -530,7 +552,7 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetWeeklyEventsAsync(It.IsAny<Guid?>(), startDate, categoryId))
+            .Setup(x => x.GetWeeklyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), startDate, categoryId))
             .ReturnsAsync(response);
 
         // Act
@@ -541,8 +563,15 @@ public class EventsControllerTests
         var okResult = result.Result as OkObjectResult;
         var actualResponse = okResult!.Value as WeeklyEventsResponseDto;
         actualResponse.Should().NotBeNull();
-        actualResponse!.Events.Should().AllSatisfy(e => e.EventCategory.Id.Should().Be(categoryId));
+        var weeklyResponse = actualResponse!;
+        weeklyResponse.Events.Should().NotBeNull();
+        var weeklyEvents = weeklyResponse.Events!;
+        weeklyEvents.Should().AllSatisfy(e =>
+        {
+            e.EventCategory.Should().NotBeNull();
+            e.EventCategory!.Id.Should().Be(categoryId);
+        });
 
-        _eventServiceMock.Verify(x => x.GetWeeklyEventsAsync(It.IsAny<Guid?>(), startDate, categoryId), Times.Once);
+        _eventServiceMock.Verify(x => x.GetWeeklyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), startDate, categoryId), Times.Once);
     }
 }

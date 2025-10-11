@@ -41,4 +41,11 @@ public interface IEventCategoryRepository : IRepository<EventCategory>
     /// <param name="userId">ID del usuario</param>
     /// <returns>Lista de categorías ordenadas</returns>
     Task<IEnumerable<EventCategory>> GetCategoriesOrderedAsync(Guid userId);
+
+    /// <summary>
+    /// Obtiene las categorías predeterminadas asociadas a un usuario
+    /// </summary>
+    /// <param name="userId">ID del usuario</param>
+    /// <returns>Lista de categorías predeterminadas</returns>
+    Task<IEnumerable<EventCategory>> GetDefaultCategoriesAsync(Guid userId);
 }

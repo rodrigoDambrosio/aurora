@@ -8,6 +8,19 @@
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+const getAccessToken = (): string | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem('auroraAccessToken');
+  } catch (storageError) {
+    console.warn('Accessing localStorage for auth token failed', storageError);
+    return null;
+  }
+};
+
 // ===== TYPE DEFINITIONS =====
 
 export interface HealthResponse {
@@ -90,6 +103,30 @@ export interface ParseNaturalLanguageResponseDto {
   errorMessage?: string;
 }
 
+export interface RegisterUserRequestDto {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface LoginRequestDto {
+  email: string;
+  password: string;
+}
+
+export interface UserSummaryDto {
+  id: string;
+  name: string;
+  email: string;
+  isEmailVerified: boolean;
+}
+
+export interface AuthResponseDto {
+  accessToken: string;
+  expiresAtUtc: string;
+  user: UserSummaryDto;
+}
+
 // Legacy interfaces for backward compatibility
 export interface TestDataItem {
   id: number;
@@ -109,19 +146,22 @@ export interface TestResponse {
 
 // ===== API ERROR HANDLING =====
 
-class ApiError extends Error {
+export class ApiError extends Error {
   status?: number;
   endpoint?: string;
+  details?: unknown;
 
   constructor(
     message: string,
     status?: number,
-    endpoint?: string
+    endpoint?: string,
+    details?: unknown
   ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.endpoint = endpoint;
+    this.details = details;
   }
 }
 
@@ -137,20 +177,44 @@ export const apiService = {
     try {
       console.log(`API Request: ${options?.method || 'GET'} ${url}`);
 
+      const requestHeaders = new Headers(options?.headers || {});
+
+      if (!requestHeaders.has('Content-Type')) {
+        requestHeaders.set('Content-Type', 'application/json');
+      }
+
+      const accessToken = getAccessToken();
+      if (accessToken && !requestHeaders.has('Authorization')) {
+        requestHeaders.set('Authorization', `Bearer ${accessToken}`);
+      }
+
       const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options?.headers,
-        },
         ...options,
+        headers: requestHeaders,
       });
 
       if (!response.ok) {
-        throw new ApiError(
-          `HTTP ${response.status}: ${response.statusText}`,
-          response.status,
-          endpoint
-        );
+        const contentType = response.headers.get('content-type') ?? '';
+        let errorPayload: unknown = null;
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+
+        try {
+          if (contentType.includes('application/json')) {
+            errorPayload = await response.json();
+            if (errorPayload && typeof errorPayload === 'object') {
+              const problem = errorPayload as Record<string, unknown>;
+              const detail = typeof problem.detail === 'string' ? problem.detail : undefined;
+              const title = typeof problem.title === 'string' ? problem.title : undefined;
+              errorMessage = detail ?? title ?? errorMessage;
+            }
+          } else {
+            errorMessage = await response.text();
+          }
+        } catch (parseError) {
+          console.warn('API error payload parsing failed', parseError);
+        }
+
+        throw new ApiError(errorMessage, response.status, endpoint, errorPayload);
       }
 
       // Handle empty responses (like DELETE 204)
@@ -182,6 +246,37 @@ export const apiService = {
    */
   async getTestData(): Promise<TestResponse> {
     return this.fetchApi<TestResponse>('/health/test');
+  },
+
+  // ===== AUTHENTICATION ENDPOINTS =====
+
+  /**
+   * Register a new user account
+   */
+  async registerUser(payload: RegisterUserRequestDto): Promise<AuthResponseDto> {
+    return this.fetchApi<AuthResponseDto>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  /**
+   * Authenticate an existing user
+   */
+  async loginUser(payload: LoginRequestDto): Promise<AuthResponseDto> {
+    return this.fetchApi<AuthResponseDto>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  /**
+   * Revoke the current access token
+   */
+  async logoutUser(): Promise<void> {
+    await this.fetchApi<void>('/auth/logout', {
+      method: 'POST'
+    });
   },
 
   // ===== EVENT CATEGORIES ENDPOINTS =====
