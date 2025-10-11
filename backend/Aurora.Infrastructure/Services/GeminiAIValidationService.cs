@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using System.Linq;
 using System.Globalization;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
