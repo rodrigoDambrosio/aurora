@@ -385,7 +385,13 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                         }}
                         onClick={() => onEventClick?.(event)}
                         onKeyDown={(keyboardEvent) => {
-                          if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                          if (keyboardEvent.key === 'Enter') {
+                            keyboardEvent.preventDefault();
+                            onEventClick?.(event);
+                          }
+                        }}
+                        onKeyUp={(keyboardEvent) => {
+                          if (keyboardEvent.key === ' ') {
                             keyboardEvent.preventDefault();
                             onEventClick?.(event);
                           }
