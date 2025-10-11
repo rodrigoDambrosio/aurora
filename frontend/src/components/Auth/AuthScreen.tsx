@@ -1,6 +1,7 @@
-import { CalendarDays, Eye, EyeOff, Lock, Mail, Sparkles, User } from 'lucide-react';
+import { CalendarDays, Eye, EyeOff, Lock, Mail, Moon, Sparkles, Sun, User } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
+import { useTheme } from '../../context/ThemeContext';
 import type { AuthResponseDto } from '../../services/apiService';
 import { ApiError, apiService } from '../../services/apiService';
 import './AuthScreen.css';
@@ -42,6 +43,7 @@ function AuthScreen({ onAuthSuccess, simulateAuth }: AuthScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { theme, toggleTheme } = useTheme();
 
   const isRegister = useMemo(() => mode === 'register', [mode]);
 
@@ -121,6 +123,17 @@ function AuthScreen({ onAuthSuccess, simulateAuth }: AuthScreenProps) {
 
   return (
     <div className="auth-screen">
+      <div className="auth-theme-toggle">
+        <button
+          type="button"
+          className="auth-theme-button"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        >
+          {theme === 'dark' ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
+          <span>{theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</span>
+        </button>
+      </div>
       <div className="auth-gradient" aria-hidden="true" />
 
       <div className="auth-card" role="main">
@@ -248,9 +261,13 @@ function AuthScreen({ onAuthSuccess, simulateAuth }: AuthScreenProps) {
         </form>
 
         <div className="auth-footer">
-          <a className="auth-link" href="#" onClick={(event) => event.preventDefault()}>
+          <button
+            type="button"
+            className="auth-link"
+            onClick={() => handleModeChange(isRegister ? 'login' : 'register')}
+          >
             {headlineCopy.subtle}
-          </a>
+          </button>
           <div className="auth-extra">
             <p>¿Qué hace especial a Aurora?</p>
             <div className="auth-extra-features">
