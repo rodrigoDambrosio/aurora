@@ -186,4 +186,46 @@ describe('CategoryFilter', () => {
     expect(colorIndicator).toBeTruthy()
     expect(colorIndicator).toHaveStyle({ backgroundColor: '#2b7fff' })
   })
+
+  it('debería deseleccionar una categoría al hacer clic en ella cuando ya está seleccionada (toggle)', () => {
+    const mockOnChange = vi.fn()
+
+    render(
+      <CategoryFilter
+        categories={mockCategories}
+        selectedCategoryId="1"
+        onCategoryChange={mockOnChange}
+      />
+    )
+
+    // Verificar que Trabajo esté seleccionado
+    const trabajoButton = screen.getByText('Trabajo').closest('button')
+    expect(trabajoButton).toHaveClass('active')
+
+    // Hacer clic en Trabajo que ya está seleccionado
+    fireEvent.click(screen.getByText('Trabajo'))
+
+    // Debería llamar onCategoryChange con null para deseleccionar
+    expect(mockOnChange).toHaveBeenCalledWith(null)
+    expect(mockOnChange).toHaveBeenCalledTimes(1)
+  })
+
+  it('debería seleccionar una categoría al hacer clic en ella cuando NO está seleccionada', () => {
+    const mockOnChange = vi.fn()
+
+    render(
+      <CategoryFilter
+        categories={mockCategories}
+        selectedCategoryId="1"
+        onCategoryChange={mockOnChange}
+      />
+    )
+
+    // Hacer clic en Personal que NO está seleccionado
+    fireEvent.click(screen.getByText('Personal'))
+
+    // Debería llamar onCategoryChange con el ID de Personal
+    expect(mockOnChange).toHaveBeenCalledWith('2')
+    expect(mockOnChange).toHaveBeenCalledTimes(1)
+  })
 })
