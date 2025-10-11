@@ -82,6 +82,7 @@ export interface CreateEventDto {
   notes?: string;
   eventCategoryId: string;
   priority: EventPriority;
+  timezoneOffsetMinutes?: number;
 }
 
 export interface ParseNaturalLanguageRequestDto {

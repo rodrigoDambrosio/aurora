@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
+import { vi } from 'vitest'
 
 // Custom render function that includes any providers we might need
 export const renderWithProviders = (ui: ReactElement, options = {}) => {
@@ -20,6 +21,7 @@ export const createMockEvent = (overrides = {}) => ({
   endDate: '2025-09-30T11:00:00.000Z',
   isAllDay: false,
   isRecurring: false,
+  priority: 2,
   eventCategory: {
     id: '1',
     name: 'Test Category',
@@ -116,5 +118,6 @@ export const mockConsole = () => {
 }
 
 // Re-export everything from testing library for convenience
+// eslint-disable-next-line react-refresh/only-export-components
 export * from '@testing-library/react'
 export { userEvent } from '@testing-library/user-event'

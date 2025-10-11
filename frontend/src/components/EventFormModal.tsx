@@ -1,5 +1,5 @@
 import { Calendar, Clock, FileText, MapPin, Star, X } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CreateEventDto, EventCategoryDto, EventDto, EventPriority } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './EventFormModal.css';
@@ -38,6 +38,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<EventPriority>(2);
+  const startTimeInputRef = useRef<HTMLInputElement>(null);
+  const endTimeInputRef = useRef<HTMLInputElement>(null);
+  const [supportsNativeTimePicker, setSupportsNativeTimePicker] = useState(true);
 
   const isCreateMode = mode === 'create';
 
@@ -51,11 +54,68 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
     []
   );
 
-  const extractDatePart = (isoDate: string | undefined) =>
-    isoDate && isoDate.length >= 10 ? isoDate.slice(0, 10) : '';
+  const toDateInputValue = (isoDate?: string) => {
+    if (!isoDate) return '';
+    const date = new Date(isoDate);
+    if (Number.isNaN(date.getTime())) return '';
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 10);
+  };
 
-  const extractTimePart = (isoDate: string | undefined) =>
-    isoDate && isoDate.length >= 16 ? isoDate.slice(11, 16) : '';
+  const toTimeInputValue = (isoDate?: string) => {
+    if (!isoDate) return '';
+    const date = new Date(isoDate);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  const combineLocalDateTimeToUtc = (datePart: string, timePart: string) => {
+    const local = new Date(`${datePart}T${timePart}`);
+    return Number.isNaN(local.getTime()) ? '' : local.toISOString();
+  };
+
+  const toUtcDayBoundary = (datePart: string, endOfDay = false) => {
+    const time = endOfDay ? '23:59:59' : '00:00:00';
+    const local = new Date(`${datePart}T${time}`);
+    return Number.isNaN(local.getTime()) ? '' : local.toISOString();
+  };
+
+  const openTimePicker = (input: HTMLInputElement | null) => {
+    if (!input) {
+      return;
+    }
+
+    const extended = input as HTMLInputElement & { showPicker?: () => void };
+    if (typeof extended.showPicker === 'function') {
+      extended.showPicker();
+    } else {
+      input.focus();
+    }
+  };
+
+  const timeOptions = useMemo(() => {
+    const options: string[] = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const hh = String(hour).padStart(2, '0');
+        const mm = String(minute).padStart(2, '0');
+        options.push(`${hh}:${mm}`);
+      }
+    }
+    return options;
+  }, []);
+
+  useEffect(() => {
+    const hasPicker = typeof window !== 'undefined'
+      && typeof HTMLInputElement !== 'undefined'
+      && 'showPicker' in HTMLInputElement.prototype;
+
+    setSupportsNativeTimePicker(hasPicker);
+  }, []);
 
   // Load categories on mount
   useEffect(() => {
@@ -92,10 +152,10 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setTitle(eventToEdit.title);
       setDescription(eventToEdit.description ?? '');
       setIsAllDay(eventToEdit.isAllDay);
-      setStartDate(extractDatePart(eventToEdit.startDate));
-      setEndDate(extractDatePart(eventToEdit.endDate));
-      setStartTime(extractTimePart(eventToEdit.startDate) || '09:00');
-      setEndTime(extractTimePart(eventToEdit.endDate) || '10:00');
+      setStartDate(toDateInputValue(eventToEdit.startDate));
+      setEndDate(toDateInputValue(eventToEdit.endDate));
+      setStartTime(toTimeInputValue(eventToEdit.startDate) || '09:00');
+      setEndTime(toTimeInputValue(eventToEdit.endDate) || '10:00');
       setLocation(eventToEdit.location ?? '');
       setCategoryId(eventToEdit.eventCategory?.id ?? '');
       setPriority(eventToEdit.priority ?? 2);
@@ -109,11 +169,14 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setPriority(2);
 
       if (initialDate) {
-        const dateStr = initialDate.toISOString().split('T')[0];
+        const offsetMs = initialDate.getTimezoneOffset() * 60000;
+        const dateStr = new Date(initialDate.getTime() - offsetMs).toISOString().split('T')[0];
         setStartDate(dateStr);
         setEndDate(dateStr);
       } else {
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const offsetMs = now.getTimezoneOffset() * 60000;
+        const today = new Date(now.getTime() - offsetMs).toISOString().split('T')[0];
         setStartDate(today);
         setEndDate(today);
       }
@@ -153,12 +216,15 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       let endDateTime: string;
 
       if (isAllDay) {
-        // All day events: start at 00:00, end at 23:59
-        startDateTime = `${startDate}T00:00:00`;
-        endDateTime = `${endDate}T23:59:59`;
+        startDateTime = toUtcDayBoundary(startDate, false);
+        endDateTime = toUtcDayBoundary(endDate, true);
       } else {
-        startDateTime = `${startDate}T${startTime}:00`;
-        endDateTime = `${endDate}T${endTime}:00`;
+        startDateTime = combineLocalDateTimeToUtc(startDate, `${startTime}:00`);
+        endDateTime = combineLocalDateTimeToUtc(endDate, `${endTime}:00`);
+      }
+
+      if (!startDateTime || !endDateTime) {
+        throw new Error('No se pudo interpretar la fecha u hora seleccionada.');
       }
 
       const eventDto: CreateEventDto = {
@@ -169,7 +235,8 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         location: location.trim() || undefined,
         eventCategoryId: categoryId,
         isAllDay,
-        priority
+        priority,
+        timezoneOffsetMinutes: -new Date().getTimezoneOffset()
       };
 
       console.log('Creating event:', eventDto);
@@ -362,8 +429,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             <div className="event-form-row">
               <div className="event-form-field">
                 <label htmlFor="event-start-time">Hora inicio</label>
-                <div className="event-form-input-with-icon">
-                  <Clock size={16} className="event-form-icon" />
+                {supportsNativeTimePicker ? (
                   <input
                     id="event-start-time"
                     type="time"
@@ -371,13 +437,41 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
                     required
+                    ref={startTimeInputRef}
                   />
-                </div>
+                ) : (
+                  <div className="event-form-time-picker">
+                    <input
+                      id="event-start-time"
+                      type="time"
+                      className="event-form-input event-form-time-input"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      required
+                      ref={startTimeInputRef}
+                      inputMode="numeric"
+                      pattern="\\d{2}:\\d{2}"
+                      list="event-start-time-options"
+                    />
+                    <button
+                      type="button"
+                      className="event-form-time-button"
+                      onClick={() => openTimePicker(startTimeInputRef.current)}
+                      aria-label="Seleccionar hora de inicio"
+                    >
+                      <Clock size={16} aria-hidden="true" />
+                    </button>
+                    <datalist id="event-start-time-options">
+                      {timeOptions.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
+                  </div>
+                )}
               </div>
               <div className="event-form-field">
                 <label htmlFor="event-end-time">Hora fin</label>
-                <div className="event-form-input-with-icon">
-                  <Clock size={16} className="event-form-icon" />
+                {supportsNativeTimePicker ? (
                   <input
                     id="event-end-time"
                     type="time"
@@ -385,8 +479,37 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
                     required
+                    ref={endTimeInputRef}
                   />
-                </div>
+                ) : (
+                  <div className="event-form-time-picker">
+                    <input
+                      id="event-end-time"
+                      type="time"
+                      className="event-form-input event-form-time-input"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      required
+                      ref={endTimeInputRef}
+                      inputMode="numeric"
+                      pattern="\\d{2}:\\d{2}"
+                      list="event-end-time-options"
+                    />
+                    <button
+                      type="button"
+                      className="event-form-time-button"
+                      onClick={() => openTimePicker(endTimeInputRef.current)}
+                      aria-label="Seleccionar hora de fin"
+                    >
+                      <Clock size={16} aria-hidden="true" />
+                    </button>
+                    <datalist id="event-end-time-options">
+                      {timeOptions.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
+                  </div>
+                )}
               </div>
             </div>
           )}
