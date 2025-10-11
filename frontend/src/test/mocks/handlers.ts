@@ -47,7 +47,7 @@ const mockEvents: EventDto[] = [
     endDate: '2025-09-30T15:00:00.000Z',
     isAllDay: false,
     isRecurring: false,
-     priority: 2 as EventPriority,
+    priority: 2 as EventPriority,
     eventCategory: mockCategories[1],
   },
 ]
