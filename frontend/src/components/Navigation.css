@@ -1,9 +1,9 @@
 /* Navigation Component */
 .navigation {
-    background: white;
+    background: var(--color-surface);
     height: 778.667px;
     width: 256px;
-    border-right: 0.667px solid #c8cde2;
+    border-right: 0.667px solid var(--color-border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -13,7 +13,7 @@
 .navigation-header {
     padding: 24px 24px 0.667px 24px;
     height: 88.667px;
-    border-bottom: 0.667px solid #c8cde2;
+    border-bottom: 0.667px solid var(--color-border);
     box-sizing: border-box;
 }
 
@@ -34,8 +34,8 @@
     align-items: center;
     justify-content: center;
     margin-right: 20px;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
+    box-shadow: var(--shadow-soft);
 }
 
 .calendar-icon {
@@ -196,7 +196,7 @@
     font-weight: bold;
     font-size: 16px;
     line-height: 24px;
-    color: #312785;
+    color: var(--color-text-primary);
     margin: 0;
     padding: 0;
 }
@@ -206,7 +206,7 @@
     font-weight: normal;
     font-size: 12px;
     line-height: 16px;
-    color: #5e6ab7;
+    color: var(--color-text-muted);
     margin: 0;
     padding: 0;
 }
@@ -241,11 +241,11 @@
     top: 16px;
     width: 16px;
     height: 16px;
-    color: #5e6ab7;
+    color: var(--color-text-muted);
 }
 
 .nav-button.active {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
     color: white;
 }
 
@@ -254,7 +254,7 @@
 }
 
 .nav-button:hover:not(.active) {
-    background: #f8fafc;
+    background: var(--color-surface-alt);
 }
 
 .nav-text {
@@ -292,12 +292,12 @@
 /* Footer */
 .navigation-footer {
     padding: 16px;
-    border-top: 1px solid #c8cde2;
+    border-top: 1px solid var(--color-border);
 }
 
 .dark-mode-toggle {
-    background: white;
-    border: 0.667px solid #c8cde2;
+    background: var(--color-surface-alt);
+    border: 0.667px solid var(--color-border);
     border-radius: 8px;
     height: 32px;
     padding: 0 10.67px;
@@ -310,13 +310,13 @@
 }
 
 .dark-mode-toggle:hover {
-    background: #f8fafc;
+    background: var(--color-surface);
 }
 
 .dark-mode-toggle svg {
     width: 16px;
     height: 16px;
-    color: #312785;
+    color: var(--color-text-primary);
 }
 
 .dark-mode-toggle span {
@@ -324,7 +324,7 @@
     font-weight: normal;
     font-size: 14px;
     line-height: 20px;
-    color: #312785;
+    color: var(--color-text-primary);
 }
 
 /* Responsive */

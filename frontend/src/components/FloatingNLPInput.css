@@ -9,7 +9,7 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
     border: none;
     cursor: pointer;
     display: flex;
@@ -21,7 +21,7 @@
 
 .floating-nlp-button:hover {
     transform: translateY(-2px);
-    background: linear-gradient(135deg, #5855EB 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start) 0%, var(--gradient-primary-hover-end) 100%);
 }
 
 /* Expanded Card */
@@ -32,11 +32,11 @@
     z-index: 50;
     width: 320px;
     max-width: calc(100vw - 2rem);
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(12px);
+    background: var(--color-glass-surface);
+    backdrop-filter: blur(14px);
     border-radius: 16px;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-elevated);
     padding: 20px;
 }
 
@@ -57,7 +57,9 @@
 .nlp-sparkle-badge {
     width: 32px;
     height: 32px;
-    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    background: linear-gradient(135deg,
+            var(--color-warning) 0%,
+            color-mix(in srgb, var(--color-warning) 85%, black 15%) 100%);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -68,7 +70,7 @@
 .nlp-title {
     font-weight: 500;
     font-size: 14px;
-    color: #1e293b;
+    color: var(--color-text-primary);
 }
 
 .nlp-close-button {
@@ -77,7 +79,7 @@
     border: none;
     background: none;
     cursor: pointer;
-    color: #64748b;
+    color: var(--color-text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -86,8 +88,8 @@
 }
 
 .nlp-close-button:hover {
-    background: #f1f5f9;
-    color: #334155;
+    background: var(--color-surface-alt);
+    color: var(--color-text-primary);
 }
 
 /* Form */
@@ -102,22 +104,28 @@
 .nlp-input {
     width: 100%;
     padding: 12px 40px 12px 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     font-size: 14px;
-    background: white;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
     outline: none;
     transition: all 0.2s ease;
 }
 
+.nlp-input::placeholder {
+    color: var(--color-text-muted);
+}
+
 .nlp-input:focus {
-    border-color: #8B5CF6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    border-color: var(--gradient-primary-end);
+    box-shadow: 0 0 0 3px var(--color-outline);
 }
 
 .nlp-input:disabled {
-    background: #f8fafc;
-    color: #94a3b8;
+    background: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    border-color: var(--color-border);
 }
 
 .nlp-submit-button {
@@ -127,7 +135,7 @@
     width: 32px;
     height: 32px;
     border: none;
-    background: #8B5CF6;
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
     color: white;
     border-radius: 4px;
     cursor: pointer;
@@ -138,7 +146,7 @@
 }
 
 .nlp-submit-button:hover:not(:disabled) {
-    background: #7C3AED;
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start) 0%, var(--gradient-primary-hover-end) 100%);
 }
 
 .nlp-submit-button:disabled {
@@ -153,7 +161,7 @@
 
 .nlp-examples-label {
     font-size: 12px;
-    color: #64748b;
+    color: var(--color-text-muted);
     margin-bottom: 8px;
     display: block;
 }
@@ -165,19 +173,19 @@
 }
 
 .nlp-example-button {
-    background: #f1f5f9;
+    background: var(--color-surface-alt);
     border: none;
     padding: 4px 8px;
     border-radius: 6px;
     font-size: 12px;
-    color: #475569;
+    color: var(--color-text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .nlp-example-button:hover {
-    background: #e2e8f0;
-    color: #334155;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
 }
 
 /* Processing State */
@@ -198,7 +206,7 @@
 
 .nlp-processing-text {
     font-size: 14px;
-    color: #64748b;
+    color: var(--color-text-muted);
 }
 
 /* Confirmation */
@@ -209,7 +217,7 @@
 }
 
 .nlp-event-preview {
-    background: rgba(241, 245, 249, 0.5);
+    background: color-mix(in srgb, var(--color-surface-alt) 70%, transparent);
     border-radius: 8px;
     padding: 12px;
 }
@@ -223,13 +231,13 @@
 
 .nlp-event-title {
     font-weight: 500;
-    color: #1e293b;
+    color: var(--color-text-primary);
     margin: 0;
 }
 
 .nlp-confidence-badge {
-    background: #e2e8f0;
-    color: #475569;
+    background: var(--color-surface-alt);
+    color: var(--color-text-secondary);
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 12px;
@@ -238,7 +246,7 @@
 
 .nlp-event-details {
     font-size: 14px;
-    color: #64748b;
+    color: var(--color-text-muted);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -253,29 +261,29 @@
     letter-spacing: 0.02em;
     padding: 4px 10px;
     border-radius: 9999px;
-    background: #e2e8f0;
-    color: #334155;
+    background: var(--color-surface-alt);
+    color: var(--color-text-secondary);
     text-transform: uppercase;
 }
 
 .nlp-priority-low {
-    background: rgba(34, 197, 94, 0.12);
-    color: #15803d;
+    background: color-mix(in srgb, var(--color-success) 15%, transparent);
+    color: color-mix(in srgb, var(--color-success) 75%, black 25%);
 }
 
 .nlp-priority-medium {
-    background: rgba(59, 130, 246, 0.12);
-    color: #1d4ed8;
+    background: color-mix(in srgb, var(--color-link) 18%, transparent);
+    color: color-mix(in srgb, var(--color-link) 70%, black 30%);
 }
 
 .nlp-priority-high {
-    background: rgba(249, 115, 22, 0.15);
-    color: #c2410c;
+    background: color-mix(in srgb, var(--color-warning) 18%, transparent);
+    color: color-mix(in srgb, var(--color-warning) 70%, black 30%);
 }
 
 .nlp-priority-critical {
-    background: rgba(239, 68, 68, 0.15);
-    color: #b91c1c;
+    background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+    color: color-mix(in srgb, var(--color-danger) 70%, black 30%);
 }
 
 .nlp-actions {
@@ -290,39 +298,43 @@
     border-radius: 8px;
     font-weight: 500;
     cursor: pointer;
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    background: linear-gradient(135deg,
+            var(--color-success) 0%,
+            color-mix(in srgb, var(--color-success) 80%, black 20%) 100%);
     color: white;
     transition: all 0.2s ease;
 }
 
 .nlp-confirm-button:hover {
-    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    background: linear-gradient(135deg,
+            color-mix(in srgb, var(--color-success) 90%, black 10%) 0%,
+            color-mix(in srgb, var(--color-success) 70%, black 30%) 100%);
     transform: translateY(-1px);
 }
 
 .nlp-cancel-button {
     flex: 1;
     padding: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     font-weight: 500;
     cursor: pointer;
-    background: white;
-    color: #475569;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
     transition: all 0.2s ease;
 }
 
 .nlp-cancel-button:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
+    background: var(--color-surface-alt);
+    border-color: var(--color-border-strong);
 }
 
 /* Loading Spinner */
 .nlp-spinner {
     width: 24px;
     height: 24px;
-    border: 2px solid #e2e8f0;
-    border-top-color: #8B5CF6;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--gradient-primary-end);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -383,18 +395,18 @@
 }
 
 .nlp-validation-info {
-    background: rgba(59, 130, 246, 0.1);
-    border-left-color: #3B82F6;
+    background: color-mix(in srgb, var(--color-link) 12%, transparent);
+    border-left-color: var(--color-link);
 }
 
 .nlp-validation-warning {
-    background: rgba(251, 191, 36, 0.1);
-    border-left-color: #FBBF24;
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    border-left-color: var(--color-warning);
 }
 
 .nlp-validation-critical {
-    background: rgba(239, 68, 68, 0.1);
-    border-left-color: #EF4444;
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    border-left-color: var(--color-danger);
 }
 
 .nlp-validation-header {
@@ -408,14 +420,14 @@
 
 .nlp-validation-message {
     font-size: 0.875rem;
-    color: #334155;
+    color: var(--color-text-secondary);
     margin: 0 0 8px 0;
     line-height: 1.4;
 }
 
 .nlp-validation-suggestions {
     font-size: 0.8125rem;
-    color: #64748B;
+    color: var(--color-text-muted);
     margin: 8px 0 0 0;
     padding-left: 20px;
 }
@@ -437,7 +449,7 @@
     display: block;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #64748B;
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 4px;
@@ -446,18 +458,18 @@
 .nlp-form-input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     font-size: 0.875rem;
-    color: #1E293B;
+    color: var(--color-text-primary);
     transition: all 0.2s ease;
-    background: white;
+    background: var(--color-surface);
 }
 
 .nlp-form-input:focus {
     outline: none;
-    border-color: #8B5CF6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    border-color: var(--gradient-primary-end);
+    box-shadow: 0 0 0 3px var(--color-outline);
 }
 
 .nlp-form-row {
@@ -469,20 +481,20 @@
 /* Button Variants */
 .nlp-edit-toggle-button {
     padding: 8px 16px;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #64748B;
-    background: white;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .nlp-edit-toggle-button:hover:not(:disabled) {
-    background: #F8FAFC;
-    border-color: #CBD5E1;
-    color: #475569;
+    background: var(--color-surface-alt);
+    border-color: var(--color-border-strong);
+    color: var(--color-text-secondary);
 }
 
 .nlp-edit-toggle-button:disabled {
@@ -491,11 +503,15 @@
 }
 
 .nlp-button-warning {
-    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
+    background: linear-gradient(135deg,
+            var(--color-warning) 0%,
+            color-mix(in srgb, var(--color-warning) 80%, black 20%) 100%) !important;
 }
 
 .nlp-button-warning:hover:not(:disabled) {
-    background: linear-gradient(135deg, #D97706 0%, #B45309 100%) !important;
+    background: linear-gradient(135deg,
+            color-mix(in srgb, var(--color-warning) 90%, black 10%) 0%,
+            color-mix(in srgb, var(--color-warning) 70%, black 30%) 100%) !important;
 }
 
 .nlp-priority-options {
@@ -510,9 +526,9 @@
     gap: 6px;
     padding: 6px 10px;
     border-radius: 9999px;
-    border: 1px solid #E2E8F0;
-    background: white;
-    color: #475569;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -522,12 +538,12 @@
 }
 
 .nlp-priority-chip:hover {
-    background: #F8FAFC;
-    border-color: #CBD5E1;
+    background: var(--color-surface-alt);
+    border-color: var(--color-border-strong);
 }
 
 .nlp-priority-chip.selected {
-    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
     border-color: transparent;
     color: white;
     box-shadow: 0 6px 15px rgba(124, 58, 237, 0.25);
@@ -536,5 +552,5 @@
 .nlp-priority-helper {
     margin-top: 6px;
     font-size: 0.75rem;
-    color: #64748B;
+    color: var(--color-text-muted);
 }

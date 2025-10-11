@@ -1,6 +1,6 @@
 /* Aurora Weekly Calendar */
 .aurora-weekly-calendar {
-    background: white;
+    background: var(--color-surface);
     height: 778.667px;
     width: 100%;
     display: flex;
@@ -21,8 +21,8 @@
 .loading-spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid #f3f4f6;
-    border-top: 3px solid #1447e6;
+    border: 3px solid var(--color-surface-alt);
+    border-top: 3px solid var(--gradient-primary-start);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -39,8 +39,8 @@
 
 /* Error Handling */
 .error-message {
-    background: #fef2f2;
-    border: 2px solid #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    border: 2px solid var(--color-danger);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 16px;
@@ -58,13 +58,13 @@
 .error-message p {
     flex: 1;
     margin: 0;
-    color: #dc2626;
+    color: var(--color-danger);
     font-weight: 500;
     min-width: 200px;
 }
 
 .retry-button {
-    background: #dc2626;
+    background: var(--color-danger);
     color: white;
     border: none;
     padding: 8px 16px;
@@ -81,8 +81,8 @@
 
 /* Header Section */
 .calendar-header {
-    background: white;
-    border-bottom: 0.667px solid #c8cde2;
+    background: var(--color-surface);
+    border-bottom: 0.667px solid var(--color-border);
     padding: 16px 0;
     display: flex;
     flex-direction: column;
@@ -105,8 +105,8 @@
 }
 
 .nav-btn {
-    background: white;
-    border: 0.667px solid #c8cde2;
+    background: var(--color-surface);
+    border: 0.667px solid var(--color-border);
     border-radius: 8px;
     width: 37.333px;
     height: 32px;
@@ -118,11 +118,11 @@
 }
 
 .nav-btn:hover {
-    background: #f8fafc;
+    background: var(--color-surface-alt);
 }
 
 .nav-btn svg {
-    color: #312785;
+    color: var(--color-text-primary);
 }
 
 .month-title {
@@ -130,7 +130,7 @@
     font-weight: bold;
     font-size: 20px;
     line-height: 28px;
-    color: #312785;
+    color: var(--color-text-primary);
     margin: 0;
 }
 
@@ -141,26 +141,26 @@
 }
 
 .today-btn {
-    background: white;
-    border: 0.667px solid #c8cde2;
+    background: var(--color-surface);
+    border: 0.667px solid var(--color-border);
     border-radius: 8px;
     height: 32px;
     padding: 0 12.667px;
     font-family: 'Arial', sans-serif;
     font-size: 14px;
     line-height: 20px;
-    color: #312785;
+    color: var(--color-text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .today-btn:hover {
-    background: #f8fafc;
+    background: var(--color-surface-alt);
 }
 
 .settings-btn {
-    background: white;
-    border: 0.667px solid #c8cde2;
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
+    border: none;
     border-radius: 8px;
     width: 37.333px;
     height: 32px;
@@ -168,28 +168,26 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.settings-btn:hover {
-    background: #f8fafc;
+    transition: background 0.2s ease, transform 0.2s ease;
+    color: white;
 }
 
 .settings-btn svg {
-    color: #312785;
+    color: inherit;
 }
 
-/* Active state for filter button */
-.settings-btn.bg-primary,
+.settings-btn:hover,
+.settings-btn:focus-visible {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start) 0%, var(--gradient-primary-hover-end) 100%);
+}
+
+.settings-btn:not(.active) {
+    opacity: 0.9;
+}
+
 .settings-btn.active {
-    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%) !important;
-    border-color: #8B5CF6 !important;
-}
-
-.settings-btn.bg-primary svg,
-.settings-btn.text-primary-foreground svg,
-.settings-btn.active svg {
-    color: white !important;
+    opacity: 1;
 }
 
 /* Tailwind CSS fallbacks */
@@ -202,7 +200,7 @@
 }
 
 .add-event-btn {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
     border: none;
     border-radius: 8px;
     height: 32px;
@@ -219,7 +217,7 @@
 }
 
 .add-event-btn:hover {
-    background: linear-gradient(135deg, #5855eb 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start) 0%, var(--gradient-primary-hover-end) 100%);
 }
 
 .add-event-btn svg {
@@ -243,7 +241,7 @@
 }
 
 .day-header.today {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
     border-radius: 10px;
     color: white;
 }
@@ -253,7 +251,7 @@
     font-size: 12px;
     line-height: 16px;
     text-transform: uppercase;
-    color: #5e6ab7;
+    color: var(--color-text-muted);
 }
 
 .day-header.today .day-name {
@@ -265,7 +263,7 @@
     font-weight: bold;
     font-size: 18px;
     line-height: 28px;
-    color: #5e6ab7;
+    color: var(--color-text-muted);
 }
 
 .day-header.today .day-number {
@@ -282,7 +280,7 @@
 
 .day-column {
     flex: 1;
-    border-right: 0.667px solid #c8cde2;
+    border-right: 0.667px solid var(--color-border);
     padding: 8px;
     display: flex;
     flex-direction: column;
@@ -308,18 +306,18 @@
 
 .day-column:hover .add-event-placeholder {
     opacity: 1;
-    background: #f8fafc;
+    background: var(--color-surface-alt);
 }
 
 .add-event-placeholder svg {
-    color: #5e6ab7;
+    color: var(--color-text-muted);
 }
 
 .add-event-placeholder span {
     font-family: 'Arial', sans-serif;
     font-size: 14px;
     line-height: 20px;
-    color: #5e6ab7;
+    color: var(--color-text-muted);
     text-align: center;
 }
 
@@ -332,7 +330,7 @@
 
 .events-container:hover .add-event-placeholder.compact {
     opacity: 1;
-    background: #f8fafc;
+    background: var(--color-surface-alt);
 }
 
 .events-container {
@@ -374,8 +372,8 @@
 }
 
 .day-column.drag-over {
-    background: #f1f4ff;
-    border: 2px dashed #8B5CF6;
+    background: rgba(99, 102, 241, 0.12);
+    border: 2px dashed var(--gradient-primary-end);
     border-radius: 10px;
 }
 
@@ -394,7 +392,7 @@
     font-family: 'Arial', sans-serif;
     font-size: 12px;
     line-height: 16px;
-    color: #5e6ab7;
+    color: var(--color-text-muted);
     margin-bottom: 4px;
 }
 
@@ -415,9 +413,9 @@
 
 /* Footer */
 .calendar-footer {
-    background: white;
+    background: var(--color-surface);
     height: 54px;
-    border-top: 0.667px solid #c8cde2;
+    border-top: 0.667px solid var(--color-border);
     padding: 16px;
     display: flex;
     align-items: center;
@@ -429,17 +427,17 @@
     font-family: 'Arial', sans-serif;
     font-size: 14px;
     line-height: 20px;
-    color: #5e6ab7;
+    color: var(--color-text-muted);
 }
 
 .week-badge {
-    background: #e4edff;
+    background: rgba(99, 102, 241, 0.12);
     border-radius: 8px;
     padding: 2.667px 8.667px;
     font-family: 'Arial', sans-serif;
     font-size: 12px;
     line-height: 16px;
-    color: #2c2edc;
+    color: var(--gradient-primary-start);
 }
 
 /* Loading and Error States */
@@ -456,8 +454,8 @@
 .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid #e4edff;
-    border-top: 3px solid #6366f1;
+    border: 3px solid var(--color-surface-alt);
+    border-top: 3px solid var(--gradient-primary-start);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -473,7 +471,7 @@
 }
 
 .aurora-calendar-error button {
-    background: #6366f1;
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
     color: white;
     border: none;
     border-radius: 8px;
@@ -484,7 +482,7 @@
 }
 
 .aurora-calendar-error button:hover {
-    background: #5855eb;
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start) 0%, var(--gradient-primary-hover-end) 100%);
 }
 
 /* Responsive Design */
@@ -546,7 +544,7 @@
 
     .day-column {
         border-right: none;
-        border-bottom: 1px solid #c8cde2;
+        border-bottom: 1px solid var(--color-border);
         min-height: 100px;
     }
 

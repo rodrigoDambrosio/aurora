@@ -13,26 +13,28 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    border: 1px solid #c8cde2;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
-    background: white;
-    color: #5e6ab7;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
     font-size: 14px;
-    font-family: Arial, sans-serif;
+    font-family: inherit;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .category-filter-button:hover {
-    background: #f8fafc;
-    border-color: #8B5CF6;
+    background: var(--color-surface-alt);
+    border-color: var(--color-border-strong);
+    color: var(--color-text-primary);
 }
 
 .category-filter-button.active {
-    background: #e4edff;
-    border-color: #8B5CF6;
-    color: #312785;
+    background: color-mix(in srgb, var(--color-link) 18%, transparent);
+    border-color: var(--gradient-primary-end);
+    color: color-mix(in srgb, var(--color-link) 80%, var(--color-text-primary) 20%);
     font-weight: 500;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.18);
 }
 
 .category-filter-dot {
@@ -40,14 +42,15 @@
     height: 12px;
     border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 0 0 2px var(--color-surface);
 }
 
 .category-filter-dot.all-categories {
     background: linear-gradient(135deg,
-            #1447e6 0%,
-            #8B5CF6 33%,
-            #008236 66%,
-            #ca3500 100%);
+            var(--gradient-primary-start) 0%,
+            var(--gradient-primary-end) 33%,
+            color-mix(in srgb, var(--color-success) 95%, black 5%) 66%,
+            color-mix(in srgb, var(--color-warning) 80%, var(--color-danger) 20%) 100%);
 }
 
 .category-filter-text {

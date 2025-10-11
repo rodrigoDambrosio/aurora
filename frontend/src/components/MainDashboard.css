@@ -3,7 +3,7 @@
     display: flex;
     min-height: 100vh;
     width: 100vw;
-    background: white;
+    background: var(--color-surface);
     font-family: 'Arial', sans-serif;
     overflow: hidden;
 }
@@ -25,7 +25,7 @@
     gap: 16px;
     padding: 40px;
     text-align: center;
-    background: white;
+    background: var(--color-surface);
 }
 
 .placeholder-view h2 {
@@ -33,7 +33,7 @@
     font-weight: bold;
     font-size: 24px;
     line-height: 32px;
-    color: #312785;
+    color: var(--color-text-primary);
     margin: 0;
 }
 
@@ -41,7 +41,7 @@
     font-family: 'Arial', sans-serif;
     font-size: 16px;
     line-height: 24px;
-    color: #5e6ab7;
+    color: var(--color-text-muted);
     margin: 0;
 }
 
