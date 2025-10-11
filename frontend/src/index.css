@@ -67,6 +67,11 @@
   --color-warning: #facc15;
   --color-danger: #f87171;
 
+  --gradient-primary-start: #4338ca;
+  --gradient-primary-end: #6d28d9;
+  --gradient-primary-hover-start: #3730a3;
+  --gradient-primary-hover-end: #4c1d95;
+
   --shadow-soft: 0 12px 30px rgba(8, 15, 29, 0.5);
   --shadow-elevated: 0 30px 60px rgba(8, 15, 29, 0.6);
 
