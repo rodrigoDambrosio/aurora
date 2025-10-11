@@ -11,8 +11,8 @@
 .event-detail-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(12, 18, 35, 0.45);
-    backdrop-filter: blur(4px);
+    background: var(--color-overlay);
+    backdrop-filter: blur(6px);
 }
 
 .event-detail-modal {
@@ -20,12 +20,14 @@
     z-index: 41;
     width: 100%;
     max-width: 420px;
-    background: #ffffff;
+    background: var(--color-surface);
     border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(12, 18, 35, 0.18);
+    box-shadow: var(--shadow-elevated);
+    border: 0.667px solid var(--color-border);
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    color: var(--color-text-primary);
 }
 
 .event-detail-header {
@@ -60,13 +62,13 @@
     margin: 4px 0 0;
     font-size: 1.35rem;
     font-weight: 700;
-    color: #0c1223;
+    color: var(--color-text-primary);
 }
 
 .event-detail-close {
     border: none;
     background: transparent;
-    color: #5a6385;
+    color: var(--color-text-muted);
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -78,7 +80,7 @@
 
 .event-detail-close:hover,
 .event-detail-close:focus {
-    background: rgba(20, 71, 230, 0.08);
+    background: color-mix(in srgb, var(--color-link) 12%, transparent);
     outline: none;
 }
 
@@ -97,7 +99,7 @@
 
 .event-detail-icon {
     flex-shrink: 0;
-    color: #4c577a;
+    color: var(--color-text-muted);
     margin-top: 2px;
 }
 
@@ -105,14 +107,14 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #7d86a6;
+    color: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-text-primary) 15%);
     margin: 0;
 }
 
 .event-detail-value {
     margin: 4px 0 0;
     font-size: 0.95rem;
-    color: #0c1223;
+    color: var(--color-text-primary);
 }
 
 .event-detail-priority {
@@ -126,7 +128,7 @@
 .event-detail-priority-stars {
     display: flex;
     gap: 4px;
-    color: #d1d5eb;
+    color: color-mix(in srgb, var(--color-text-muted) 45%, transparent);
 }
 
 .event-detail-priority-stars .filled {
@@ -141,11 +143,11 @@
 .event-detail-priority-description {
     margin: 6px 0 0;
     font-size: 0.85rem;
-    color: #5e6ab7;
+    color: var(--color-text-secondary);
 }
 
 .event-detail-section {
-    background: #f3f5ff;
+    background: color-mix(in srgb, var(--color-link) 12%, transparent);
     border-radius: 14px;
     padding: 14px 16px;
 }
@@ -153,7 +155,7 @@
 .event-detail-description {
     margin: 6px 0 0;
     font-size: 0.95rem;
-    color: #1d2954;
+    color: var(--color-text-primary);
     white-space: pre-wrap;
 }
 
@@ -161,8 +163,8 @@
     margin: 0 24px 12px;
     padding: 12px;
     border-radius: 12px;
-    background: rgba(220, 38, 38, 0.08);
-    color: #991b1b;
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    color: color-mix(in srgb, var(--color-danger) 80%, var(--color-text-primary) 20%);
     font-size: 0.9rem;
 }
 
@@ -194,25 +196,25 @@
 }
 
 .event-detail-button-secondary {
-    background: #eff2ff;
-    color: #1447e6;
-    box-shadow: inset 0 0 0 1px rgba(20, 71, 230, 0.2);
+    background: color-mix(in srgb, var(--color-link) 14%, transparent);
+    color: color-mix(in srgb, var(--color-link) 80%, var(--color-text-primary) 20%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-link) 30%, transparent);
 }
 
 .event-detail-button-secondary:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: inset 0 0 0 1px rgba(20, 71, 230, 0.35);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-link) 45%, transparent);
 }
 
 .event-detail-button-danger {
-    background: #fef2f2;
-    color: #b91c1c;
-    box-shadow: inset 0 0 0 1px rgba(185, 28, 28, 0.18);
+    background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+    color: color-mix(in srgb, var(--color-danger) 80%, var(--color-text-primary) 20%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 28%, transparent);
 }
 
 .event-detail-button-danger:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: inset 0 0 0 1px rgba(185, 28, 28, 0.3);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 40%, transparent);
 }
 
 @media (min-width: 768px) {
