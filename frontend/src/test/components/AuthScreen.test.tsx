@@ -1,9 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AuthScreen from '../../components/Auth/AuthScreen';
 import { ThemeProvider } from '../../context/ThemeContext';
-import type { ReactElement } from 'react';
 
 const renderWithTheme = (ui: ReactElement) => {
   return render(<ThemeProvider>{ui}</ThemeProvider>);
@@ -11,7 +11,7 @@ const renderWithTheme = (ui: ReactElement) => {
 
 describe('AuthScreen', () => {
   it('renders login mode by default', () => {
-  renderWithTheme(<AuthScreen />);
+    renderWithTheme(<AuthScreen />);
 
     expect(screen.getByRole('heading', { level: 2, name: 'Bienvenido de vuelta' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
@@ -20,7 +20,7 @@ describe('AuthScreen', () => {
   it('switches to register mode and validates passwords', async () => {
     const user = userEvent.setup();
 
-  renderWithTheme(<AuthScreen />);
+    renderWithTheme(<AuthScreen />);
 
     await user.click(screen.getByRole('button', { name: 'Registro' }));
     await user.type(screen.getByLabelText('Nombre'), 'Camila Tester');
@@ -37,7 +37,7 @@ describe('AuthScreen', () => {
     const onAuthSuccess = vi.fn();
     const simulateAuth = vi.fn().mockResolvedValue(undefined);
 
-  renderWithTheme(<AuthScreen onAuthSuccess={onAuthSuccess} simulateAuth={simulateAuth} />);
+    renderWithTheme(<AuthScreen onAuthSuccess={onAuthSuccess} simulateAuth={simulateAuth} />);
 
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Contraseña');
