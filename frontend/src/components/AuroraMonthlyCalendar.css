@@ -4,6 +4,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    width: 100%;
     background: var(--color-surface);
     position: relative;
     color: var(--color-text-primary);
@@ -14,7 +15,7 @@
 .monthly-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    padding: 0 16px;
+    padding: 0 0 0 16px;
     margin-top: 16px;
     margin-bottom: 8px;
 }
@@ -36,9 +37,9 @@
     gap: 1px;
     background: var(--color-border);
     padding: 1px;
-    margin: 0 16px;
+    margin: 0 0 0 16px;
     overflow: hidden;
-    border-radius: 12px;
+    border-radius: 12px 0 0 12px;
 }
 
 .calendar-day {
@@ -184,8 +185,13 @@
         justify-content: flex-end;
     }
 
+    .monthly-calendar-weekdays {
+        padding: 0 0 0 12px;
+    }
+
     .monthly-calendar-grid {
-        margin: 0 12px;
+        margin: 0 0 0 12px;
+        border-radius: 10px 0 0 10px;
     }
 
     .calendar-day {

@@ -10,7 +10,7 @@ import Navigation from './Navigation';
 
 const MainDashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('calendar-week');
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshToken, setRefreshToken] = useState(0);
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -22,6 +22,10 @@ const MainDashboard: React.FC = () => {
   const [eventBeingEdited, setEventBeingEdited] = useState<EventDto | null>(null);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const [detailError, setDetailError] = useState('');
+
+  const bumpRefreshToken = () => {
+    setRefreshToken(prev => prev + 1);
+  };
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
@@ -35,8 +39,7 @@ const MainDashboard: React.FC = () => {
 
   const handleEventCreated = () => {
     console.log('Evento creado - refrescando calendario');
-    // Forzar re-render del calendario incrementando la key
-    setRefreshKey(prev => prev + 1);
+    bumpRefreshToken();
   };
 
   const handleEventClick = (event: EventDto) => {
@@ -73,7 +76,7 @@ const MainDashboard: React.FC = () => {
   const handleEventUpdated = () => {
     setIsEventFormOpen(false);
     setEventBeingEdited(null);
-    setRefreshKey(prev => prev + 1);
+    bumpRefreshToken();
   };
 
   const handleCloseEventForm = () => {
@@ -93,7 +96,7 @@ const MainDashboard: React.FC = () => {
       setDetailError('');
       await apiService.deleteEvent(event.id);
       closeEventDetailModal();
-      setRefreshKey(prev => prev + 1);
+  bumpRefreshToken();
     } catch (error) {
       console.error('Error deleting event:', error);
       const message = error instanceof Error ? error.message : 'Error al eliminar el evento';
@@ -103,36 +106,11 @@ const MainDashboard: React.FC = () => {
     }
   };
 
-  const renderMainContent = () => {
+  const showCalendarContainer = !['wellness', 'assistant', 'settings'].includes(activeView);
+  const calendarView = activeView === 'calendar-month' ? 'calendar-month' : 'calendar-week';
+
+  const renderPlaceholderContent = () => {
     switch (activeView) {
-      case 'calendar-week':
-        return (
-          <AuroraWeeklyCalendar
-            key={refreshKey}
-            onEventClick={handleEventClick}
-            onAddEvent={handleAddEvent}
-            selectedCategoryId={selectedCategoryId}
-            onCategoriesLoaded={handleCategoriesLoaded}
-            showFilters={showFilters}
-            onToggleFilters={() => setShowFilters(!showFilters)}
-            categories={categories}
-            onCategoryChange={handleCategoryChange}
-          />
-        );
-      case 'calendar-month':
-        return (
-          <AuroraMonthlyCalendar
-            key={refreshKey}
-            onEventClick={handleEventClick}
-            onAddEvent={handleAddEvent}
-            selectedCategoryId={selectedCategoryId}
-            onCategoriesLoaded={handleCategoriesLoaded}
-            showFilters={showFilters}
-            onToggleFilters={() => setShowFilters(!showFilters)}
-            categories={categories}
-            onCategoryChange={handleCategoryChange}
-          />
-        );
       case 'wellness':
         return (
           <div className="placeholder-view">
@@ -155,18 +133,7 @@ const MainDashboard: React.FC = () => {
           </div>
         );
       default:
-        return (
-          <AuroraWeeklyCalendar
-            onEventClick={handleEventClick}
-            onAddEvent={handleAddEvent}
-            selectedCategoryId={selectedCategoryId}
-            onCategoriesLoaded={handleCategoriesLoaded}
-            showFilters={showFilters}
-            onToggleFilters={() => setShowFilters(!showFilters)}
-            categories={categories}
-            onCategoryChange={handleCategoryChange}
-          />
-        );
+        return null;
     }
   };
 
@@ -177,7 +144,45 @@ const MainDashboard: React.FC = () => {
         onViewChange={handleViewChange}
       />
       <main className="dashboard-content">
-        {renderMainContent()}
+        <div
+          className={`calendar-views-container ${showCalendarContainer ? 'is-active' : 'is-hidden'}`}
+          aria-hidden={!showCalendarContainer}
+        >
+          <section
+            className={`calendar-view-panel ${calendarView === 'calendar-week' ? 'is-active' : ''}`}
+            aria-hidden={calendarView !== 'calendar-week'}
+          >
+            <AuroraWeeklyCalendar
+              onEventClick={handleEventClick}
+              onAddEvent={handleAddEvent}
+              selectedCategoryId={selectedCategoryId}
+              onCategoriesLoaded={handleCategoriesLoaded}
+              showFilters={showFilters}
+              onToggleFilters={() => setShowFilters(!showFilters)}
+              categories={categories}
+              onCategoryChange={handleCategoryChange}
+              refreshToken={refreshToken}
+            />
+          </section>
+          <section
+            className={`calendar-view-panel ${calendarView === 'calendar-month' ? 'is-active' : ''}`}
+            aria-hidden={calendarView !== 'calendar-month'}
+          >
+            <AuroraMonthlyCalendar
+              onEventClick={handleEventClick}
+              onAddEvent={handleAddEvent}
+              selectedCategoryId={selectedCategoryId}
+              onCategoriesLoaded={handleCategoriesLoaded}
+              showFilters={showFilters}
+              onToggleFilters={() => setShowFilters(!showFilters)}
+              categories={categories}
+              onCategoryChange={handleCategoryChange}
+              refreshToken={refreshToken}
+            />
+          </section>
+        </div>
+
+        {!showCalendarContainer && renderPlaceholderContent()}
       </main>
 
       {/* NLP Input */}
