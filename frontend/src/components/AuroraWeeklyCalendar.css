@@ -173,6 +173,7 @@
 
 .settings-btn:hover {
     background: #f8fafc;
+    ;
 }
 
 .settings-btn svg {
@@ -182,7 +183,7 @@
 /* Active state for filter button */
 .settings-btn.bg-primary,
 .settings-btn.active {
-    background: #8B5CF6 !important;
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%) !important;
     border-color: #8B5CF6 !important;
 }
 
