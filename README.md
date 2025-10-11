@@ -1,20 +1,8 @@
 # Aurora - Mobile-First Personal Planner
 
-A clean, well-structured template for a .NET 9 backend with React 19 frontend, following Clean Architecture princip## Project Structure# Project Structurees.
-
-## Prerequisites
-
-## Configuration Detailsefore you begin, ensure you have the following installed on your mac## Development Guidelinesine:
-
-### Required Software
-- **[.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)** - Latest version
-- **[Node.js](https://nodejs.org/)** - Version 18 or higher (includes npm)
-- **[Git](https://git-scm.com/)** - For cloning the repository
-- **[Visual Studio Code](https://code.visualstudio.com/)** - Recommended IDEbile-First Personal Planner
-
 A clean, well-structured template for a .NET 9 backend with React 19 frontend, following Clean Architecture principles.
 
-## � Prerequisites
+## 📋 Prerequisites
 
 Before you begin, ensure you have the following installed on your machine:
 
@@ -35,8 +23,8 @@ Before you begin, ensure you have the following installed on your machine:
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Diego3312/IA-Aplicada.git
-cd Aurora
+git clone https://github.com/rodrigoDambrosio/aurora.git
+cd aurora
 ```
 
 ### 2. Verify Prerequisites
@@ -157,7 +145,7 @@ The frontend automatically tests backend connectivity and displays:
 - Sample data retrieval
 - Request/response information
 
-##  Project Structure
+## 📁 Project Structure
 
 ```
 Aurora/
@@ -185,7 +173,7 @@ Aurora/
 └── README.md                    # This file
 ```
 
-## � Configuration Details
+## ⚙️ Configuration Details
 
 ### Backend Configuration
 - **Port**: 5291 (HTTP)
@@ -254,7 +242,7 @@ dotnet build
 3. **Verify all prerequisites** are installed with correct versions
 4. **Check VS Code Problems panel** for build errors
 
-## � Development Guidelines
+## 📝 Development Guidelines
 
 ### Code Standards
 - **Language**: Code in English, UI text in Spanish

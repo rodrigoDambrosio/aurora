@@ -276,7 +276,7 @@ const ApiTest: React.FC = () => {
           <div style={{ padding: '12px', backgroundColor: '#ffffff', borderRadius: '8px' }}>
             <strong>⚙️ Backend:</strong><br />
             ASP.NET Core (.NET 9)<br />
-            <span style={{ color: '#059669' }}>http://localhost:5000/api</span>
+            <span style={{ color: '#059669' }}>http://localhost:5291/api</span>
           </div>
           <div style={{ padding: '12px', backgroundColor: '#ffffff', borderRadius: '8px' }}>
             <strong>🔗 Arquitectura:</strong><br />
