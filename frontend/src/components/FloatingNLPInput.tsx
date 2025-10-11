@@ -147,8 +147,7 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
 
     try {
       // El evento ya viene parseado del backend, solo crearlo
-      const { categoryName, priority, ...eventData } = parsedEvent;
-      void categoryName;
+      const { priority, ...eventData } = parsedEvent;
       const normalizedPriority = priority ?? DEFAULT_PRIORITY;
 
       await apiService.createEvent({
