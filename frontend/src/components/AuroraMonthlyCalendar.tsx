@@ -1,7 +1,9 @@
 import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { formatMonthTitle } from '../lib/utils';
 import { apiService, type EventCategoryDto, type EventDto } from '../services/apiService';
 import './AuroraMonthlyCalendar.css';
+import './CalendarHeader.css';
 import { CategoryFilter } from './CategoryFilter';
 
 interface AuroraMonthlyCalendarProps {
@@ -156,10 +158,6 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
     setCurrentDate(new Date());
   };
 
-  const formatMonth = (): string => {
-    return currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-  };
-
   const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   const getEventCountText = (): string => {
@@ -174,39 +172,39 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
   return (
     <div className="monthly-calendar">
       {/* Header */}
-      <div className="monthly-calendar-header">
-        <div className="monthly-calendar-nav">
-          <div className="month-nav-buttons">
+      <div className="calendar-top-header">
+        <div className="calendar-nav">
+          <div className="calendar-nav-buttons">
             <button
-              className="month-nav-button"
+              className="calendar-nav-button"
               onClick={goToPreviousMonth}
               aria-label="Mes anterior"
             >
               <ChevronLeft size={16} />
             </button>
             <button
-              className="month-nav-button"
+              className="calendar-nav-button"
               onClick={goToNextMonth}
               aria-label="Mes siguiente"
             >
               <ChevronRight size={16} />
             </button>
           </div>
-          <h2 className="month-title">{formatMonth()}</h2>
+          <h2 className="calendar-title">{formatMonthTitle(currentDate)}</h2>
         </div>
-        <div className="monthly-calendar-actions">
-          <button className="action-button today-button" onClick={goToToday}>
+        <div className="calendar-actions">
+          <button className="calendar-action-button calendar-today-button" onClick={goToToday}>
             Hoy
           </button>
           <button
-            className={`settings-btn ${showFilters ? 'active' : ''}`}
+            className={`calendar-settings-btn ${showFilters ? 'is-active' : ''}`}
             onClick={onToggleFilters}
             title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
             aria-label="Filtrar por categoría"
           >
             <Filter className="w-4 h-4" />
           </button>
-          <button className="add-event-btn" onClick={() => onAddEvent?.(new Date())} aria-label="Crear nuevo evento">
+          <button className="calendar-add-btn" onClick={() => onAddEvent?.(new Date())} aria-label="Crear nuevo evento">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" />
             </svg>
@@ -217,7 +215,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
 
       {/* Category Filter */}
       {showFilters && categories.length > 0 && (
-        <div className="monthly-calendar-filter">
+        <div className="calendar-filter">
           <CategoryFilter
             categories={categories}
             selectedCategoryId={selectedCategoryId || null}
@@ -227,7 +225,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
       )}
 
       {/* Separator line */}
-      <div className="monthly-calendar-divider" />
+      <div className="calendar-divider" />
 
       {/* Days of week header */}
       <div className="monthly-calendar-weekdays">

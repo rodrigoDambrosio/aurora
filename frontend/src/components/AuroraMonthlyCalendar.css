@@ -10,161 +10,6 @@
     transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Header */
-.monthly-calendar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    border-bottom: 1px solid var(--color-border);
-    min-height: 64px;
-}
-
-.monthly-calendar-nav {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.month-nav-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.month-nav-button {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    cursor: pointer;
-    color: var(--color-text-primary);
-    transition: all 0.2s ease;
-}
-
-.month-nav-button:hover {
-    background: var(--color-surface-alt);
-    border-color: var(--gradient-primary-end);
-    color: var(--gradient-primary-end);
-}
-
-.month-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    margin: 0;
-    text-transform: capitalize;
-}
-
-.monthly-calendar-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.action-button {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    height: 32px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    background: var(--color-surface);
-    color: var(--color-text-secondary);
-    font-size: 14px;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.action-button:hover {
-    background: var(--color-surface-alt);
-    border-color: var(--color-border-strong);
-    color: var(--color-text-primary);
-}
-
-.today-button {
-    font-weight: 500;
-}
-
-.add-event-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    height: 32px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.add-event-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.25);
-    background: linear-gradient(135deg, var(--gradient-primary-hover-start) 0%, var(--gradient-primary-hover-end) 100%);
-}
-
-/* Filter button */
-.settings-btn {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    width: 37.333px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.settings-btn:hover {
-    background: var(--color-surface-alt);
-    border-color: var(--color-border-strong);
-}
-
-.settings-btn svg {
-    color: var(--color-text-secondary);
-    transition: color 0.2s ease;
-}
-
-.settings-btn.active {
-    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%) !important;
-    border-color: transparent !important;
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25);
-}
-
-.settings-btn.active svg {
-    color: #ffffff !important;
-}
-
-.w-4 {
-    width: 1rem;
-}
-
-.h-4 {
-    height: 1rem;
-}
-
-.monthly-calendar-filter {
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface);
-}
-
-.monthly-calendar-divider {
-    border-bottom: 1px solid var(--color-border);
-}
-
 /* Weekdays header */
 .monthly-calendar-weekdays {
     display: grid;
@@ -328,13 +173,13 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-    .monthly-calendar-header {
+    .calendar-top-header {
         flex-direction: column;
         gap: 12px;
         align-items: flex-start;
     }
 
-    .monthly-calendar-actions {
+    .calendar-actions {
         width: 100%;
         justify-content: flex-end;
     }

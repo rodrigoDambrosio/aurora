@@ -1,8 +1,10 @@
-import { Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { formatMonthTitle } from '../lib/utils';
 import type { EventCategoryDto, EventDto, WeeklyEventsResponseDto } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './AuroraWeeklyCalendar.css';
+import './CalendarHeader.css';
 import { CategoryFilter } from './CategoryFilter';
 
 interface AuroraWeeklyCalendarProps {
@@ -107,14 +109,6 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   };
 
   // Format functions
-  const formatMonth = (date: Date): string => {
-    const months = [
-      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
-    ];
-    return `${months[date.getMonth()]} ${date.getFullYear()}`;
-  };
-
   const formatDayName = (date: Date): string => {
     const days = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
     return days[date.getDay()];
@@ -233,7 +227,8 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
         endDate: formatToLocalISO(newEndDate),
         location: draggedEvent.location,
         eventCategoryId: draggedEvent.eventCategory?.id || '',
-        isAllDay: draggedEvent.isAllDay
+        isAllDay: draggedEvent.isAllDay,
+        priority: draggedEvent.priority
       };
 
       console.log('Moving event from', originalDateOnly, 'to', targetDateOnly);
@@ -281,69 +276,77 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
       )}
 
       {/* Header */}
-      <div className="calendar-header">
-        <div className="header-controls">
-          <div className="nav-controls">
-            <button className="nav-btn" onClick={goToPreviousWeek}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M10 12l-4-4 4-4" stroke="currentColor" strokeWidth="2" fill="none" />
-              </svg>
-            </button>
-            <button className="nav-btn" onClick={goToNextWeek}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" fill="none" />
-              </svg>
-            </button>
-            <h2 className="month-title">{formatMonth(currentDate)}</h2>
-          </div>
-
-          <div className="action-controls">
-            <button className="today-btn" onClick={goToToday}>
-              Hoy
+      <div className="calendar-top-header">
+        <div className="calendar-nav">
+          <div className="calendar-nav-buttons">
+            <button
+              className="calendar-nav-button"
+              onClick={goToPreviousWeek}
+              aria-label="Semana anterior"
+            >
+              <ChevronLeft size={16} />
             </button>
             <button
-              className={`settings-btn ${showFilters ? 'active' : ''}`}
-              onClick={onToggleFilters}
-              title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
-              aria-label="Filtrar por categoría"
+              className="calendar-nav-button"
+              onClick={goToNextWeek}
+              aria-label="Semana siguiente"
             >
-              <Filter className="w-4 h-4" />
-            </button>
-            <button className="add-event-btn" onClick={() => onAddEvent?.(new Date())}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" />
-              </svg>
-              Evento
+              <ChevronRight size={16} />
             </button>
           </div>
+          <h2 className="calendar-title">{formatMonthTitle(currentDate)}</h2>
         </div>
 
-        {/* Category Filter */}
-        {showFilters && categories.length > 0 && (
-          <div style={{ padding: '8px 16px' }}>
-            <CategoryFilter
-              categories={categories}
-              selectedCategoryId={selectedCategoryId || null}
-              onCategoryChange={onCategoryChange || (() => { })}
-            />
+        <div className="calendar-actions">
+          <button className="calendar-action-button calendar-today-button" onClick={goToToday}>
+            Hoy
+          </button>
+          <button
+            className={`calendar-settings-btn ${showFilters ? 'is-active' : ''}`}
+            onClick={onToggleFilters}
+            title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+            aria-label="Filtrar por categoría"
+          >
+            <Filter className="w-4 h-4" />
+          </button>
+          <button
+            className="calendar-add-btn"
+            onClick={() => onAddEvent?.(new Date())}
+            aria-label="Crear nuevo evento"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" />
+            </svg>
+            Evento
+          </button>
+        </div>
+      </div>
+
+      {/* Category Filter */}
+      {showFilters && categories.length > 0 && (
+        <div className="calendar-filter">
+          <CategoryFilter
+            categories={categories}
+            selectedCategoryId={selectedCategoryId || null}
+            onCategoryChange={onCategoryChange || (() => { })}
+          />
+        </div>
+      )}
+
+      {/* Separator line */}
+      <div className="calendar-divider" />
+
+      {/* Week Days Header */}
+      <div className="week-header">
+        {weekDates.map((date, index) => (
+          <div
+            key={index}
+            className={`day-header ${isToday(date) ? 'today' : ''}`}
+          >
+            <div className="day-name">{formatDayName(date)}</div>
+            <div className="day-number">{date.getDate()}</div>
           </div>
-        )}
-
-        {/* Separator line */}
-        <div style={{ borderBottom: '1px solid #c8cde2' }} />
-
-        {/* Week Days Header */}
-        <div className="week-header">
-          {weekDates.map((date, index) => (
-            <div
-              key={index}
-              className={`day-header ${isToday(date) ? 'today' : ''}`}
-            >
-              <div className="day-name">{formatDayName(date)}</div>
-              <div className="day-number">{date.getDate()}</div>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
 
       {/* Calendar Grid */}
