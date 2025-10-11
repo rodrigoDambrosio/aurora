@@ -1,6 +1,4 @@
-# Aurora - Mobile-First Personal Planner
-
-A clean, well-structured template for a .NET 9 backend with React 19 frontend, following Clean Architecture principles.
+# Aurora - Personal Planner
 
 ## 📋 Prerequisites
 
