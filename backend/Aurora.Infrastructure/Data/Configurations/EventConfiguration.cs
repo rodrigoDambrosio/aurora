@@ -1,4 +1,5 @@
 using Aurora.Domain.Entities;
+using Aurora.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -41,6 +42,11 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
 
         builder.Property(e => e.EventCategoryId)
             .IsRequired();
+
+        builder.Property(e => e.Priority)
+            .HasConversion<int>()
+            .IsRequired()
+            .HasDefaultValue(EventPriority.Medium);
 
         // Índices
         builder.HasIndex(e => e.StartDate)

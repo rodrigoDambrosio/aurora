@@ -370,6 +370,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                 <div className="events-container">
                   {dayEvents.map((event) => {
                     const categoryColor = event.eventCategory?.color || '#1447e6';
+                    const priorityLevel = Math.min(Math.max(event.priority ?? 2, 1), 4);
 
                     return (
                       <div
@@ -402,9 +403,17 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                       >
                         <div className="event-title">{event.title}</div>
                         <div className="event-time">{getEventTimeRange(event)}</div>
-                        <div className="event-priority">
+                        <div className="event-priority" aria-label={`Prioridad ${priorityLevel} de 4`}>
                           {Array.from({ length: 4 }).map((_, i) => (
-                            <svg key={i} width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <svg
+                              key={i}
+                              width="12"
+                              height="12"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              className={i < priorityLevel ? 'filled' : ''}
+                              aria-hidden="true"
+                            >
                               <path d="M6 1L7.5 4.5L11 5L8.5 7.5L9 11L6 9.5L3 11L3.5 7.5L1 5L4.5 4.5L6 1Z" fill="currentColor" />
                             </svg>
                           ))}

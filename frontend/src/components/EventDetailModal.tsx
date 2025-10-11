@@ -1,6 +1,6 @@
-import { Calendar, Clock, Info, MapPin, Pencil, Tag, Trash2, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Pencil, Star, Tag, Trash2, X } from 'lucide-react';
 import React, { useEffect } from 'react';
-import type { EventDto } from '../services/apiService';
+import type { EventDto, EventPriority } from '../services/apiService';
 import './EventDetailModal.css';
 
 type EventDetailModalProps = {
@@ -62,6 +62,16 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
   const end = new Date(event.endDate);
   const isSameDay = start.toDateString() === end.toDateString();
   const categoryColor = event.eventCategory?.color ?? '#1447e6';
+  const priorityValue: EventPriority = event.priority ?? 2;
+
+  const priorityInfo: Record<EventPriority, { label: string; description: string; color: string }> = {
+    1: { label: 'Baja', description: 'Sin urgencia especial', color: '#38bdf8' },
+    2: { label: 'Media', description: 'Prioritario pero manejable', color: '#6366f1' },
+    3: { label: 'Alta', description: 'Atención recomendada', color: '#f59e0b' },
+    4: { label: 'Crítica', description: 'Requiere acción inmediata', color: '#f87171' }
+  };
+
+  const currentPriority = priorityInfo[priorityValue] ?? priorityInfo[2];
 
   const primaryDateText = event.isAllDay
     ? formatFullDate(start)
@@ -139,10 +149,25 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </div>
 
           <div className="event-detail-row">
-            <Info size={18} className="event-detail-icon" aria-hidden="true" />
+            <Star size={18} className="event-detail-icon" aria-hidden="true" />
             <div>
               <p className="event-detail-label">Prioridad</p>
-              <p className="event-detail-value">{event.notes ?? 'No especificada'}</p>
+              <div className="event-detail-priority" style={{ '--priority-color': currentPriority.color } as React.CSSProperties}>
+                <div className="event-detail-priority-stars" role="img" aria-label={`Prioridad ${currentPriority.label}`}>
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <Star
+                      key={index}
+                      size={14}
+                      className={index < priorityValue ? 'filled' : ''}
+                      aria-hidden="true"
+                    />
+                  ))}
+                </div>
+                <span className="event-detail-priority-label" style={{ color: currentPriority.color }}>
+                  {currentPriority.label}
+                </span>
+              </div>
+              <p className="event-detail-priority-description">{currentPriority.description}</p>
             </div>
           </div>
 
@@ -150,6 +175,13 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
             <div className="event-detail-section">
               <p className="event-detail-label">Descripción</p>
               <p className="event-detail-description">{event.description}</p>
+            </div>
+          )}
+
+          {event.notes && (
+            <div className="event-detail-section">
+              <p className="event-detail-label">Notas</p>
+              <p className="event-detail-description">{event.notes}</p>
             </div>
           )}
         </div>

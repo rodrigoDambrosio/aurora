@@ -28,6 +28,8 @@ export interface EventCategoryDto {
   sortOrder: number;
 }
 
+export type EventPriority = 1 | 2 | 3 | 4;
+
 export interface EventDto {
   id: string;
   title: string;
@@ -39,6 +41,7 @@ export interface EventDto {
   color?: string;
   notes?: string;
   isRecurring: boolean;
+  priority: EventPriority;
   eventCategory: EventCategoryDto;
 }
 
@@ -65,6 +68,7 @@ export interface CreateEventDto {
   color?: string;
   notes?: string;
   eventCategoryId: string;
+  priority: EventPriority;
 }
 
 export interface ParseNaturalLanguageRequestDto {

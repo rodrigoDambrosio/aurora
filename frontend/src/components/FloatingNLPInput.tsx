@@ -1,7 +1,7 @@
-import { MessageSquare, Send, Sparkles, X } from 'lucide-react';
+import { MessageSquare, Send, Sparkles, Star, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { type FormEvent, useState } from 'react';
-import type { AIValidationResult, CreateEventDto } from '../services/apiService';
+import type { AIValidationResult, CreateEventDto, EventPriority } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './FloatingNLPInput.css';
 
@@ -9,9 +9,25 @@ interface FloatingNLPInputProps {
   onEventCreated: () => void;
 }
 
-interface ParsedEvent extends CreateEventDto {
+interface ParsedEvent extends Omit<CreateEventDto, 'priority'> {
   categoryName: string;
+  priority?: EventPriority;
 }
+
+const DEFAULT_PRIORITY: EventPriority = 2;
+
+const PRIORITY_OPTIONS: Array<{
+  value: EventPriority;
+  label: string;
+  description: string;
+  badgeClass: string;
+  emoji: string;
+}> = [
+    { value: 1, label: 'Baja', description: 'Actividad opcional, sin urgencia.', badgeClass: 'nlp-priority-low', emoji: '🟢' },
+    { value: 2, label: 'Media', description: 'Importante pero controlable.', badgeClass: 'nlp-priority-medium', emoji: '🔵' },
+    { value: 3, label: 'Alta', description: 'Requiere atención prioritaria.', badgeClass: 'nlp-priority-high', emoji: '🟠' },
+    { value: 4, label: 'Crítica', description: 'Imprescindible o urgente.', badgeClass: 'nlp-priority-critical', emoji: '🔴' }
+  ];
 
 export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -89,8 +105,9 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
       const categories = await apiService.getEventCategories();
       const category = categories.find(c => c.id === response.event.eventCategoryId);
 
-      const parsed = {
+      const parsed: ParsedEvent = {
         ...response.event,
+        priority: response.event.priority ?? DEFAULT_PRIORITY,
         categoryName: category?.name || 'Sin categoría'
       };
 
@@ -130,8 +147,13 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
 
     try {
       // El evento ya viene parseado del backend, solo crearlo
-      const { categoryName, ...eventData } = parsedEvent;
-      await apiService.createEvent(eventData);
+      const { priority, ...eventData } = parsedEvent;
+      const normalizedPriority = priority ?? DEFAULT_PRIORITY;
+
+      await apiService.createEvent({
+        ...eventData,
+        priority: normalizedPriority
+      });
       onEventCreated();
       resetState();
     } catch (err) {
@@ -174,6 +196,11 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
     if (severityStr === 'Critical') return 'Conflicto';
     if (severityStr === 'Warning') return 'Advertencia';
     return 'Información';
+  };
+
+  const getPriorityMeta = (priority?: EventPriority) => {
+    const safePriority = priority ?? DEFAULT_PRIORITY;
+    return PRIORITY_OPTIONS.find((option) => option.value === safePriority) ?? PRIORITY_OPTIONS[1];
   };
 
   return (
@@ -325,6 +352,11 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
                       <p>📅 {formatDate(parsedEvent.startDate)}</p>
                       <p>🕐 {formatTime(parsedEvent.startDate)} - {formatTime(parsedEvent.endDate)}</p>
                       <p>🏷️ {parsedEvent.categoryName}</p>
+                      <p>
+                        <span className={`nlp-priority-badge ${getPriorityMeta(parsedEvent.priority).badgeClass}`}>
+                          {getPriorityMeta(parsedEvent.priority).emoji} Prioridad {getPriorityMeta(parsedEvent.priority).label}
+                        </span>
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -395,6 +427,28 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
                         }}
                         className="nlp-form-input"
                       />
+                    </div>
+
+                    <div className="nlp-form-field">
+                      <label className="nlp-form-label">Prioridad</label>
+                      <div className="nlp-priority-options" role="group" aria-label="Editar prioridad del evento">
+                        {PRIORITY_OPTIONS.map((option) => {
+                          const isSelected = (parsedEvent.priority ?? DEFAULT_PRIORITY) === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={`nlp-priority-chip ${isSelected ? 'selected' : ''}`}
+                              onClick={() => setParsedEvent({ ...parsedEvent, priority: option.value })}
+                              aria-pressed={isSelected}
+                            >
+                              <Star size={14} aria-hidden="true" />
+                              <span>{option.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="nlp-priority-helper">{getPriorityMeta(parsedEvent.priority).description}</p>
                     </div>
                   </div>
                 )}

@@ -246,6 +246,40 @@
     gap: 4px;
 }
 
+.nlp-priority-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: #e2e8f0;
+    color: #334155;
+    text-transform: uppercase;
+}
+
+.nlp-priority-low {
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+}
+
+.nlp-priority-medium {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+}
+
+.nlp-priority-high {
+    background: rgba(249, 115, 22, 0.15);
+    color: #c2410c;
+}
+
+.nlp-priority-critical {
+    background: rgba(239, 68, 68, 0.15);
+    color: #b91c1c;
+}
+
 .nlp-actions {
     display: flex;
     gap: 8px;
@@ -464,4 +498,45 @@
 
 .nlp-button-warning:hover:not(:disabled) {
     background: linear-gradient(135deg, #D97706 0%, #B45309 100%) !important;
+}
+
+.nlp-priority-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.nlp-priority-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 9999px;
+    border: 1px solid #E2E8F0;
+    background: white;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.nlp-priority-chip:hover {
+    background: #F8FAFC;
+    border-color: #CBD5E1;
+}
+
+.nlp-priority-chip.selected {
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    border-color: transparent;
+    color: white;
+    box-shadow: 0 6px 15px rgba(124, 58, 237, 0.25);
+}
+
+.nlp-priority-helper {
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: #64748B;
 }

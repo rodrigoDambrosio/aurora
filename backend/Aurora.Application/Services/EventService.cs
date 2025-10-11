@@ -118,6 +118,7 @@ public class EventService : IEventService
             Color = createEventDto.Color,
             IsRecurring = createEventDto.IsRecurring,
             RecurrencePattern = createEventDto.RecurrencePattern,
+            Priority = createEventDto.Priority,
             EventCategoryId = createEventDto.EventCategoryId,
             UserId = currentUserId
         };
@@ -157,6 +158,7 @@ public class EventService : IEventService
         eventEntity.Color = updateEventDto.Color;
         eventEntity.IsRecurring = updateEventDto.IsRecurring;
         eventEntity.RecurrencePattern = updateEventDto.RecurrencePattern;
+        eventEntity.Priority = updateEventDto.Priority;
         eventEntity.EventCategoryId = updateEventDto.EventCategoryId;
         eventEntity.UpdatedAt = DateTime.UtcNow;
 
@@ -228,6 +230,7 @@ public class EventService : IEventService
             Location = eventEntity.Location,
             Notes = eventEntity.Notes,
             Color = eventEntity.Color,
+            Priority = eventEntity.Priority,
             IsRecurring = eventEntity.IsRecurring,
             RecurrencePattern = eventEntity.RecurrencePattern,
             EventCategoryId = eventEntity.EventCategoryId,

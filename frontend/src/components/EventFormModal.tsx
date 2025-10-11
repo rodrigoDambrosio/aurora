@@ -1,6 +1,6 @@
-import { Calendar, Clock, FileText, MapPin, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import type { CreateEventDto, EventCategoryDto, EventDto } from '../services/apiService';
+import { Calendar, Clock, FileText, MapPin, Star, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import type { CreateEventDto, EventCategoryDto, EventDto, EventPriority } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './EventFormModal.css';
 
@@ -37,8 +37,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [endTime, setEndTime] = useState('10:00');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<EventPriority>(2);
 
   const isCreateMode = mode === 'create';
+
+  const priorityOptions = useMemo(
+    () => ([
+      { value: 1 as EventPriority, label: 'Baja', description: 'Sin urgencia especial' },
+      { value: 2 as EventPriority, label: 'Media', description: 'Prioritario pero manejable' },
+      { value: 3 as EventPriority, label: 'Alta', description: 'Atención recomendada' },
+      { value: 4 as EventPriority, label: 'Crítica', description: 'Requiere acción inmediata' }
+    ]),
+    []
+  );
 
   const extractDatePart = (isoDate: string | undefined) =>
     isoDate && isoDate.length >= 10 ? isoDate.slice(0, 10) : '';
@@ -87,6 +98,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setEndTime(extractTimePart(eventToEdit.endDate) || '10:00');
       setLocation(eventToEdit.location ?? '');
       setCategoryId(eventToEdit.eventCategory?.id ?? '');
+      setPriority(eventToEdit.priority ?? 2);
     } else {
       setTitle('');
       setDescription('');
@@ -94,6 +106,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setStartTime('09:00');
       setEndTime('10:00');
       setLocation('');
+      setPriority(2);
 
       if (initialDate) {
         const dateStr = initialDate.toISOString().split('T')[0];
@@ -120,6 +133,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setEndDate('');
       setError('');
       setCategoryId('');
+      setPriority(2);
     }
   }, [isOpen]);
 
@@ -154,7 +168,8 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         endDate: endDateTime,
         location: location.trim() || undefined,
         eventCategoryId: categoryId,
-        isAllDay
+        isAllDay,
+        priority
       };
 
       console.log('Creating event:', eventDto);
@@ -274,6 +289,31 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 <span>{getSelectedCategory()?.name}</span>
               </div>
             )}
+          </div>
+
+          {/* Priority */}
+          <div className="event-form-field">
+            <label>Prioridad</label>
+            <div className="event-priority-options" role="group" aria-label="Seleccionar prioridad del evento">
+              {priorityOptions.map((option) => {
+                const isSelected = priority === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`event-priority-chip ${isSelected ? 'selected' : ''}`}
+                    onClick={() => setPriority(option.value)}
+                    aria-pressed={isSelected}
+                  >
+                    <Star size={16} aria-hidden="true" />
+                    <span>{option.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="event-priority-helper">
+              {priorityOptions.find((option) => option.value === priority)?.description}
+            </p>
           </div>
 
           {/* All Day Toggle */}

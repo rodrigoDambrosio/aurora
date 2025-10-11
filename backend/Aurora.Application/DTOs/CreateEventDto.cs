@@ -1,3 +1,5 @@
+using Aurora.Domain.Enums;
+
 namespace Aurora.Application.DTOs;
 
 /// <summary>
@@ -39,6 +41,11 @@ public class CreateEventDto
     /// Notas adicionales del evento
     /// </summary>
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Prioridad del evento
+    /// </summary>
+    public EventPriority Priority { get; set; } = EventPriority.Medium;
 
     /// <summary>
     /// Color personalizado del evento (opcional)

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
 using Aurora.Infrastructure.DTOs.Gemini;
+using Aurora.Domain.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -29,21 +30,21 @@ public class GeminiAIValidationService : IAIValidationService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // Obtener la API Key desde la configuraci�n
-        _apiKey = _configuration["Gemini:ApiKey"] 
+        _apiKey = _configuration["Gemini:ApiKey"]
                   ?? throw new InvalidOperationException("Gemini API Key no configurada en appsettings");
 
-        _baseUrl = _configuration["Gemini:BaseUrl"] 
+        _baseUrl = _configuration["Gemini:BaseUrl"]
                    ?? "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
     }
 
     public async Task<AIValidationResult> ValidateEventCreationAsync(
-        CreateEventDto eventDto, 
+        CreateEventDto eventDto,
         Guid userId,
         IEnumerable<EventDto>? existingEvents = null)
     {
         try
         {
-            _logger.LogInformation("Iniciando validaci�n de IA para evento: {Title} con contexto de {EventCount} eventos existentes", 
+            _logger.LogInformation("Iniciando validaci�n de IA para evento: {Title} con contexto de {EventCount} eventos existentes",
                 eventDto.Title, existingEvents?.Count() ?? 0);
 
             // Construir el prompt para Gemini con contexto del calendario
@@ -82,9 +83,9 @@ public class GeminiAIValidationService : IAIValidationService
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Error en la API de Gemini: {StatusCode} - {Error}", 
+                _logger.LogError("Error en la API de Gemini: {StatusCode} - {Error}",
                     response.StatusCode, errorContent);
-                
+
                 // Si falla la IA, aprobar por defecto
                 return new AIValidationResult
                 {
@@ -119,7 +120,7 @@ public class GeminiAIValidationService : IAIValidationService
 
             // Parsear la respuesta de la IA
             var result = ParseAIResponse(aiText);
-            
+
             _logger.LogInformation("Validaci�n de IA completada: {IsApproved}", result.IsApproved);
 
             return result;
@@ -127,7 +128,7 @@ public class GeminiAIValidationService : IAIValidationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al validar evento con IA");
-            
+
             // En caso de error, aprobar por defecto para no bloquear la funcionalidad
             return new AIValidationResult
             {
@@ -161,7 +162,7 @@ public class GeminiAIValidationService : IAIValidationService
         {
             sb.AppendLine("CONTEXTO DEL CALENDARIO (eventos cercanos):");
             sb.AppendLine();
-            
+
             var sortedEvents = existingEvents
                 .OrderBy(e => e.StartDate)
                 .ToList();
@@ -172,10 +173,10 @@ public class GeminiAIValidationService : IAIValidationService
                 var evtDay = evt.StartDate.DayOfWeek.ToString();
                 var evtTime = evt.StartDate.ToString("yyyy-MM-dd HH:mm");
                 var category = evt.EventCategory?.Name ?? "Sin categor�a";
-                
+
                 sb.AppendLine($"� [{evtTime} ({evtDay})] \"{evt.Title}\" - {evtDuration:F1}h - {category}");
             }
-            
+
             sb.AppendLine();
             sb.AppendLine($"Total de eventos en el contexto: {sortedEvents.Count}");
             sb.AppendLine();
@@ -225,7 +226,7 @@ public class GeminiAIValidationService : IAIValidationService
             if (jsonStart >= 0 && jsonEnd > jsonStart)
             {
                 var jsonText = aiText.Substring(jsonStart, jsonEnd - jsonStart);
-                
+
                 var parsed = JsonSerializer.Deserialize<AIResponseParsed>(jsonText, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -316,9 +317,9 @@ public class GeminiAIValidationService : IAIValidationService
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Error en la API de Gemini para parsing: {StatusCode} - {Error}", 
+                _logger.LogError("Error en la API de Gemini para parsing: {StatusCode} - {Error}",
                     response.StatusCode, errorContent);
-                
+
                 throw new InvalidOperationException($"Error al parsear texto con IA: {response.StatusCode}");
             }
 
@@ -342,8 +343,8 @@ public class GeminiAIValidationService : IAIValidationService
 
             // Parsear la respuesta de la IA a CreateEventDto
             var eventDto = ParseEventFromAIResponse(aiText);
-            
-            _logger.LogInformation("Texto parseado exitosamente: {Title} - {StartDate}", 
+
+            _logger.LogInformation("Texto parseado exitosamente: {Title} - {StartDate}",
                 eventDto.Title, eventDto.StartDate);
 
             return eventDto;
@@ -358,25 +359,33 @@ public class GeminiAIValidationService : IAIValidationService
     private string BuildParsingPrompt(string naturalLanguageText, IEnumerable<EventCategoryDto> availableCategories, int timezoneOffsetMinutes, IEnumerable<EventDto>? existingEvents)
     {
         var utcNow = DateTime.UtcNow;
-        // Calcular la hora local del usuario
         var userLocalNow = utcNow.AddMinutes(timezoneOffsetMinutes);
-        var timezoneString = timezoneOffsetMinutes < 0 
-            ? $"UTC{timezoneOffsetMinutes / 60:+0;-0}" 
-            : $"UTC+{timezoneOffsetMinutes / 60}";
-        
+        var offset = TimeSpan.FromMinutes(timezoneOffsetMinutes);
+        var timezoneString = timezoneOffsetMinutes == 0
+            ? "UTC"
+            : $"UTC{offset.TotalHours:+0;-0}";
+
         var sb = new StringBuilder();
-        
+
         sb.AppendLine("Eres un asistente de calendario inteligente. Tu tarea es convertir texto en lenguaje natural a un evento estructurado.");
         sb.AppendLine();
-        sb.AppendLine($"FECHA Y HORA ACTUAL DEL USUARIO ({timezoneString}): {userLocalNow:yyyy-MM-dd HH:mm:ss} ({userLocalNow.DayOfWeek})");
-        sb.AppendLine("IMPORTANTE: El usuario habla desde su zona horaria local. Cuando dice 'mañana 3pm' se refiere a 3pm en SU zona horaria.");
-        sb.AppendLine($"DEBES convertir todas las fechas/horas a UTC (restar {Math.Abs(timezoneOffsetMinutes / 60)} horas) antes de devolver el JSON.");
+        sb.AppendLine($"Fecha actual del usuario: {userLocalNow:yyyy-MM-dd HH:mm} ({timezoneString})");
+        if (timezoneOffsetMinutes == 0)
+        {
+            sb.AppendLine("El usuario ya está en UTC, no realices ajustes adicionales de zona horaria.");
+        }
+        else
+        {
+            var hoursOffset = Math.Abs(offset.TotalHours);
+            var adjustmentVerb = timezoneOffsetMinutes > 0 ? "restando" : "sumando";
+            sb.AppendLine($"Debes convertir todas las fechas/horas a UTC {adjustmentVerb} {hoursOffset:0.##} horas respecto a la hora local del usuario.");
+        }
+        sb.AppendLine("Cuando el usuario diga 'mañana 3pm' se refiere a su zona horaria local.");
         sb.AppendLine();
         sb.AppendLine("TEXTO DEL USUARIO:");
         sb.AppendLine($"\"{naturalLanguageText}\"");
         sb.AppendLine();
 
-        // Agregar contexto del calendario si existe
         if (existingEvents != null && existingEvents.Any())
         {
             sb.AppendLine("CONTEXTO DEL CALENDARIO (eventos cercanos):");
@@ -390,10 +399,10 @@ public class GeminiAIValidationService : IAIValidationService
                 var evtTime = evt.StartDate.ToString("yyyy-MM-dd HH:mm");
                 sb.AppendLine($"• [{evtTime}] \"{evt.Title}\" - {evt.EventCategory?.Name ?? "Sin categoría"}");
             }
+
             sb.AppendLine();
         }
 
-        // Mapear categorías con sus IDs reales
         sb.AppendLine("CATEGORÍAS DISPONIBLES:");
         var categoryList = availableCategories.ToList();
         foreach (var category in categoryList)
@@ -401,13 +410,15 @@ public class GeminiAIValidationService : IAIValidationService
             sb.AppendLine($"• {category.Name} - ID: \"{category.Id}\" ({category.Description ?? "Sin descripción"})");
         }
         sb.AppendLine();
-        
+
         sb.AppendLine("INSTRUCCIONES:");
-        sb.AppendLine("1. Interpreta fechas relativas (hoy, mañana, el lunes, etc.) desde la fecha actual");
+        sb.AppendLine("1. Interpreta fechas relativas (hoy, mañana, el lunes, etc.) desde la fecha actual del usuario");
         sb.AppendLine("2. Si no se especifica hora, usa horarios razonables según el tipo de evento");
         sb.AppendLine("3. Si no se especifica duración, infiere una duración apropiada (reuniones: 1h, ejercicio: 1.5h, etc.)");
         sb.AppendLine("4. Detecta la categoría según el contenido del evento y usa el ID exacto de la lista de categorías");
-        sb.AppendLine("5. Todas las fechas/horas deben estar en UTC");
+        sb.AppendLine("5. Todas las fechas/horas deben devolverse en formato UTC ISO 8601");
+        sb.AppendLine("6. Determina la prioridad del evento: 1=Low, 2=Medium, 3=High, 4=Critical");
+        sb.AppendLine("   Usa 4 para emergencias o compromisos imprescindibles, 3 para eventos importantes, 2 como valor por defecto y 1 para actividades opcionales");
         sb.AppendLine();
         sb.AppendLine("Responde en formato JSON con esta estructura exacta:");
         sb.AppendLine(@"{");
@@ -417,12 +428,15 @@ public class GeminiAIValidationService : IAIValidationService
         sb.AppendLine(@"  ""endDate"": ""2025-10-10T16:00:00Z"",");
         sb.AppendLine(@"  ""isAllDay"": false,");
         sb.AppendLine(@"  ""location"": ""Ubicación opcional"",");
-        sb.AppendLine($@"  ""eventCategoryId"": ""{categoryList.First().Id}""");
+        sb.AppendLine(@"  ""priority"": 2,");
+        var sampleCategoryId = categoryList.FirstOrDefault()?.Id ?? Guid.Empty;
+        sb.AppendLine($@"  ""eventCategoryId"": ""{sampleCategoryId}""");
         sb.AppendLine(@"}");
         sb.AppendLine();
         sb.AppendLine("IMPORTANTE:");
         sb.AppendLine("- eventCategoryId DEBE ser un string con el GUID exacto de la lista de categorías");
-        sb.AppendLine("- Usa formato ISO 8601 con zona horaria Z para las fechas");
+        sb.AppendLine("- priority debe ser un entero entre 1 y 4 siguiendo la escala indicada");
+        sb.AppendLine("- Usa formato ISO 8601 con zona horaria Z (UTC) para las fechas");
         sb.AppendLine("- Sé inteligente al inferir contexto y categoría apropiada");
 
         return sb.ToString();
@@ -439,7 +453,7 @@ public class GeminiAIValidationService : IAIValidationService
             if (jsonStart >= 0 && jsonEnd > jsonStart)
             {
                 var jsonText = aiText.Substring(jsonStart, jsonEnd - jsonStart);
-                
+
                 var parsed = JsonSerializer.Deserialize<CreateEventDto>(jsonText, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -447,6 +461,11 @@ public class GeminiAIValidationService : IAIValidationService
 
                 if (parsed != null && !string.IsNullOrEmpty(parsed.Title))
                 {
+                    if (!Enum.IsDefined(typeof(EventPriority), parsed.Priority) || parsed.Priority == 0)
+                    {
+                        parsed.Priority = EventPriority.Medium;
+                    }
+
                     return parsed;
                 }
             }

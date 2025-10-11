@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MainDashboard from '../../components/MainDashboard'
+import type { EventPriority } from '../../services/apiService'
 import { apiService } from '../../services/apiService'
 
 vi.mock('../../services/apiService', () => ({
@@ -23,7 +24,8 @@ const mockEvent = {
   isAllDay: false,
   location: 'Sala 1',
   color: '#1447e6',
-  notes: 'Alta',
+  notes: 'Notas de seguimiento',
+  priority: 3 as EventPriority,
   isRecurring: false,
   eventCategory: {
     id: 'cat-1',
@@ -130,6 +132,7 @@ describe('MainDashboard', () => {
 
     expect(screen.getByRole('dialog', { name: /Test Event/i })).toBeInTheDocument()
     expect(screen.getByText('Horario')).toBeInTheDocument()
+    expect(screen.getByText('Alta')).toBeInTheDocument()
   })
 
   it('handles add event from weekly calendar', async () => {
