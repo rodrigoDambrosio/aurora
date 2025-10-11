@@ -115,6 +115,35 @@
     color: #0c1223;
 }
 
+.event-detail-priority {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    --priority-color: #6366f1;
+}
+
+.event-detail-priority-stars {
+    display: flex;
+    gap: 4px;
+    color: #d1d5eb;
+}
+
+.event-detail-priority-stars .filled {
+    color: var(--priority-color);
+}
+
+.event-detail-priority-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.event-detail-priority-description {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    color: #5e6ab7;
+}
+
 .event-detail-section {
     background: #f3f5ff;
     border-radius: 14px;

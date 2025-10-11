@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import EventDetailModal from '../../components/EventDetailModal'
+import type { EventPriority } from '../../services/apiService'
 
 const mockEvent = {
   id: 'evt-1',
@@ -12,7 +13,8 @@ const mockEvent = {
   isAllDay: false,
   location: 'Sala Norte',
   color: '#1447e6',
-  notes: 'Alta',
+  notes: 'Revisar agenda antes de la reunión',
+  priority: 3 as EventPriority,
   isRecurring: false,
   eventCategory: {
     id: 'cat-1',
@@ -41,6 +43,7 @@ describe('EventDetailModal', () => {
     expect(screen.getByText('Planificación del sprint')).toBeInTheDocument()
     expect(screen.getByText('Sala Norte')).toBeInTheDocument()
     expect(screen.getByText('Horario')).toBeInTheDocument()
+    expect(screen.getByText('Alta')).toBeInTheDocument()
   })
 
   it('calls edit and delete callbacks', async () => {

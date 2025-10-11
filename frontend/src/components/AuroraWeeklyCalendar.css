@@ -405,7 +405,12 @@
 }
 
 .event-priority svg {
-    opacity: 0.6;
+    opacity: 0.25;
+    transition: opacity 0.2s ease;
+}
+
+.event-priority svg.filled {
+    opacity: 1;
 }
 
 /* Footer */

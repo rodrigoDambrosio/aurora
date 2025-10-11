@@ -1,3 +1,5 @@
+using Aurora.Domain.Enums;
+
 namespace Aurora.Domain.Entities;
 
 /// <summary>
@@ -54,6 +56,11 @@ public class Event : BaseEntity
     /// Notas adicionales del evento
     /// </summary>
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Prioridad asignada al evento
+    /// </summary>
+    public EventPriority Priority { get; set; } = EventPriority.Medium;
 
     /// <summary>
     /// Indica si el evento se repite
