@@ -260,6 +260,21 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
                     e.stopPropagation();
                     onEventClick(event);
                   }}
+                  onKeyDown={(keyboardEvent) => {
+                    if (keyboardEvent.key === 'Enter') {
+                      keyboardEvent.preventDefault();
+                      onEventClick(event);
+                    }
+                  }}
+                  onKeyUp={(keyboardEvent) => {
+                    if (keyboardEvent.key === ' ') {
+                      keyboardEvent.preventDefault();
+                      onEventClick(event);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Ver detalle del evento ${event.title}`}
                 >
                   <span
                     className="event-chip-text"

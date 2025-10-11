@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import type { EventCategoryDto, EventDto } from '../services/apiService';
+import { apiService, type EventCategoryDto, type EventDto } from '../services/apiService';
 import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
 import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
+import EventDetailModal from './EventDetailModal';
 import { EventFormModal } from './EventFormModal';
 import { FloatingNLPInput } from './FloatingNLPInput';
 import './MainDashboard.css';
@@ -10,11 +11,17 @@ import Navigation from './Navigation';
 const MainDashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('calendar-week');
   const [refreshKey, setRefreshKey] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEventFormOpen, setIsEventFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [categories, setCategories] = useState<EventCategoryDto[]>([]);
   const [showFilters, setShowFilters] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<EventDto | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [eventFormMode, setEventFormMode] = useState<'create' | 'edit'>('create');
+  const [eventBeingEdited, setEventBeingEdited] = useState<EventDto | null>(null);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+  const [detailError, setDetailError] = useState('');
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
@@ -33,18 +40,67 @@ const MainDashboard: React.FC = () => {
   };
 
   const handleEventClick = (event: EventDto) => {
-    console.log('Event clicked:', event);
-    // TODO: Open event details modal or navigate to event page
+    setSelectedEvent(event);
+    setDetailError('');
+    setIsDetailModalOpen(true);
   };
 
   const handleAddEvent = (date: Date) => {
     console.log('Adding event for date:', date);
     setSelectedDate(date);
-    setIsModalOpen(true);
+    setEventFormMode('create');
+    setEventBeingEdited(null);
+    setIsEventFormOpen(true);
   };
 
   const handleCategoriesLoaded = (loadedCategories: EventCategoryDto[]) => {
     setCategories(loadedCategories);
+  };
+
+  const closeEventDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const handleEditEvent = (event: EventDto) => {
+    setEventFormMode('edit');
+    setEventBeingEdited(event);
+    setIsEventFormOpen(true);
+    setIsDetailModalOpen(false);
+    setSelectedDate(undefined);
+  };
+
+  const handleEventUpdated = () => {
+    setIsEventFormOpen(false);
+    setEventBeingEdited(null);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleCloseEventForm = () => {
+    setIsEventFormOpen(false);
+    setEventBeingEdited(null);
+    setSelectedDate(undefined);
+  };
+
+  const handleDeleteEvent = async (event: EventDto) => {
+    const confirmed = window.confirm('¿Eliminar este evento? Esta acción no se puede deshacer.');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setIsDeletingEvent(true);
+      setDetailError('');
+      await apiService.deleteEvent(event.id);
+      closeEventDetailModal();
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      const message = error instanceof Error ? error.message : 'Error al eliminar el evento';
+      setDetailError(message);
+    } finally {
+      setIsDeletingEvent(false);
+    }
   };
 
   const renderMainContent = () => {
@@ -105,6 +161,10 @@ const MainDashboard: React.FC = () => {
             onAddEvent={handleAddEvent}
             selectedCategoryId={selectedCategoryId}
             onCategoriesLoaded={handleCategoriesLoaded}
+            showFilters={showFilters}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            categories={categories}
+            onCategoryChange={handleCategoryChange}
           />
         );
     }
@@ -125,10 +185,24 @@ const MainDashboard: React.FC = () => {
 
       {/* Event Form Modal */}
       <EventFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isEventFormOpen}
+        onClose={handleCloseEventForm}
         onEventCreated={handleEventCreated}
+        onEventUpdated={handleEventUpdated}
         initialDate={selectedDate}
+        mode={eventFormMode}
+        eventToEdit={eventBeingEdited}
+      />
+
+      {/* Event Detail Modal */}
+      <EventDetailModal
+        isOpen={isDetailModalOpen}
+        event={selectedEvent}
+        onClose={closeEventDetailModal}
+        onEdit={handleEditEvent}
+        onDelete={handleDeleteEvent}
+        isDeleting={isDeletingEvent}
+        errorMessage={detailError}
       />
     </div>
   );
