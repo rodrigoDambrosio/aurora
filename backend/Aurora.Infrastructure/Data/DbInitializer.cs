@@ -1,9 +1,9 @@
 using Aurora.Domain.Constants;
 using Aurora.Domain.Entities;
+using Aurora.Domain.Enums;
 using Aurora.Domain.Services;
 using Aurora.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Aurora.Domain.Enums;
 
 namespace Aurora.Infrastructure.Data;
 
