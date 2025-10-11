@@ -16,6 +16,7 @@ interface AuroraWeeklyCalendarProps {
   onToggleFilters?: () => void;
   categories?: EventCategoryDto[];
   onCategoryChange?: (categoryId: string | null) => void;
+  refreshToken?: number;
 }
 
 const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
@@ -26,7 +27,8 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   showFilters = true,
   onToggleFilters,
   categories = [],
-  onCategoryChange
+  onCategoryChange,
+  refreshToken
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weeklyData, setWeeklyData] = useState<WeeklyEventsResponseDto | null>(null);
@@ -89,7 +91,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   useEffect(() => {
     loadWeeklyEvents(weekStart);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekStart, selectedCategoryId]);
+  }, [weekStart, selectedCategoryId, refreshToken]);
 
   // Navigation functions
   const goToPreviousWeek = () => {

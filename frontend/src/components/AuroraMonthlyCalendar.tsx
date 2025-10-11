@@ -15,6 +15,7 @@ interface AuroraMonthlyCalendarProps {
   onToggleFilters?: () => void;
   categories?: EventCategoryDto[];
   onCategoryChange?: (categoryId: string | null) => void;
+  refreshToken?: number;
 }
 
 interface CalendarDay {
@@ -33,7 +34,8 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
   showFilters = true,
   onToggleFilters,
   categories = [],
-  onCategoryChange
+  onCategoryChange,
+  refreshToken
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -71,7 +73,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
   // Cargar eventos del mes
   useEffect(() => {
     loadMonthlyEvents();
-  }, [loadMonthlyEvents]);
+  }, [loadMonthlyEvents, refreshToken]);
 
   // Generar días del calendario
   useEffect(() => {
