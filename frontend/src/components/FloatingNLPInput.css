@@ -9,21 +9,19 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
     transition: all 0.3s ease;
 }
 
 .floating-nlp-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
-    background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+    background: linear-gradient(135deg, #5855EB 0%, #7C3AED 100%);
 }
 
 /* Expanded Card */
