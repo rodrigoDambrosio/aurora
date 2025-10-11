@@ -34,7 +34,7 @@ body {
   height: 100vh;
   width: 100vw;
   display: flex;
-  background: white;
+  background: var(--color-surface);
   position: relative;
   overflow: hidden;
 }
@@ -45,29 +45,29 @@ body {
   width: 100vw;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: var(--color-surface-alt);
 }
 
 .test-header {
-  background: white;
+  background: var(--color-surface);
   padding: 20px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
   text-align: center;
 }
 
 .test-header h1 {
-  color: #312785;
+  color: var(--color-text-primary);
   font-size: 24px;
   margin-bottom: 8px;
 }
 
 .test-header p {
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
 .test-header a {
-  color: #6366f1;
+  color: var(--color-link);
   text-decoration: none;
   margin: 0 8px;
 }
@@ -99,14 +99,14 @@ body {
   font-size: 12px;
   font-weight: 500;
   backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: var(--shadow-soft);
   transition: all 0.2s ease;
 }
 
 .dev-link:hover {
   background: rgba(99, 102, 241, 1);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: var(--shadow-elevated);
 }
 
 /* ===== RESPONSIVE DESIGN ===== */

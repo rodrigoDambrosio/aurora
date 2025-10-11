@@ -217,7 +217,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
 
       {/* Category Filter */}
       {showFilters && categories.length > 0 && (
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid #c8cde2' }}>
+        <div className="monthly-calendar-filter">
           <CategoryFilter
             categories={categories}
             selectedCategoryId={selectedCategoryId || null}
@@ -227,7 +227,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
       )}
 
       {/* Separator line */}
-      <div style={{ borderBottom: '1px solid #c8cde2' }} />
+      <div className="monthly-calendar-divider" />
 
       {/* Days of week header */}
       <div className="monthly-calendar-weekdays">

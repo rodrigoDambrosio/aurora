@@ -1,5 +1,6 @@
-import { Calendar, Heart, MessageCircle, Settings, Sparkles } from 'lucide-react';
+import { Calendar, Heart, MessageCircle, Moon, Settings, Sparkles, Sun } from 'lucide-react';
 import React from 'react';
+import { useTheme } from '../context/ThemeContext';
 import './Navigation.css';
 
 type View = 'calendar-week' | 'calendar-month' | 'wellness' | 'assistant' | 'settings';
@@ -46,6 +47,8 @@ const Navigation: React.FC<NavigationProps> = ({
   activeView = 'calendar-week',
   onViewChange
 }) => {
+  const { theme, toggleTheme } = useTheme();
+
   const handleViewClick = (view: string) => {
     if (onViewChange) {
       onViewChange(view);
@@ -89,11 +92,13 @@ const Navigation: React.FC<NavigationProps> = ({
       </nav>
 
       <div className="navigation-footer">
-        <button className="dark-mode-toggle">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 12a4 4 0 100-8 4 4 0 000 8z" fill="currentColor" />
-          </svg>
-          <span>Modo Oscuro</span>
+        <button className="dark-mode-toggle" onClick={toggleTheme}>
+          {theme === 'dark' ? (
+            <Sun size={16} aria-hidden="true" />
+          ) : (
+            <Moon size={16} aria-hidden="true" />
+          )}
+          <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}</span>
         </button>
       </div>
     </div>
