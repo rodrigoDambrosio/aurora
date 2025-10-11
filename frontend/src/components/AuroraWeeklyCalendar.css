@@ -79,156 +79,12 @@
     background: #b91c1c;
 }
 
-/* Header Section */
-.calendar-header {
-    background: var(--color-surface);
-    border-bottom: 0.667px solid var(--color-border);
-    padding: 16px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.header-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 32px;
-    padding: 0 16px;
-}
-
-.nav-controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.nav-btn {
-    background: var(--color-surface);
-    border: 0.667px solid var(--color-border);
-    border-radius: 8px;
-    width: 37.333px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.nav-btn:hover {
-    background: var(--color-surface-alt);
-}
-
-.nav-btn svg {
-    color: var(--color-text-primary);
-}
-
-.month-title {
-    font-family: 'Arial', sans-serif;
-    font-weight: bold;
-    font-size: 20px;
-    line-height: 28px;
-    color: var(--color-text-primary);
-    margin: 0;
-}
-
-.action-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.today-btn {
-    background: var(--color-surface);
-    border: 0.667px solid var(--color-border);
-    border-radius: 8px;
-    height: 32px;
-    padding: 0 12.667px;
-    font-family: 'Arial', sans-serif;
-    font-size: 14px;
-    line-height: 20px;
-    color: var(--color-text-primary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.today-btn:hover {
-    background: var(--color-surface-alt);
-}
-
-.settings-btn {
-    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
-    border: none;
-    border-radius: 8px;
-    width: 37.333px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease;
-    color: white;
-}
-
-.settings-btn svg {
-    color: inherit;
-}
-
-.settings-btn:hover,
-.settings-btn:focus-visible {
-    transform: translateY(-1px);
-    background: linear-gradient(135deg, var(--gradient-primary-hover-start) 0%, var(--gradient-primary-hover-end) 100%);
-}
-
-.settings-btn:not(.active) {
-    opacity: 0.9;
-}
-
-.settings-btn.active {
-    opacity: 1;
-}
-
-/* Tailwind CSS fallbacks */
-.w-4 {
-    width: 1rem;
-}
-
-.h-4 {
-    height: 1rem;
-}
-
-.add-event-btn {
-    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
-    border: none;
-    border-radius: 8px;
-    height: 32px;
-    padding: 0 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: white;
-    font-family: 'Arial', sans-serif;
-    font-size: 14px;
-    line-height: 20px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.add-event-btn:hover {
-    background: linear-gradient(135deg, var(--gradient-primary-hover-start) 0%, var(--gradient-primary-hover-end) 100%);
-}
-
-.add-event-btn svg {
-    color: white;
-}
-
 /* Week Header */
 .week-header {
     display: flex;
     height: 72px;
     width: 100%;
+    margin-top: 4px;
 }
 
 .day-header {
@@ -492,15 +348,18 @@
         min-height: 600px;
     }
 
-    .calendar-header {
-        height: auto;
-        padding: 12px;
-    }
-
-    .header-controls {
+    .calendar-top-header {
         flex-direction: column;
         gap: 12px;
         height: auto;
+        align-items: flex-start;
+        padding: 12px;
+    }
+
+    .calendar-actions {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 12px;
     }
 
     .week-header {
@@ -521,19 +380,19 @@
 }
 
 @media (max-width: 768px) {
-    .nav-controls {
+    .calendar-nav {
         gap: 8px;
     }
 
-    .month-title {
+    .calendar-title {
         font-size: 18px;
     }
 
-    .action-controls {
+    .calendar-actions {
         gap: 4px;
     }
 
-    .add-event-btn span {
+    .calendar-add-btn span {
         display: none;
     }
 
@@ -554,23 +413,25 @@
 }
 
 @media (max-width: 480px) {
-    .header-controls {
+    .calendar-top-header {
+        flex-direction: column;
+        align-items: flex-start;
         gap: 8px;
     }
 
-    .nav-btn,
-    .settings-btn {
+    .calendar-nav-button,
+    .calendar-settings-btn {
         width: 32px;
         height: 28px;
     }
 
-    .today-btn,
-    .add-event-btn {
+    .calendar-action-button,
+    .calendar-add-btn {
         height: 28px;
         font-size: 12px;
     }
 
-    .month-title {
+    .calendar-title {
         font-size: 16px;
     }
 

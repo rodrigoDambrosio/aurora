@@ -15,6 +15,7 @@ vi.mock('../../services/apiService', () => ({
 
 // Import after mocking
 import AuroraMonthlyCalendar from '../../components/AuroraMonthlyCalendar'
+import { formatMonthTitle } from '../../lib/utils'
 
 describe('AuroraMonthlyCalendar', () => {
   const mockOnEventClick = vi.fn()
@@ -56,9 +57,11 @@ describe('AuroraMonthlyCalendar', () => {
   it('debería renderizar el calendario mensual', async () => {
     render(<AuroraMonthlyCalendar onEventClick={mockOnEventClick} onAddEvent={mockOnAddEvent} />)
 
+    const expectedTitle = formatMonthTitle(new Date('2025-10-10T12:00:00.000Z'))
+
     await waitFor(() => {
       // Verificar que se muestra el mes actual
-      expect(screen.getByText('octubre de 2025')).toBeInTheDocument()
+      expect(screen.getByText(expectedTitle)).toBeInTheDocument()
     })
   })
 
@@ -189,7 +192,7 @@ describe('AuroraMonthlyCalendar', () => {
 
     await waitFor(() => {
       const filterButton = screen.getByLabelText('Filtrar por categoría')
-      expect(filterButton).toHaveClass('active')
+      expect(filterButton).toHaveClass('is-active')
     })
   })
 

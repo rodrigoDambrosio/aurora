@@ -38,6 +38,16 @@ const mockEvent = {
   }
 };
 
+const setupUser = () => userEvent.setup();
+
+vi.mock('../../components/AuroraMonthlyCalendar', () => ({
+  default: () => (
+    <div data-testid="monthly-calendar">
+      Vista Mensual Mock
+    </div>
+  )
+}))
+
 vi.mock('../../components/AuroraWeeklyCalendar', () => ({
   default: ({ onEventClick, onAddEvent }: { onEventClick: (event: typeof mockEvent) => void, onAddEvent: (date: Date) => void }) => (
     <div data-testid="weekly-calendar">
@@ -98,7 +108,7 @@ describe('MainDashboard', () => {
   })
 
   it('switches to different views when navigation is clicked', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     render(<MainDashboard />)
 
     // Click on settings
@@ -110,20 +120,19 @@ describe('MainDashboard', () => {
   })
 
   it('switches to monthly view', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     render(<MainDashboard />)
 
     const monthlyButton = screen.getByText('Monthly')
     await user.click(monthlyButton)
 
-    // Verificar que se muestra el calendario mensual con algún elemento característico
     await waitFor(() => {
-      expect(screen.getByText('octubre de 2025')).toBeInTheDocument()
+      expect(screen.getByTestId('monthly-calendar')).toBeInTheDocument()
     })
   })
 
   it('handles event click from weekly calendar', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
 
     render(<MainDashboard />)
 
@@ -136,7 +145,7 @@ describe('MainDashboard', () => {
   })
 
   it('handles add event from weekly calendar', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
 
     render(<MainDashboard />)
 
@@ -149,7 +158,7 @@ describe('MainDashboard', () => {
   })
 
   it('handles event created from NLP input', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { })
 
     render(<MainDashboard />)
@@ -163,7 +172,7 @@ describe('MainDashboard', () => {
   })
 
   it('allows deleting an event from the detail modal', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<MainDashboard />)
@@ -184,7 +193,7 @@ describe('MainDashboard', () => {
   })
 
   it('shows placeholder for wellness view', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     render(<MainDashboard />)
 
     // We need to add wellness to navigation mock first

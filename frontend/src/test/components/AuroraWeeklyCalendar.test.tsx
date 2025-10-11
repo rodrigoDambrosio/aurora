@@ -15,6 +15,7 @@ vi.mock('../../services/apiService', () => ({
 
 // Import after mocking
 import AuroraWeeklyCalendar from '../../components/AuroraWeeklyCalendar'
+import { formatMonthTitle } from '../../lib/utils'
 
 describe('AuroraWeeklyCalendar', () => {
   beforeEach(() => {
@@ -69,8 +70,10 @@ describe('AuroraWeeklyCalendar', () => {
   it('renders calendar after loading', async () => {
     render(<AuroraWeeklyCalendar />)
 
+    const expectedTitle = formatMonthTitle(new Date('2025-09-30T12:00:00.000Z'))
+
     await waitFor(() => {
-      expect(screen.getByText('septiembre 2025')).toBeInTheDocument()
+      expect(screen.getByText(expectedTitle)).toBeInTheDocument()
     })
   })
 
@@ -230,7 +233,7 @@ describe('AuroraWeeklyCalendar', () => {
 
     await waitFor(() => {
       const filterButton = screen.getByLabelText('Filtrar por categoría')
-      expect(filterButton).toHaveClass('active')
+      expect(filterButton).toHaveClass('is-active')
     })
   })
 
