@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Globalization;
 using Aurora.Application.DTOs;
+using Aurora.Application.DTOs.User;
 using Aurora.Application.Interfaces;
 using Aurora.Infrastructure.DTOs.Gemini;
 using Aurora.Domain.Enums;
@@ -210,7 +211,8 @@ public class GeminiAIValidationService : IAIValidationService
         Guid userId,
         IEnumerable<EventCategoryDto> availableCategories,
         int timezoneOffsetMinutes = 0,
-        IEnumerable<EventDto>? existingEvents = null)
+        IEnumerable<EventDto>? existingEvents = null,
+        UserPreferencesDto? userPreferences = null)
     {
         try
         {
@@ -218,8 +220,8 @@ public class GeminiAIValidationService : IAIValidationService
 
             var categoryList = availableCategories.ToList();
 
-            // Construir el prompt para parsear el texto
-            var prompt = BuildParsingPrompt(naturalLanguageText, categoryList, timezoneOffsetMinutes, existingEvents);
+            // Construir el prompt para parsear el texto (PLAN-131: incluyendo preferencias del usuario)
+            var prompt = BuildParsingPrompt(naturalLanguageText, categoryList, timezoneOffsetMinutes, existingEvents, userPreferences);
 
             // Crear la solicitud a Gemini
             var geminiRequest = new GeminiRequest
@@ -310,7 +312,12 @@ public class GeminiAIValidationService : IAIValidationService
         }
     }
 
-    private string BuildParsingPrompt(string naturalLanguageText, IEnumerable<EventCategoryDto> availableCategories, int timezoneOffsetMinutes, IEnumerable<EventDto>? existingEvents)
+    private string BuildParsingPrompt(
+        string naturalLanguageText,
+        IEnumerable<EventCategoryDto> availableCategories,
+        int timezoneOffsetMinutes,
+        IEnumerable<EventDto>? existingEvents,
+        UserPreferencesDto? userPreferences = null)
     {
         return BuildUnifiedPrompt(
             eventDto: null,
@@ -318,7 +325,8 @@ public class GeminiAIValidationService : IAIValidationService
             timezoneOffsetMinutes: timezoneOffsetMinutes,
             naturalLanguageText: naturalLanguageText,
             availableCategories: availableCategories,
-            includeParsingInstructions: true);
+            includeParsingInstructions: true,
+            userPreferences: userPreferences);
     }
 
     private CreateEventDto ParseEventFromAIResponse(JsonElement aiRoot, IReadOnlyList<EventCategoryDto> availableCategories, int timezoneOffsetMinutes)
@@ -601,7 +609,8 @@ public class GeminiAIValidationService : IAIValidationService
         int timezoneOffsetMinutes,
         string? naturalLanguageText,
         IEnumerable<EventCategoryDto>? availableCategories,
-        bool includeParsingInstructions)
+        bool includeParsingInstructions,
+        UserPreferencesDto? userPreferences = null)
     {
         var sb = new StringBuilder();
 
@@ -679,6 +688,9 @@ public class GeminiAIValidationService : IAIValidationService
             sb.AppendLine();
         }
 
+        // PLAN-131: Preferencias del usuario (días laborales, horarios, etc.)
+        AppendUserPreferences(sb, userPreferences);
+
         // Instrucciones de parsing NLP (solo para modo parsing)
         if (includeParsingInstructions)
         {
@@ -753,6 +765,50 @@ public class GeminiAIValidationService : IAIValidationService
             sb.AppendLine("CONTEXTO DEL CALENDARIO: Sin eventos cercanos");
             sb.AppendLine();
         }
+    }
+
+    /// <summary>
+    /// PLAN-131: Agrega las preferencias del usuario al prompt de IA
+    /// </summary>
+    private void AppendUserPreferences(StringBuilder sb, UserPreferencesDto? userPreferences)
+    {
+        if (userPreferences == null)
+        {
+            return;
+        }
+
+        sb.AppendLine("PREFERENCIAS DEL USUARIO:");
+        sb.AppendLine();
+
+        // Días laborales
+        if (userPreferences.WorkDaysOfWeek != null && userPreferences.WorkDaysOfWeek.Any())
+        {
+            var workDayNames = userPreferences.WorkDaysOfWeek
+                .Select(d => ((DayOfWeek)d).ToString())
+                .ToList();
+            sb.AppendLine($"Días laborales: {string.Join(", ", workDayNames)}");
+        }
+
+        // Horario laboral
+        if (!string.IsNullOrEmpty(userPreferences.WorkStartTime) &&
+            !string.IsNullOrEmpty(userPreferences.WorkEndTime))
+        {
+            sb.AppendLine($"Horario laboral: {userPreferences.WorkStartTime} - {userPreferences.WorkEndTime}");
+        }
+
+        // Recordatorios predeterminados
+        if (userPreferences.DefaultReminderMinutes > 0)
+        {
+            sb.AppendLine($"Recordatorio predeterminado: {userPreferences.DefaultReminderMinutes} minutos antes");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("IMPORTANTE: Respeta estas preferencias al sugerir fechas y horarios:");
+        sb.AppendLine("• Si el usuario pide un evento laboral sin especificar día, sugiere solo días laborales configurados");
+        sb.AppendLine("• Si no especifica horario, sugiere dentro del horario laboral configurado");
+        sb.AppendLine("• Si un evento cae fuera del horario laboral, menciona esta observación en el análisis");
+        sb.AppendLine("• Si sugiere un día no laboral para un evento de trabajo, advierte sobre esto");
+        sb.AppendLine();
     }
 
     private void AppendAnalysisCriteria(StringBuilder sb)
