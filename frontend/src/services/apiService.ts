@@ -128,6 +128,51 @@ export interface AuthResponseDto {
   user: UserSummaryDto;
 }
 
+export interface UserProfileDto {
+  id: string;
+  name: string;
+  email: string;
+  timezone?: string;
+}
+
+export interface UpdateUserProfileDto {
+  name?: string;
+  email?: string;
+  timezone?: string;
+}
+
+export interface UserPreferencesDto {
+  id: string;
+  userId: string;
+  theme: 'light' | 'dark';
+  language: string;
+  defaultReminderMinutes: number;
+  firstDayOfWeek: number;
+  timeFormat: '12h' | '24h';
+  dateFormat: string;
+  workStartTime?: string;
+  workEndTime?: string;
+  workDaysOfWeek?: number[];
+  exerciseDaysOfWeek?: number[];
+  nlpKeywords?: string[];
+  notificationsEnabled: boolean;
+}
+
+export interface UpdateUserPreferencesDto {
+  theme?: 'light' | 'dark';
+  language?: string;
+  defaultReminderMinutes?: number;
+  firstDayOfWeek?: number;
+  timeFormat?: '12h' | '24h';
+  dateFormat?: string;
+  workStartTime?: string;
+  workEndTime?: string;
+  workDaysOfWeek?: number[];
+  exerciseDaysOfWeek?: number[];
+  nlpKeywords?: string[];
+  notificationsEnabled?: boolean;
+}
+
 // Legacy interfaces for backward compatibility
 export interface TestDataItem {
   id: number;
@@ -403,6 +448,44 @@ export const apiService = {
     return this.fetchApi<ParseNaturalLanguageResponseDto>('/events/from-text', {
       method: 'POST',
       body: JSON.stringify(request)
+    });
+  },
+
+  // ===== USER PROFILE ENDPOINTS =====
+
+  /**
+   * Get current user profile
+   */
+  async getUserProfile(): Promise<UserProfileDto> {
+    return this.fetchApi<UserProfileDto>('/user/profile');
+  },
+
+  /**
+   * Update current user profile
+   */
+  async updateUserProfile(payload: UpdateUserProfileDto): Promise<UserProfileDto> {
+    return this.fetchApi<UserProfileDto>('/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  // ===== USER PREFERENCES ENDPOINTS =====
+
+  /**
+   * Get current user preferences
+   */
+  async getUserPreferences(): Promise<UserPreferencesDto> {
+    return this.fetchApi<UserPreferencesDto>('/user/preferences');
+  },
+
+  /**
+   * Update current user preferences
+   */
+  async updateUserPreferences(payload: UpdateUserPreferencesDto): Promise<UserPreferencesDto> {
+    return this.fetchApi<UserPreferencesDto>('/user/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
     });
   }
 };

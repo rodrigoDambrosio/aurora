@@ -30,6 +30,11 @@ public class User : BaseEntity
     /// </summary>
     public DateTime? LastLoginAt { get; set; }
 
+    /// <summary>
+    /// Zona horaria del usuario
+    /// </summary>
+    public string? Timezone { get; set; }
+
     // Navegación
     /// <summary>
     /// Colección de eventos creados por este usuario

@@ -50,6 +50,39 @@ public class UserPreferences : BaseEntity
     /// </summary>
     public string DefaultCalendarView { get; set; } = "week";
 
+    /// <summary>
+    /// Hora de inicio del horario laboral (formato HH:mm)
+    /// </summary>
+    public string? WorkStartTime { get; set; }
+
+    /// <summary>
+    /// Hora de fin del horario laboral (formato HH:mm)
+    /// </summary>
+    public string? WorkEndTime { get; set; }
+
+    /// <summary>
+    /// Días laborales de la semana (0=Domingo, 1=Lunes, etc.)
+    /// Almacenado como JSON
+    /// </summary>
+    public string? WorkDaysOfWeek { get; set; }
+
+    /// <summary>
+    /// Días preferidos para ejercicio (0=Domingo, 1=Lunes, etc.)
+    /// Almacenado como JSON
+    /// </summary>
+    public string? ExerciseDaysOfWeek { get; set; }
+
+    /// <summary>
+    /// Palabras clave personalizadas para NLP
+    /// Almacenado como JSON
+    /// </summary>
+    public string? NlpKeywords { get; set; }
+
+    /// <summary>
+    /// Indica si las notificaciones están habilitadas
+    /// </summary>
+    public bool NotificationsEnabled { get; set; } = true;
+
     // Relaciones
     /// <summary>
     /// ID del usuario propietario de estas preferencias

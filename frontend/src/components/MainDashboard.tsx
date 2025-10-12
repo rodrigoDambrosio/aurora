@@ -7,6 +7,7 @@ import { EventFormModal } from './EventFormModal';
 import { FloatingNLPInput } from './FloatingNLPInput';
 import './MainDashboard.css';
 import Navigation from './Navigation';
+import SettingsScreen from './Settings/SettingsScreen';
 
 const MainDashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('calendar-week');
@@ -126,12 +127,7 @@ const MainDashboard: React.FC = () => {
           </div>
         );
       case 'settings':
-        return (
-          <div className="placeholder-view">
-            <h2>Configuración</h2>
-            <p>Esta vista estará disponible pronto</p>
-          </div>
-        );
+        return <SettingsScreen />;
       default:
         return null;
     }
