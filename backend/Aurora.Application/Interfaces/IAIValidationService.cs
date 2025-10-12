@@ -1,4 +1,5 @@
 using Aurora.Application.DTOs;
+using Aurora.Application.DTOs.User;
 
 namespace Aurora.Application.Interfaces;
 
@@ -27,11 +28,13 @@ public interface IAIValidationService
     /// <param name="availableCategories">Categorías disponibles con sus IDs reales</param>
     /// <param name="timezoneOffsetMinutes">Offset de zona horaria del usuario en minutos desde UTC (ej: -180 para UTC-3)</param>
     /// <param name="existingEvents">Eventos existentes del usuario para contexto (opcional)</param>
+    /// <param name="userPreferences">Preferencias del usuario (días laborales, horarios, duración predeterminada) para recomendaciones personalizadas (opcional)</param>
     /// <returns>Evento parseado y análisis de validación</returns>
     Task<ParseNaturalLanguageResponseDto> ParseNaturalLanguageAsync(
         string naturalLanguageText,
         Guid userId,
         IEnumerable<EventCategoryDto> availableCategories,
         int timezoneOffsetMinutes = 0,
-        IEnumerable<EventDto>? existingEvents = null);
+        IEnumerable<EventDto>? existingEvents = null,
+        UserPreferencesDto? userPreferences = null);
 }

@@ -20,17 +20,20 @@ public class EventsController : ControllerBase
     private readonly IEventService _eventService;
     private readonly IAIValidationService _aiValidationService;
     private readonly IEventCategoryRepository _eventCategoryRepository;
+    private readonly IUserService _userService;
     private readonly ILogger<EventsController> _logger;
 
     public EventsController(
         IEventService eventService,
         IAIValidationService aiValidationService,
         IEventCategoryRepository eventCategoryRepository,
+        IUserService userService,
         ILogger<EventsController> logger)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
         _aiValidationService = aiValidationService ?? throw new ArgumentNullException(nameof(aiValidationService));
         _eventCategoryRepository = eventCategoryRepository ?? throw new ArgumentNullException(nameof(eventCategoryRepository));
+        _userService = userService ?? throw new ArgumentNullException(nameof(userService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -400,7 +403,8 @@ public class EventsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ParseNaturalLanguageResponseDto>> ParseFromText(
-        [FromBody] ParseNaturalLanguageRequestDto request)
+        [FromBody] ParseNaturalLanguageRequestDto request,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -434,13 +438,22 @@ public class EventsController : ControllerBase
             var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, contextStartDate, contextEndDate);
             _logger.LogInformation("Contexto: {EventCount} eventos existentes", existingEvents.Count());
 
+            // Obtener preferencias del usuario para recomendaciones personalizadas (PLAN-131)
+            var userPreferences = await _userService.GetPreferencesAsync(userId, cancellationToken);
+            _logger.LogInformation("Preferencias cargadas: WorkDays={WorkDays}, WorkHours={WorkStart}-{WorkEnd}, Reminders={Reminder}min",
+                userPreferences.WorkDaysOfWeek?.Count ?? 0,
+                userPreferences.WorkStartTime,
+                userPreferences.WorkEndTime,
+                userPreferences.DefaultReminderMinutes);
+
             // Parsear el texto con IA (incluyendo análisis)
             var parseResult = await _aiValidationService.ParseNaturalLanguageAsync(
                 request.Text,
                 userId,
                 categoryDtos,
                 request.TimezoneOffsetMinutes,
-                existingEvents);
+                existingEvents,
+                userPreferences);  // ← PLAN-131: Pasar preferencias a la IA
 
             _logger.LogInformation("Evento parseado: {Title} - {StartDate}", parseResult.Event.Title, parseResult.Event.StartDate);
 
