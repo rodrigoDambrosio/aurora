@@ -293,6 +293,9 @@
 .navigation-footer {
     padding: 16px;
     border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .dark-mode-toggle {
@@ -327,6 +330,46 @@
     color: var(--color-text-primary);
 }
 
+.logout-button {
+    background: transparent;
+    border: 0.667px solid var(--color-border);
+    border-radius: 8px;
+    height: 32px;
+    padding: 0 10.67px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--color-text-muted);
+}
+
+.logout-button:hover {
+    background: var(--color-surface-alt);
+    color: var(--color-text-primary);
+    border-color: var(--color-text-muted);
+}
+
+.logout-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.logout-button svg {
+    width: 16px;
+    height: 16px;
+    color: inherit;
+}
+
+.logout-button span {
+    font-family: 'Arial', sans-serif;
+    font-weight: normal;
+    font-size: 14px;
+    line-height: 20px;
+    color: inherit;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .navigation {
@@ -354,7 +397,14 @@
         display: none;
     }
 
-    .dark-mode-toggle span {
+    .dark-mode-toggle span,
+    .logout-button span {
         display: none;
+    }
+    
+    .dark-mode-toggle,
+    .logout-button {
+        justify-content: center;
+        padding: 8px;
     }
 }

@@ -1,4 +1,4 @@
-import { Calendar, Heart, MessageCircle, Moon, Settings, Sparkles, Sun } from 'lucide-react';
+import { Calendar, Heart, LogOut, MessageCircle, Moon, Settings, Sparkles, Sun } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { apiService } from '../services/apiService';
@@ -50,6 +50,7 @@ const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const [isTogglingTheme, setIsTogglingTheme] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleViewClick = (view: string) => {
     if (onViewChange) {
@@ -79,6 +80,34 @@ const Navigation: React.FC<NavigationProps> = ({
       }
     } finally {
       setIsTogglingTheme(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!window.confirm('¿Cerrar sesión?')) {
+      return;
+    }
+
+    try {
+      setIsLoggingOut(true);
+      
+      // Call backend to revoke session
+      await apiService.logoutUser();
+      
+      // Clear local storage
+      localStorage.removeItem('auroraAccessToken');
+      localStorage.removeItem('auroraAccessTokenExpiry');
+      
+      // Reload to trigger login screen
+      window.location.reload();
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Even if backend call fails, clear local storage and reload
+      localStorage.removeItem('auroraAccessToken');
+      localStorage.removeItem('auroraAccessTokenExpiry');
+      window.location.reload();
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -130,6 +159,15 @@ const Navigation: React.FC<NavigationProps> = ({
             <Moon size={16} aria-hidden="true" />
           )}
           <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}</span>
+        </button>
+        
+        <button
+          className="logout-button"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+        >
+          <LogOut size={16} aria-hidden="true" />
+          <span>Cerrar Sesión</span>
         </button>
       </div>
     </div>

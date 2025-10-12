@@ -202,13 +202,6 @@ const SettingsScreen: React.FC = () => {
     }));
   };
 
-  const handleLogout = () => {
-    if (window.confirm('¿Cerrar sesión?')) {
-      localStorage.removeItem('auroraAccessToken');
-      window.location.reload();
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="settings-screen">
@@ -238,13 +231,6 @@ const SettingsScreen: React.FC = () => {
             >
               <Save size={16} />
               <span>Guardar</span>
-            </Button>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="logout-button"
-            >
-              Cerrar Sesión
             </Button>
           </div>
         </div>
