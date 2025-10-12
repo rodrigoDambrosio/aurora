@@ -13,11 +13,40 @@ import { apiService } from './services/apiService';
  */
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { setTheme } = useTheme();
 
   // Toggle between dashboard view and API test (for development)
   const showApiTest = import.meta.env.DEV && new URLSearchParams(window.location.search).has('test');
   const shouldShowAuthScreen = useMemo(() => !isAuthenticated && !showApiTest, [isAuthenticated, showApiTest]);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkExistingSession = () => {
+      const token = window.localStorage.getItem('auroraAccessToken');
+      const expiryStr = window.localStorage.getItem('auroraAccessTokenExpiry');
+
+      if (token && expiryStr) {
+        const expiry = new Date(expiryStr);
+        const now = new Date();
+
+        if (expiry > now) {
+          // Token exists and is still valid
+          console.log('Restored session from localStorage');
+          setIsAuthenticated(true);
+        } else {
+          // Token expired, clear it
+          console.log('Token expired, clearing session');
+          window.localStorage.removeItem('auroraAccessToken');
+          window.localStorage.removeItem('auroraAccessTokenExpiry');
+          window.localStorage.removeItem('auroraUser');
+        }
+      }
+      setIsCheckingAuth(false);
+    };
+
+    checkExistingSession();
+  }, []);
 
   // Load user preferences (including theme) after authentication
   useEffect(() => {
@@ -44,7 +73,12 @@ function App() {
 
   return (
     <div className="App">
-      {showApiTest ? (
+      {isCheckingAuth ? (
+        // Show loading state while checking for existing session
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+        </div>
+      ) : showApiTest ? (
         <div className="api-test-container">
           <header className="test-header">
             <h1>🧪 Aurora API Test</h1>
