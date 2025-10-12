@@ -1,6 +1,8 @@
 using Aurora.Api.Controllers;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
+using Aurora.Domain.Entities;
+using Aurora.Domain.Enums;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -165,20 +167,6 @@ public class EventsControllerTests
             EventCategoryId = createEventDto.EventCategoryId
         };
 
-        // Mock GetEventsByDateRangeAsync to return empty list (no existing events)
-        _eventServiceMock
-            .Setup(x => x.GetEventsByDateRangeAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
-            .ReturnsAsync(new List<EventDto>());
-
-        // Mock AI validation to approve
-        _aiValidationServiceMock
-            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), It.IsAny<IEnumerable<EventDto>>()))
-            .ReturnsAsync(new AIValidationResult
-            {
-                IsApproved = true,
-                Severity = AIValidationSeverity.Info
-            });
-
         _eventServiceMock
             .Setup(x => x.CreateEventAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), createEventDto))
             .ReturnsAsync(createdEventDto);
@@ -191,10 +179,17 @@ public class EventsControllerTests
         var createdResult = result.Result as CreatedAtActionResult;
         createdResult!.Value.Should().BeEquivalentTo(createdEventDto);
         createdResult.StatusCode.Should().Be(201);
+
+        _aiValidationServiceMock.Verify(
+            x => x.ValidateEventCreationAsync(
+                It.IsAny<CreateEventDto>(),
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<EventDto>>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task CreateEvent_WhenAIRejectsEvent_ShouldStillCreateEvent()
+    public async Task CreateEvent_ShouldNotCallAIValidationService()
     {
         // Arrange
         var createEventDto = new CreateEventDto
@@ -204,34 +199,6 @@ public class EventsControllerTests
             EndDate = DateTime.Now.Date.AddHours(6),
             EventCategoryId = Guid.NewGuid()
         };
-
-        // Mock existing events (user already has events that day)
-        var existingEvents = new List<EventDto>
-        {
-            new EventDto
-            {
-                Id = Guid.NewGuid(),
-                Title = "Work Meeting",
-                StartDate = DateTime.Now.Date.AddHours(9),
-                EndDate = DateTime.Now.Date.AddHours(17),
-                EventCategoryId = Guid.NewGuid()
-            }
-        };
-
-        _eventServiceMock
-            .Setup(x => x.GetEventsByDateRangeAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
-            .ReturnsAsync(existingEvents);
-
-        // Mock AI validation to reject
-        _aiValidationServiceMock
-            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), It.IsAny<IEnumerable<EventDto>>()))
-            .ReturnsAsync(new AIValidationResult
-            {
-                IsApproved = false,
-                RecommendationMessage = "No es recomendable programar este evento a las 2 AM despues de un dia de trabajo",
-                Severity = AIValidationSeverity.Warning,
-                Suggestions = new List<string> { "Considera programarlo en horario diurno", "Asegurate de descansar adecuadamente" }
-            });
 
         var createdEvent = new EventDto
         {
@@ -254,8 +221,12 @@ public class EventsControllerTests
         var createdResult = result.Result as CreatedAtActionResult;
         createdResult!.Value.Should().BeEquivalentTo(createdEvent);
 
-        // Verify that event service WAS called even with AI warning
-        _eventServiceMock.Verify(x => x.CreateEventAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<CreateEventDto>()), Times.Once);
+        _aiValidationServiceMock.Verify(
+            x => x.ValidateEventCreationAsync(
+                It.IsAny<CreateEventDto>(),
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<EventDto>>()),
+            Times.Never);
     }
 
     [Fact]
@@ -271,19 +242,6 @@ public class EventsControllerTests
         };
 
         _eventServiceMock
-            .Setup(x => x.GetEventsByDateRangeAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
-            .ReturnsAsync(new List<EventDto>());
-
-        // Mock AI validation to approve
-        _aiValidationServiceMock
-            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), It.IsAny<IEnumerable<EventDto>>()))
-            .ReturnsAsync(new AIValidationResult
-            {
-                IsApproved = true,
-                Severity = AIValidationSeverity.Info
-            });
-
-        _eventServiceMock
             .Setup(x => x.CreateEventAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), createEventDto))
             .ThrowsAsync(new ArgumentException("Invalid category"));
 
@@ -292,6 +250,320 @@ public class EventsControllerTests
 
         // Assert
         result.Result.Should().BeOfType<BadRequestObjectResult>();
+
+        _aiValidationServiceMock.Verify(
+            x => x.ValidateEventCreationAsync(
+                It.IsAny<CreateEventDto>(),
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<EventDto>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ValidateEvent_WithValidData_ShouldReturnOkResult()
+    {
+        // Arrange
+        var createEventDto = new CreateEventDto
+        {
+            Title = "Evento para validar",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddHours(1),
+            EventCategoryId = Guid.NewGuid()
+        };
+
+        var existingEvents = new List<EventDto>
+        {
+            new EventDto
+            {
+                Id = Guid.NewGuid(),
+                Title = "Otro evento",
+                StartDate = createEventDto.StartDate.AddHours(-2),
+                EndDate = createEventDto.StartDate.AddHours(-1),
+                EventCategoryId = Guid.NewGuid()
+            }
+        };
+
+        var validationResult = new AIValidationResult
+        {
+            IsApproved = true,
+            Severity = AIValidationSeverity.Info,
+            RecommendationMessage = "Todo en orden",
+            UsedAi = true
+        };
+
+        _eventServiceMock
+            .Setup(x => x.GetEventsByDateRangeAsync(
+                It.Is<Guid?>(userId => BeCurrentUser(userId)),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>()))
+            .ReturnsAsync(existingEvents);
+
+        _aiValidationServiceMock
+            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), existingEvents))
+            .ReturnsAsync(validationResult);
+
+        // Act
+        var result = await _controller.ValidateEvent(createEventDto);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Result as OkObjectResult;
+        okResult!.Value.Should().BeEquivalentTo(validationResult);
+
+        _eventServiceMock.Verify(
+            x => x.GetEventsByDateRangeAsync(
+                It.Is<Guid?>(userId => BeCurrentUser(userId)),
+                createEventDto.StartDate.AddDays(-1),
+                createEventDto.StartDate.AddDays(7)),
+            Times.Once);
+
+        _aiValidationServiceMock.Verify(
+            x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), existingEvents),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateEvent_WhenAiThrows_ShouldReturnFallbackValidation()
+    {
+        // Arrange
+        var createEventDto = new CreateEventDto
+        {
+            Title = "Evento posible solapado",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddHours(2),
+            EventCategoryId = Guid.NewGuid()
+        };
+
+        var existingEvents = new List<EventDto>
+        {
+            new EventDto
+            {
+                Id = Guid.NewGuid(),
+                Title = "Evento existente",
+                StartDate = createEventDto.StartDate.AddMinutes(-30),
+                EndDate = createEventDto.EndDate.AddMinutes(30),
+                EventCategoryId = Guid.NewGuid()
+            }
+        };
+
+        _eventServiceMock
+            .Setup(x => x.GetEventsByDateRangeAsync(
+                It.Is<Guid?>(userId => BeCurrentUser(userId)),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>()))
+            .ReturnsAsync(existingEvents);
+
+        _aiValidationServiceMock
+            .Setup(x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), existingEvents))
+            .ThrowsAsync(new InvalidOperationException("AI service unavailable"));
+
+        // Act
+        var result = await _controller.ValidateEvent(createEventDto);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Result as OkObjectResult;
+        var fallback = okResult!.Value as AIValidationResult;
+
+        fallback.Should().NotBeNull();
+        fallback!.UsedAi.Should().BeFalse();
+        fallback.Severity.Should().Be(AIValidationSeverity.Critical);
+        fallback.IsApproved.Should().BeFalse();
+        fallback.RecommendationMessage.Should().Contain("CONFLICTO");
+        fallback.Suggestions.Should().NotBeNull();
+        fallback.Suggestions.Should().NotBeEmpty();
+
+        _aiValidationServiceMock.Verify(
+            x => x.ValidateEventCreationAsync(createEventDto, It.Is<Guid>(userId => BeCurrentUser(userId)), existingEvents),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ParseFromText_WhenAiReturnsAnalysis_ShouldReturnOkWithAiDetails()
+    {
+        // Arrange
+        var categoryId = Guid.NewGuid();
+        var parseRequest = new ParseNaturalLanguageRequestDto
+        {
+            Text = "Reunión mañana a las 10",
+            TimezoneOffsetMinutes = -180
+        };
+
+        var availableCategories = new List<EventCategory>
+        {
+            new()
+            {
+                Id = categoryId,
+                Name = "Trabajo",
+                Color = "#3366FF",
+                IsSystemDefault = true,
+                SortOrder = 1
+            }
+        };
+
+        _categoryRepositoryMock
+            .Setup(repo => repo.GetAvailableCategoriesForUserAsync(It.Is<Guid>(userId => BeCurrentUser(userId))))
+            .ReturnsAsync(availableCategories);
+
+        _eventServiceMock
+            .Setup(service => service.GetEventsByDateRangeAsync(
+                It.Is<Guid?>(userId => BeCurrentUser(userId)),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>()))
+            .ReturnsAsync(new List<EventDto>());
+
+        var aiEvent = new CreateEventDto
+        {
+            Title = "Reunión con equipo",
+            Description = "Planificación semanal",
+            StartDate = DateTime.UtcNow.AddHours(4),
+            EndDate = DateTime.UtcNow.AddHours(5),
+            EventCategoryId = categoryId,
+            Priority = EventPriority.Medium,
+            TimezoneOffsetMinutes = -180
+        };
+
+        var aiValidation = new AIValidationResult
+        {
+            IsApproved = true,
+            Severity = AIValidationSeverity.Info,
+            RecommendationMessage = "Agenda libre, continúa",
+            Suggestions = new List<string> { "Prepara la agenda" },
+            UsedAi = true
+        };
+
+        _aiValidationServiceMock
+            .Setup(service => service.ParseNaturalLanguageAsync(
+                parseRequest.Text,
+                It.Is<Guid>(userId => BeCurrentUser(userId)),
+                It.IsAny<IEnumerable<EventCategoryDto>>(),
+                parseRequest.TimezoneOffsetMinutes,
+                It.IsAny<IEnumerable<EventDto>>()))
+            .ReturnsAsync(new ParseNaturalLanguageResponseDto
+            {
+                Success = true,
+                Event = aiEvent,
+                Validation = aiValidation
+            });
+
+        // Act
+        var response = await _controller.ParseFromText(parseRequest);
+
+        // Assert
+        response.Result.Should().BeOfType<OkObjectResult>();
+        var ok = response.Result as OkObjectResult;
+        ok!.Value.Should().BeOfType<ParseNaturalLanguageResponseDto>();
+        var payload = ok.Value as ParseNaturalLanguageResponseDto;
+
+        payload!.Success.Should().BeTrue();
+        payload.Event.Should().BeEquivalentTo(aiEvent);
+        payload.Validation.Should().BeEquivalentTo(aiValidation);
+
+        _aiValidationServiceMock.Verify(
+            service => service.ValidateEventCreationAsync(
+                It.IsAny<CreateEventDto>(),
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<EventDto>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ParseFromText_WhenAiOmitsAnalysis_ShouldFallbackToBasicValidation()
+    {
+        // Arrange
+        var categoryId = Guid.NewGuid();
+        var parseRequest = new ParseNaturalLanguageRequestDto
+        {
+            Text = "Evento sin análisis",
+            TimezoneOffsetMinutes = 0
+        };
+
+        var availableCategories = new List<EventCategory>
+        {
+            new()
+            {
+                Id = categoryId,
+                Name = "Personal",
+                Color = "#FF7766",
+                IsSystemDefault = true,
+                SortOrder = 1
+            }
+        };
+
+        _categoryRepositoryMock
+            .Setup(repo => repo.GetAvailableCategoriesForUserAsync(It.Is<Guid>(userId => BeCurrentUser(userId))))
+            .ReturnsAsync(availableCategories);
+
+        var parsedEventStart = DateTime.UtcNow.AddHours(1);
+        var parsedEventEnd = parsedEventStart.AddHours(2);
+
+        var overlappingEvent = new EventDto
+        {
+            Id = Guid.NewGuid(),
+            Title = "Evento existente",
+            StartDate = parsedEventStart.AddMinutes(-30),
+            EndDate = parsedEventEnd.AddMinutes(30),
+            EventCategoryId = categoryId,
+            EventCategory = new EventCategoryDto
+            {
+                Id = categoryId,
+                Name = "Personal",
+                Color = "#FF7766",
+                SortOrder = 1,
+                IsSystemDefault = true
+            }
+        };
+
+        _eventServiceMock
+            .Setup(service => service.GetEventsByDateRangeAsync(
+                It.Is<Guid?>(userId => BeCurrentUser(userId)),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>()))
+            .ReturnsAsync(new List<EventDto> { overlappingEvent });
+
+        var aiEvent = new CreateEventDto
+        {
+            Title = "Nuevo evento",
+            StartDate = parsedEventStart,
+            EndDate = parsedEventEnd,
+            EventCategoryId = categoryId,
+            Priority = EventPriority.Medium
+        };
+
+        _aiValidationServiceMock
+            .Setup(service => service.ParseNaturalLanguageAsync(
+                parseRequest.Text,
+                It.Is<Guid>(userId => BeCurrentUser(userId)),
+                It.IsAny<IEnumerable<EventCategoryDto>>(),
+                parseRequest.TimezoneOffsetMinutes,
+                It.IsAny<IEnumerable<EventDto>>()))
+            .ReturnsAsync(new ParseNaturalLanguageResponseDto
+            {
+                Success = true,
+                Event = aiEvent,
+                Validation = null
+            });
+
+        // Act
+        var response = await _controller.ParseFromText(parseRequest);
+
+        // Assert
+        response.Result.Should().BeOfType<OkObjectResult>();
+        var ok = response.Result as OkObjectResult;
+        var payload = ok!.Value as ParseNaturalLanguageResponseDto;
+
+        payload!.Validation.Should().NotBeNull();
+        payload.Validation!.UsedAi.Should().BeFalse();
+        payload.Validation.Severity.Should().Be(AIValidationSeverity.Critical);
+        payload.Validation.IsApproved.Should().BeFalse();
+        payload.Validation.RecommendationMessage.Should().Contain("CONFLICTO");
+
+        _aiValidationServiceMock.Verify(
+            service => service.ValidateEventCreationAsync(
+                It.IsAny<CreateEventDto>(),
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<EventDto>>()),
+            Times.Never);
     }
 
     [Fact]

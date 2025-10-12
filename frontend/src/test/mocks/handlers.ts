@@ -120,6 +120,43 @@ export const handlers = [
     return HttpResponse.json(createdEvent, { status: 201 })
   }),
 
+  // Manual AI validation endpoint
+  http.post('/api/events/validate', async ({ request }) => {
+    const payload = await request.json() as CreateEventDto
+    const startHour = new Date(payload.startDate).getUTCHours()
+
+    if (Number.isNaN(startHour)) {
+      return HttpResponse.json(
+        {
+          isApproved: false,
+          recommendationMessage: 'Horario inválido para el análisis',
+          severity: 'Warning',
+          suggestions: ['Revisa la fecha y hora proporcionadas'],
+          usedAi: false
+        },
+        { status: 200 }
+      )
+    }
+
+    if (startHour < 6) {
+      return HttpResponse.json({
+        isApproved: false,
+        recommendationMessage: 'La IA recomienda evitar eventos antes de las 6 AM.',
+        severity: 'Warning',
+        suggestions: ['Considera reprogramar a un horario diurno'],
+        usedAi: true
+      })
+    }
+
+    return HttpResponse.json({
+      isApproved: true,
+      recommendationMessage: 'La IA no encontró conflictos con este evento.',
+      severity: 'Info',
+      suggestions: [],
+      usedAi: true
+    })
+  }),
+
   // Update event
   http.put('/api/events/:id', async ({ params, request }) => {
     const eventId = params.id as string

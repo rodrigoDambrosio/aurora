@@ -1,22 +1,22 @@
 namespace Aurora.Application.DTOs;
 
 /// <summary>
-/// Resultado de la validación de IA para la creación de eventos
+/// Resultado de la validaciï¿½n de IA para la creaciï¿½n de eventos
 /// </summary>
 public class AIValidationResult
 {
     /// <summary>
-    /// Indica si el evento está aprobado para ser creado
+    /// Indica si el evento estï¿½ aprobado para ser creado
     /// </summary>
     public bool IsApproved { get; set; }
 
     /// <summary>
-    /// Mensaje de recomendación de la IA (solo si no está aprobado)
+    /// Mensaje de recomendaciï¿½n de la IA (solo si no estï¿½ aprobado)
     /// </summary>
     public string? RecommendationMessage { get; set; }
 
     /// <summary>
-    /// Severidad de la recomendación
+    /// Severidad de la recomendaciï¿½n
     /// </summary>
     public AIValidationSeverity Severity { get; set; }
 
@@ -24,25 +24,30 @@ public class AIValidationResult
     /// Sugerencias adicionales de la IA
     /// </summary>
     public List<string>? Suggestions { get; set; }
+
+    /// <summary>
+    /// Indica si el resultado fue generado por IA o por una validaciÃ³n bÃ¡sica de respaldo
+    /// </summary>
+    public bool UsedAi { get; set; } = true;
 }
 
 /// <summary>
-/// Severidad de la validación de IA
+/// Severidad de la validaciï¿½n de IA
 /// </summary>
 public enum AIValidationSeverity
 {
     /// <summary>
-    /// Información general
+    /// Informaciï¿½n general
     /// </summary>
     Info = 0,
 
     /// <summary>
-    /// Advertencia - el evento puede crearse pero con precaución
+    /// Advertencia - el evento puede crearse pero con precauciï¿½n
     /// </summary>
     Warning = 1,
 
     /// <summary>
-    /// Crítico - se recomienda fuertemente no crear el evento
+    /// Crï¿½tico - se recomienda fuertemente no crear el evento
     /// </summary>
     Critical = 2
 }

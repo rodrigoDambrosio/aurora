@@ -96,6 +96,32 @@ describe('ApiService', () => {
     })
   })
 
+  describe('validateEvent', () => {
+    it('should return AI validation feedback', async () => {
+      const eventData = {
+        title: 'Evento Temprano',
+        startDate: '2025-09-30T04:00:00.000Z',
+        endDate: '2025-09-30T05:00:00.000Z',
+        isAllDay: false,
+        eventCategoryId: '1',
+        priority: 2,
+        timezoneOffsetMinutes: 0
+      }
+
+      const result = await apiService.validateEvent(eventData)
+
+      expect(result).toEqual({
+        isApproved: false,
+        recommendationMessage: expect.stringContaining('evitar eventos antes'),
+        severity: 'Warning',
+        suggestions: expect.arrayContaining([
+          'Considera reprogramar a un horario diurno'
+        ]),
+        usedAi: true
+      })
+    })
+  })
+
   describe('getEvent', () => {
     it('should return a single event', async () => {
       const result = await apiService.getEvent('1')

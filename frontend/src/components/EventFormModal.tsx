@@ -1,6 +1,6 @@
-import { Calendar, Clock, FileText, MapPin, Star, X } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, FileText, MapPin, Sparkles, Star, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { CreateEventDto, EventCategoryDto, EventDto, EventPriority } from '../services/apiService';
+import type { AIValidationResult, CreateEventDto, EventCategoryDto, EventDto, EventPriority } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './EventFormModal.css';
 
@@ -26,6 +26,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [categories, setCategories] = useState<EventCategoryDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<AIValidationResult | null>(null);
+  const [validationError, setValidationError] = useState<string>('');
 
   // Form state
   const [title, setTitle] = useState('');
@@ -197,47 +200,78 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setError('');
       setCategoryId('');
       setPriority(2);
+      setValidationResult(null);
+      setValidationError('');
+      setIsValidating(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setValidationResult(null);
+    setValidationError('');
+  }, [
+    title,
+    description,
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    location,
+    isAllDay,
+    categoryId,
+    priority,
+    isOpen
+  ]);
+
+  const buildEventPayload = (): CreateEventDto => {
+    if (!title.trim()) {
+      throw new Error('El título es obligatorio');
+    }
+
+    if (!startDate || !endDate) {
+      throw new Error('Debes seleccionar fecha de inicio y fin.');
+    }
+
+    let startDateTime: string;
+    let endDateTime: string;
+
+    if (isAllDay) {
+      startDateTime = toUtcDayBoundary(startDate, false);
+      endDateTime = toUtcDayBoundary(endDate, true);
+    } else {
+      startDateTime = combineLocalDateTimeToUtc(startDate, `${startTime}:00`);
+      endDateTime = combineLocalDateTimeToUtc(endDate, `${endTime}:00`);
+    }
+
+    if (!startDateTime || !endDateTime) {
+      throw new Error('No se pudo interpretar la fecha u hora seleccionada.');
+    }
+
+    return {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      startDate: startDateTime,
+      endDate: endDateTime,
+      location: location.trim() || undefined,
+      eventCategoryId: categoryId,
+      isAllDay,
+      priority,
+      timezoneOffsetMinutes: -new Date().getTimezoneOffset()
+    };
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setValidationError('');
     setIsLoading(true);
 
     try {
-      // Validate
-      if (!title.trim()) {
-        throw new Error('El título es obligatorio');
-      }
-
-      // Build DateTime strings
-      let startDateTime: string;
-      let endDateTime: string;
-
-      if (isAllDay) {
-        startDateTime = toUtcDayBoundary(startDate, false);
-        endDateTime = toUtcDayBoundary(endDate, true);
-      } else {
-        startDateTime = combineLocalDateTimeToUtc(startDate, `${startTime}:00`);
-        endDateTime = combineLocalDateTimeToUtc(endDate, `${endTime}:00`);
-      }
-
-      if (!startDateTime || !endDateTime) {
-        throw new Error('No se pudo interpretar la fecha u hora seleccionada.');
-      }
-
-      const eventDto: CreateEventDto = {
-        title: title.trim(),
-        description: description.trim() || undefined,
-        startDate: startDateTime,
-        endDate: endDateTime,
-        location: location.trim() || undefined,
-        eventCategoryId: categoryId,
-        isAllDay,
-        priority,
-        timezoneOffsetMinutes: -new Date().getTimezoneOffset()
-      };
+      const eventDto = buildEventPayload();
 
       console.log('Creating event:', eventDto);
 
@@ -264,6 +298,23 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
     }
   };
 
+  const handleManualValidation = async () => {
+    setValidationError('');
+    setIsValidating(true);
+
+    try {
+      const eventDto = buildEventPayload();
+      const result = await apiService.validateEvent(eventDto);
+      setValidationResult(result);
+    } catch (err) {
+      const error = err as { message?: string };
+      setValidationResult(null);
+      setValidationError(error?.message ?? 'No se pudo completar el análisis de IA.');
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   const handleCancel = () => {
     onClose();
   };
@@ -279,6 +330,57 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
   const getSelectedCategory = () => {
     return categories.find(c => c.id === categoryId);
+  };
+
+  const normalizeSeverity = (severity: AIValidationResult['severity']) => {
+    if (typeof severity === 'string') {
+      return severity.toLowerCase();
+    }
+
+    switch (severity) {
+      case 1:
+        return 'warning';
+      case 2:
+        return 'critical';
+      default:
+        return 'info';
+    }
+  };
+
+  const renderValidationResult = () => {
+    if (!validationResult) {
+      return null;
+    }
+
+    const usedAi = validationResult.usedAi ?? true;
+
+    return (
+      <div className={`event-validation-result event-validation-result-${normalizeSeverity(validationResult.severity)}`}>
+        <div className="event-validation-header">
+          {usedAi ? (
+            <Sparkles size={18} aria-hidden="true" />
+          ) : (
+            <AlertTriangle size={18} aria-hidden="true" className="event-validation-fallback-icon" />
+          )}
+          <strong>{usedAi ? 'Análisis de IA' : 'Validación básica'}</strong>
+        </div>
+        {!usedAi && (
+          <p className="event-validation-fallback-note">
+            Este feedback se generó con reglas locales porque la IA no estuvo disponible.
+          </p>
+        )}
+        <p className="event-validation-message">
+          {validationResult.recommendationMessage ?? 'La IA no tiene observaciones para este evento.'}
+        </p>
+        {validationResult.suggestions?.length ? (
+          <ul className="event-validation-suggestions">
+            {validationResult.suggestions.map((suggestion) => (
+              <li key={suggestion}>{suggestion}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    );
   };
 
   if (!isOpen) return null;
@@ -546,6 +648,14 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
           </div>
 
+          {validationError && (
+            <div className="event-validation-error" role="alert">
+              {validationError}
+            </div>
+          )}
+
+          {renderValidationResult()}
+
           {/* Actions */}
           <div className="event-form-actions">
             <button
@@ -555,6 +665,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               disabled={isLoading}
             >
               Cancelar
+            </button>
+            <button
+              type="button"
+              className="event-form-button event-form-button-analyze"
+              onClick={handleManualValidation}
+              disabled={isLoading || isValidating || !title.trim()}
+            >
+              {isValidating ? 'Analizando...' : (
+                <span className="event-form-button-analyze-content">
+                  <Sparkles size={16} aria-hidden="true" />
+                  <span>Analizar con IA</span>
+                </span>
+              )}
             </button>
             <button
               type="submit"

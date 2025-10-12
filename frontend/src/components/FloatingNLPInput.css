@@ -478,6 +478,29 @@
     gap: 8px;
 }
 
+/* Category Selector */
+.nlp-category-selector {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.nlp-category-color-indicator {
+    position: absolute;
+    left: 8px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    border: 2px solid var(--color-surface);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nlp-category-select {
+    padding-left: 32px;
+}
+
 /* Button Variants */
 .nlp-edit-toggle-button {
     padding: 8px 16px;
