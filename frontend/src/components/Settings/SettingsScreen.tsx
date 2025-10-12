@@ -133,6 +133,9 @@ const SettingsScreen: React.FC = () => {
       setError('');
       setSuccessMessage('');
 
+      // Guardar el tema actual antes de la actualización
+      const currentTheme = preferences.theme;
+
       const payload: UpdateUserPreferencesDto = {
         theme: preferences.theme,
         language: preferences.language,
@@ -151,8 +154,8 @@ const SettingsScreen: React.FC = () => {
       const updatedPreferences = await apiService.updateUserPreferences(payload);
       setPreferences(updatedPreferences);
 
-      // Apply theme change
-      if (updatedPreferences.theme) {
+      // Solo aplicar el tema si realmente cambió
+      if (updatedPreferences.theme && updatedPreferences.theme !== currentTheme) {
         setTheme(updatedPreferences.theme);
       }
 
