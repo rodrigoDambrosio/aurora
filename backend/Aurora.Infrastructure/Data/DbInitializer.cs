@@ -25,6 +25,12 @@ public static class DbInitializer
         // Asegurar que la columna Priority exista incluso si la base ya se creó antes del cambio
         await EnsurePriorityColumnAsync(context);
 
+        // Asegurar que la columna Timezone exista en la tabla Users
+        await EnsureTimezoneColumnAsync(context);
+
+        // Asegurar que las columnas nuevas de UserPreferences existan
+        await EnsureUserPreferencesColumnsAsync(context);
+
         // Asegurar que la tabla UserSessions exista (por compatibilidad con bases creadas antes de introducirla)
         await EnsureUserSessionsTableAsync(context);
 
@@ -276,6 +282,119 @@ CREATE TABLE UserSessions (
                 using var alterCommand = connection.CreateCommand();
                 alterCommand.CommandText = "ALTER TABLE Events ADD COLUMN Priority INTEGER NOT NULL DEFAULT 2;";
                 await alterCommand.ExecuteNonQueryAsync();
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Garantiza que la columna Timezone exista en la tabla Users incluso para bases creadas antes del cambio.
+    /// </summary>
+    private static async Task EnsureTimezoneColumnAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var pragmaCommand = connection.CreateCommand();
+            pragmaCommand.CommandText = "PRAGMA table_info('Users');";
+
+            var hasTimezoneColumn = false;
+
+            await using (var reader = await pragmaCommand.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    var columnName = reader["name"]?.ToString();
+                    if (string.Equals(columnName, "Timezone", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasTimezoneColumn = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasTimezoneColumn)
+            {
+                using var alterCommand = connection.CreateCommand();
+                alterCommand.CommandText = "ALTER TABLE Users ADD COLUMN Timezone TEXT;";
+                await alterCommand.ExecuteNonQueryAsync();
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Garantiza que las columnas nuevas de UserPreferences existan incluso para bases creadas antes del cambio.
+    /// </summary>
+    private static async Task EnsureUserPreferencesColumnsAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var pragmaCommand = connection.CreateCommand();
+            pragmaCommand.CommandText = "PRAGMA table_info('UserPreferences');";
+
+            var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            await using (var reader = await pragmaCommand.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    var columnName = reader["name"]?.ToString();
+                    if (columnName != null)
+                    {
+                        existingColumns.Add(columnName);
+                    }
+                }
+            }
+
+            // Columnas nuevas que necesitamos agregar
+            var columnsToAdd = new Dictionary<string, string>
+            {
+                { "WorkStartTime", "TEXT" },
+                { "WorkEndTime", "TEXT" },
+                { "WorkDaysOfWeek", "TEXT" },
+                { "ExerciseDaysOfWeek", "TEXT" },
+                { "NlpKeywords", "TEXT" },
+                { "NotificationsEnabled", "INTEGER NOT NULL DEFAULT 1" }
+            };
+
+            foreach (var column in columnsToAdd)
+            {
+                if (!existingColumns.Contains(column.Key))
+                {
+                    using var alterCommand = connection.CreateCommand();
+                    alterCommand.CommandText = $"ALTER TABLE UserPreferences ADD COLUMN {column.Key} {column.Value};";
+                    await alterCommand.ExecuteNonQueryAsync();
+                }
             }
         }
         finally
