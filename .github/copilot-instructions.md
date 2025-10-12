@@ -1,6 +1,7 @@
 ---
-applyTo: '**'
+applyTo: "**"
 ---
+
 # Aurora - Mobile-First Personal Planner
 
 .NET 9 backend (Clean Architecture) + React 19 frontend. SQLite persistence.
@@ -8,6 +9,7 @@ applyTo: '**'
 ## Architecture & Structure
 
 **Backend Layers** (`Aurora.*` projects):
+
 - `Aurora.Api` → Controllers, CORS, OpenAPI (refs: Application + Infrastructure)
 - `Aurora.Application` → Services, DTOs, FluentValidation (refs: Domain only)
 - `Aurora.Domain` → Entities, interfaces (no dependencies)
@@ -36,6 +38,7 @@ cd frontend && npm run dev
 **API**: JSON, centralized in `src/services/apiService.ts`
 
 ## Data Model
+
 **Storage**: SQLite with EF Core
 
 ## Key Rules
@@ -46,3 +49,5 @@ cd frontend && npm run dev
 4. Spanish error messages to frontend
 5. 80% test coverage (xUnit backend, Jest frontend)
 
+No hagas resumen de lo que acabás de hacer, solo ejecutá la tarea pedida.
+No agregues comentarios a Jira si no te lo pido.

@@ -133,9 +133,6 @@ const SettingsScreen: React.FC = () => {
       setError('');
       setSuccessMessage('');
 
-      // Guardar el tema actual antes de la actualización
-      const currentTheme = preferences.theme;
-
       const payload: UpdateUserPreferencesDto = {
         theme: preferences.theme,
         language: preferences.language,
@@ -154,9 +151,10 @@ const SettingsScreen: React.FC = () => {
       const updatedPreferences = await apiService.updateUserPreferences(payload);
       setPreferences(updatedPreferences);
 
-      // Solo aplicar el tema si realmente cambió
-      if (updatedPreferences.theme && updatedPreferences.theme !== currentTheme) {
+      // Always sync theme to ensure localStorage and backend are in sync
+      if (updatedPreferences.theme) {
         setTheme(updatedPreferences.theme);
+        console.log('Theme synced with backend:', updatedPreferences.theme);
       }
 
       setSuccessMessage('Preferencias actualizadas correctamente');

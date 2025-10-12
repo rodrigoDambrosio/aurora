@@ -1,6 +1,7 @@
 import { Calendar, Heart, MessageCircle, Moon, Settings, Sparkles, Sun } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { apiService } from '../services/apiService';
 import './Navigation.css';
 
 type View = 'calendar-week' | 'calendar-month' | 'wellness' | 'assistant' | 'settings';
@@ -47,11 +48,37 @@ const Navigation: React.FC<NavigationProps> = ({
   activeView = 'calendar-week',
   onViewChange
 }) => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const [isTogglingTheme, setIsTogglingTheme] = useState(false);
 
   const handleViewClick = (view: string) => {
     if (onViewChange) {
       onViewChange(view);
+    }
+  };
+
+  const handleThemeToggle = async () => {
+    if (isTogglingTheme) return; // Prevent multiple clicks
+
+    try {
+      setIsTogglingTheme(true);
+
+      // Calculate new theme
+      const newTheme = theme === 'dark' ? 'light' : 'dark';
+
+      // Apply theme immediately (synchronous, no flicker)
+      setTheme(newTheme);
+
+      // Save to backend asynchronously (in background, single call)
+      try {
+        await apiService.updateUserPreferences({ theme: newTheme });
+        console.log('Theme preference saved to backend:', newTheme);
+      } catch (error) {
+        console.error('Failed to save theme preference to backend:', error);
+        // Theme is already changed locally, so we don't revert
+      }
+    } finally {
+      setIsTogglingTheme(false);
     }
   };
 
@@ -92,7 +119,11 @@ const Navigation: React.FC<NavigationProps> = ({
       </nav>
 
       <div className="navigation-footer">
-        <button className="dark-mode-toggle" onClick={toggleTheme}>
+        <button
+          className="dark-mode-toggle"
+          onClick={handleThemeToggle}
+          disabled={isTogglingTheme}
+        >
           {theme === 'dark' ? (
             <Sun size={16} aria-hidden="true" />
           ) : (
