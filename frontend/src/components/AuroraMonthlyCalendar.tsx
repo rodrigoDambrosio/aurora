@@ -16,6 +16,7 @@ interface AuroraMonthlyCalendarProps {
   categories?: EventCategoryDto[];
   onCategoryChange?: (categoryId: string | null) => void;
   refreshToken?: number;
+  firstDayOfWeek?: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 }
 
 interface CalendarDay {
@@ -35,7 +36,8 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
   onToggleFilters,
   categories = [],
   onCategoryChange,
-  refreshToken
+  refreshToken,
+  firstDayOfWeek = 1 // Default to Monday
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -85,16 +87,21 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
     // Último día del mes
     const lastDay = new Date(year, month + 1, 0);
 
-    // Día de la semana del primer día (0 = Domingo, ajustar a Lunes = 0)
-    let firstDayOfWeek = firstDay.getDay() - 1;
-    if (firstDayOfWeek < 0) firstDayOfWeek = 6;
+    // Día de la semana del primer día (0 = Domingo, 1 = Lunes, etc.)
+    const firstDayOfMonth = firstDay.getDay();
+
+    // Calcular cuántos días del mes anterior mostrar
+    let daysFromPrevMonth = firstDayOfMonth - firstDayOfWeek;
+    if (daysFromPrevMonth < 0) {
+      daysFromPrevMonth += 7;
+    }
 
     // Crear array de días
     const days: CalendarDay[] = [];
 
     // Días del mes anterior
     const prevMonthLastDay = new Date(year, month, 0).getDate();
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    for (let i = daysFromPrevMonth - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthLastDay - i);
       days.push({
         date,
@@ -133,7 +140,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
     }
 
     setCalendarDays(days);
-  }, [currentDate]);
+  }, [currentDate, firstDayOfWeek]);
 
   // Asignar eventos a los días
   useEffect(() => {
@@ -160,7 +167,12 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
     setCurrentDate(new Date());
   };
 
-  const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  // Generate weekDays array based on firstDayOfWeek preference
+  const weekDays = React.useMemo(() => {
+    const allDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    // Rotate array to start from firstDayOfWeek
+    return [...allDays.slice(firstDayOfWeek), ...allDays.slice(0, firstDayOfWeek)];
+  }, [firstDayOfWeek]);
 
   const getEventCountText = (): string => {
     const count = events.length;

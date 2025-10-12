@@ -259,4 +259,75 @@ describe('AuroraMonthlyCalendar', () => {
   afterEach(() => {
     vi.useRealTimers()
   })
+
+  describe('firstDayOfWeek preference', () => {
+    it('debería mostrar días de la semana comenzando en lunes por defecto (firstDayOfWeek=1)', async () => {
+      render(
+        <AuroraMonthlyCalendar
+          onEventClick={mockOnEventClick}
+          onAddEvent={mockOnAddEvent}
+          firstDayOfWeek={1}
+        />
+      )
+
+      await waitFor(() => {
+        const weekdayHeaders = screen.getAllByRole('generic', { hidden: true })
+        const weekdayContainer = weekdayHeaders.find(el =>
+          el.className?.includes('monthly-calendar-weekdays')
+        )
+
+        if (weekdayContainer) {
+          const weekdays = Array.from(weekdayContainer.children).map(el => el.textContent)
+          expect(weekdays[0]).toBe('Lun')
+          expect(weekdays[6]).toBe('Dom')
+        }
+      })
+    })
+
+    it('debería mostrar días de la semana comenzando en domingo cuando firstDayOfWeek=0', async () => {
+      render(
+        <AuroraMonthlyCalendar
+          onEventClick={mockOnEventClick}
+          onAddEvent={mockOnAddEvent}
+          firstDayOfWeek={0}
+        />
+      )
+
+      await waitFor(() => {
+        const weekdayHeaders = screen.getAllByRole('generic', { hidden: true })
+        const weekdayContainer = weekdayHeaders.find(el =>
+          el.className?.includes('monthly-calendar-weekdays')
+        )
+
+        if (weekdayContainer) {
+          const weekdays = Array.from(weekdayContainer.children).map(el => el.textContent)
+          expect(weekdays[0]).toBe('Dom')
+          expect(weekdays[6]).toBe('Sáb')
+        }
+      })
+    })
+
+    it('debería mostrar días de la semana comenzando en sábado cuando firstDayOfWeek=6', async () => {
+      render(
+        <AuroraMonthlyCalendar
+          onEventClick={mockOnEventClick}
+          onAddEvent={mockOnAddEvent}
+          firstDayOfWeek={6}
+        />
+      )
+
+      await waitFor(() => {
+        const weekdayHeaders = screen.getAllByRole('generic', { hidden: true })
+        const weekdayContainer = weekdayHeaders.find(el =>
+          el.className?.includes('monthly-calendar-weekdays')
+        )
+
+        if (weekdayContainer) {
+          const weekdays = Array.from(weekdayContainer.children).map(el => el.textContent)
+          expect(weekdays[0]).toBe('Sáb')
+          expect(weekdays[6]).toBe('Vie')
+        }
+      })
+    })
+  })
 })

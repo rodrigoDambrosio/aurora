@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { apiService, type EventCategoryDto, type EventDto } from '../services/apiService';
 import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
 import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
@@ -23,6 +23,25 @@ const MainDashboard: React.FC = () => {
   const [eventBeingEdited, setEventBeingEdited] = useState<EventDto | null>(null);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const [firstDayOfWeek, setFirstDayOfWeek] = useState<number>(1); // Default to Monday (1)
+
+  // Load user preferences on component mount
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const preferences = await apiService.getUserPreferences();
+        if (preferences.firstDayOfWeek !== undefined) {
+          setFirstDayOfWeek(preferences.firstDayOfWeek);
+          console.log('Loaded user preference - firstDayOfWeek:', preferences.firstDayOfWeek);
+        }
+      } catch (error) {
+        console.error('Error loading user preferences:', error);
+        // Keep default value (Monday) if there's an error
+      }
+    };
+
+    loadUserPreferences();
+  }, []);
 
   const bumpRefreshToken = () => {
     setRefreshToken(prev => prev + 1);
@@ -158,6 +177,7 @@ const MainDashboard: React.FC = () => {
               categories={categories}
               onCategoryChange={handleCategoryChange}
               refreshToken={refreshToken}
+              firstDayOfWeek={firstDayOfWeek}
             />
           </section>
           <section
@@ -174,6 +194,7 @@ const MainDashboard: React.FC = () => {
               categories={categories}
               onCategoryChange={handleCategoryChange}
               refreshToken={refreshToken}
+              firstDayOfWeek={firstDayOfWeek}
             />
           </section>
         </div>

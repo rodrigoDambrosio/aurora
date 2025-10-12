@@ -240,4 +240,45 @@ describe('AuroraWeeklyCalendar', () => {
   afterEach(() => {
     vi.useRealTimers()
   })
+
+  describe('firstDayOfWeek preference', () => {
+    it('debería iniciar la semana en lunes por defecto (firstDayOfWeek=1)', async () => {
+      render(<AuroraWeeklyCalendar firstDayOfWeek={1} />)
+
+      await waitFor(() => {
+        // Verificar que la semana comience con lunes
+        expect(mockGetWeeklyEvents).toHaveBeenCalledWith(
+          expect.stringMatching(/2025-09-29/), // Lunes de la semana
+          undefined,
+          undefined
+        )
+      })
+    })
+
+    it('debería iniciar la semana en domingo cuando firstDayOfWeek=0', async () => {
+      render(<AuroraWeeklyCalendar firstDayOfWeek={0} />)
+
+      await waitFor(() => {
+        // Verificar que la semana comience con domingo
+        expect(mockGetWeeklyEvents).toHaveBeenCalledWith(
+          expect.stringMatching(/2025-09-28/), // Domingo de la semana
+          undefined,
+          undefined
+        )
+      })
+    })
+
+    it('debería iniciar la semana en sábado cuando firstDayOfWeek=6', async () => {
+      render(<AuroraWeeklyCalendar firstDayOfWeek={6} />)
+
+      await waitFor(() => {
+        // Verificar que la semana comience con sábado
+        expect(mockGetWeeklyEvents).toHaveBeenCalledWith(
+          expect.stringMatching(/2025-09-27/), // Sábado de la semana
+          undefined,
+          undefined
+        )
+      })
+    })
+  })
 })
