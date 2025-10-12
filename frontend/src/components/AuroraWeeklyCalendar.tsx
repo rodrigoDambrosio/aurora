@@ -184,10 +184,18 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     if (!draggedEvent) return;
 
     try {
-      // Get the original date (without time)
+      // Parse dates as UTC to preserve the original time
       const originalStart = new Date(draggedEvent.startDate);
-      const originalDateOnly = originalStart.toISOString().split('T')[0];
-      const targetDateOnly = targetDate.toISOString().split('T')[0];
+      const originalEnd = new Date(draggedEvent.endDate);
+
+      // Get UTC date components to compare dates without time
+      const originalDateOnly = `${originalStart.getUTCFullYear()}-${String(originalStart.getUTCMonth() + 1).padStart(2, '0')}-${String(originalStart.getUTCDate()).padStart(2, '0')}`;
+
+      // Get target date in UTC
+      const targetYear = targetDate.getFullYear();
+      const targetMonth = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const targetDay = String(targetDate.getDate()).padStart(2, '0');
+      const targetDateOnly = `${targetYear}-${targetMonth}-${targetDay}`;
 
       // Check if the date actually changed
       if (originalDateOnly === targetDateOnly) {
@@ -196,37 +204,21 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
         return;
       }
 
-      const originalEnd = new Date(draggedEvent.endDate);
-
-      // Calculate day difference
-      const originalDateObj = new Date(originalDateOnly);
-      const targetDateObj = new Date(targetDateOnly);
+      // Calculate day difference using UTC dates
+      const originalDateObj = new Date(originalDateOnly + 'T00:00:00Z');
+      const targetDateObj = new Date(targetDateOnly + 'T00:00:00Z');
       const dayDiff = Math.floor((targetDateObj.getTime() - originalDateObj.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Create new dates by adding the day difference
-      const newStartDate = new Date(originalStart);
-      newStartDate.setDate(newStartDate.getDate() + dayDiff);
+      // Create new dates in UTC by preserving the time and only changing the date
+      const newStartDate = new Date(originalStart.getTime() + (dayDiff * 24 * 60 * 60 * 1000));
+      const newEndDate = new Date(originalEnd.getTime() + (dayDiff * 24 * 60 * 60 * 1000));
 
-      const newEndDate = new Date(originalEnd);
-      newEndDate.setDate(newEndDate.getDate() + dayDiff);
-
-      // Format dates to ISO string without timezone conversion
-      const formatToLocalISO = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-      };
-
-      // Update event via API
+      // Update event via API using ISO strings (which preserve UTC)
       const updatedEvent = {
         title: draggedEvent.title,
         description: draggedEvent.description,
-        startDate: formatToLocalISO(newStartDate),
-        endDate: formatToLocalISO(newEndDate),
+        startDate: newStartDate.toISOString(),
+        endDate: newEndDate.toISOString(),
         location: draggedEvent.location,
         eventCategoryId: draggedEvent.eventCategory?.id || '',
         isAllDay: draggedEvent.isAllDay,
@@ -234,6 +226,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
       };
 
       console.log('Moving event from', originalDateOnly, 'to', targetDateOnly);
+      console.log('Original time:', originalStart.toISOString(), '-> New time:', newStartDate.toISOString());
       await apiService.updateEvent(draggedEvent.id, updatedEvent);
       console.log('Event moved successfully');
 

@@ -15,8 +15,8 @@ public interface IAIValidationService
     /// <param name="existingEvents">Eventos existentes del usuario para contexto (opcional)</param>
     /// <returns>Resultado de la validación con recomendaciones</returns>
     Task<AIValidationResult> ValidateEventCreationAsync(
-        CreateEventDto eventDto, 
-        Guid userId, 
+        CreateEventDto eventDto,
+        Guid userId,
         IEnumerable<EventDto>? existingEvents = null);
 
     /// <summary>

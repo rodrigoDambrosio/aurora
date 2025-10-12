@@ -143,84 +143,13 @@ public class GeminiAIValidationService : IAIValidationService
 
     private string BuildValidationPrompt(CreateEventDto eventDto, IEnumerable<EventDto>? existingEvents)
     {
-        var localStart = ConvertToUserLocalTime(eventDto.StartDate, eventDto.TimezoneOffsetMinutes);
-        var localEnd = ConvertToUserLocalTime(eventDto.EndDate, eventDto.TimezoneOffsetMinutes);
-
-        var dayOfWeek = localStart.DayOfWeek.ToString();
-        var dateFormatted = localStart.ToString("yyyy-MM-dd HH:mm");
-        var duration = (localEnd - localStart).TotalHours;
-        var timezoneLabel = FormatUserTimezone(eventDto.TimezoneOffsetMinutes);
-
-        var sb = new StringBuilder();
-        sb.AppendLine("Eres un asistente de calendario inteligente y personal. Analiza el siguiente evento considerando el contexto del calendario del usuario.");
-        sb.AppendLine();
-        sb.AppendLine("EVENTO A VALIDAR:");
-        sb.AppendLine($"- T�tulo: {eventDto.Title}");
-        sb.AppendLine($"- Descripci�n: {eventDto.Description ?? "Sin descripci�n"}");
-        sb.AppendLine($"- Fecha y hora: {dateFormatted} ({dayOfWeek}) [{timezoneLabel}]");
-        sb.AppendLine($"- Duraci�n: {duration:F1} horas");
-        sb.AppendLine($"- Todo el d�a: {(eventDto.IsAllDay ? "S�" : "No")}");
-        sb.AppendLine($"- Ubicaci�n: {eventDto.Location ?? "Sin ubicaci�n"}");
-        sb.AppendLine();
-
-        if (existingEvents != null && existingEvents.Any())
-        {
-            sb.AppendLine("CONTEXTO DEL CALENDARIO (eventos cercanos):");
-            sb.AppendLine();
-
-            var sortedEvents = existingEvents
-                .OrderBy(e => e.StartDate)
-                .ToList();
-
-            foreach (var evt in sortedEvents)
-            {
-                var evtStartLocal = ConvertToUserLocalTime(evt.StartDate, eventDto.TimezoneOffsetMinutes);
-                var evtEndLocal = ConvertToUserLocalTime(evt.EndDate, eventDto.TimezoneOffsetMinutes);
-
-                var evtDuration = (evtEndLocal - evtStartLocal).TotalHours;
-                var evtDay = evtStartLocal.DayOfWeek.ToString();
-                var evtTime = evtStartLocal.ToString("yyyy-MM-dd HH:mm");
-                var category = evt.EventCategory?.Name ?? "Sin categor�a";
-
-                sb.AppendLine($"� [{evtTime} ({evtDay})] \"{evt.Title}\" - {evtDuration:F1}h - {category}");
-            }
-
-            sb.AppendLine();
-            sb.AppendLine($"Total de eventos en el contexto: {sortedEvents.Count}");
-            sb.AppendLine();
-        }
-        else
-        {
-            sb.AppendLine("CONTEXTO DEL CALENDARIO: Sin eventos cercanos");
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("ANALIZA LOS SIGUIENTES ASPECTOS:");
-        sb.AppendLine("1. **Conflictos de horario**: �Se superpone con otros eventos?");
-        sb.AppendLine("2. **Carga de trabajo**: �El usuario ya tiene muchos eventos ese d�a/semana?");
-        sb.AppendLine("3. **Balance vida-trabajo**: �Hay suficiente tiempo libre y de descanso?");
-        sb.AppendLine("4. **Hora apropiada**: �Es la hora adecuada para este tipo de actividad?");
-        sb.AppendLine("5. **Duraci�n razonable**: �La duraci�n es apropiada?");
-        sb.AppendLine("6. **Descanso entre eventos**: �Hay tiempo suficiente entre eventos?");
-        sb.AppendLine("7. **Patrones saludables**: �Respeta horarios de descanso y sue�o?");
-        sb.AppendLine();
-        sb.AppendLine("Responde en formato JSON con esta estructura exacta:");
-        sb.AppendLine(@"{");
-        sb.AppendLine(@"  ""approved"": true/false,");
-        sb.AppendLine(@"  ""severity"": ""info""/""warning""/""critical"",");
-        sb.AppendLine(@"  ""message"": ""Tu mensaje personalizado aqu� (s� espec�fico y menciona el contexto)"",");
-        sb.AppendLine(@"  ""suggestions"": [""sugerencia espec�fica 1"", ""sugerencia espec�fica 2""]");
-        sb.AppendLine(@"}");
-        sb.AppendLine();
-        sb.AppendLine("CRITERIOS DE DECISI�N:");
-        sb.AppendLine("- **approved = false** si hay conflictos directos, sobrecarga evidente o riesgos para la salud");
-        sb.AppendLine("- **severity = 'critical'** si es muy problem�tico (ej: conflicto de horario, m�s de 12h de trabajo seguido)");
-        sb.AppendLine("- **severity = 'warning'** si es cuestionable pero no cr�tico (ej: poco descanso, d�a muy cargado)");
-        sb.AppendLine("- **severity = 'info'** si solo son recomendaciones generales");
-        sb.AppendLine();
-        sb.AppendLine("S� espec�fico y personalizado en tu an�lisis. Menciona eventos espec�ficos del contexto si son relevantes.");
-
-        return sb.ToString();
+        return BuildUnifiedPrompt(
+            eventDto: eventDto,
+            existingEvents: existingEvents,
+            timezoneOffsetMinutes: eventDto.TimezoneOffsetMinutes ?? 0,
+            naturalLanguageText: null,
+            availableCategories: null,
+            includeParsingInstructions: false);
     }
 
     private AIValidationResult ParseAIResponse(string aiText)
@@ -383,97 +312,13 @@ public class GeminiAIValidationService : IAIValidationService
 
     private string BuildParsingPrompt(string naturalLanguageText, IEnumerable<EventCategoryDto> availableCategories, int timezoneOffsetMinutes, IEnumerable<EventDto>? existingEvents)
     {
-        var utcNow = DateTime.UtcNow;
-        var userLocalNow = utcNow.AddMinutes(timezoneOffsetMinutes);
-        var offset = TimeSpan.FromMinutes(timezoneOffsetMinutes);
-        var timezoneString = timezoneOffsetMinutes == 0
-            ? "UTC"
-            : $"UTC{offset.TotalHours:+0;-0}";
-
-        var sb = new StringBuilder();
-
-        sb.AppendLine("Eres un asistente de calendario inteligente. Tu tarea es convertir texto en lenguaje natural a un evento estructurado.");
-        sb.AppendLine();
-        sb.AppendLine($"Fecha actual del usuario: {userLocalNow:yyyy-MM-dd HH:mm} ({timezoneString})");
-        if (timezoneOffsetMinutes == 0)
-        {
-            sb.AppendLine("El usuario ya está en UTC, no realices ajustes adicionales de zona horaria.");
-        }
-        else
-        {
-            var hoursOffset = Math.Abs(offset.TotalHours);
-            var adjustmentVerb = timezoneOffsetMinutes > 0 ? "restando" : "sumando";
-            sb.AppendLine($"Debes convertir todas las fechas/horas a UTC {adjustmentVerb} {hoursOffset:0.##} horas respecto a la hora local del usuario.");
-        }
-        sb.AppendLine("Cuando el usuario diga 'mañana 3pm' se refiere a su zona horaria local.");
-        sb.AppendLine();
-        sb.AppendLine("TEXTO DEL USUARIO:");
-        sb.AppendLine($"\"{naturalLanguageText}\"");
-        sb.AppendLine();
-
-        if (existingEvents != null && existingEvents.Any())
-        {
-            sb.AppendLine("CONTEXTO DEL CALENDARIO (eventos cercanos):");
-            var sortedEvents = existingEvents
-                .OrderBy(e => e.StartDate)
-                .Take(10)
-                .ToList();
-
-            foreach (var evt in sortedEvents)
-            {
-                var evtTime = evt.StartDate.ToString("yyyy-MM-dd HH:mm");
-                sb.AppendLine($"• [{evtTime}] \"{evt.Title}\" - {evt.EventCategory?.Name ?? "Sin categoría"}");
-            }
-
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("CATEGORÍAS DISPONIBLES:");
-        var categoryList = availableCategories.ToList();
-        foreach (var category in categoryList)
-        {
-            sb.AppendLine($"• {category.Name} - ID: \"{category.Id}\" ({category.Description ?? "Sin descripción"})");
-        }
-        sb.AppendLine();
-
-        sb.AppendLine("INSTRUCCIONES:");
-        sb.AppendLine("1. Interpreta fechas relativas (hoy, mañana, el lunes, etc.) desde la fecha actual del usuario");
-        sb.AppendLine("2. Si no se especifica hora, usa horarios razonables según el tipo de evento");
-        sb.AppendLine("3. Si no se especifica duración, infiere una duración apropiada (reuniones: 1h, ejercicio: 1.5h, etc.)");
-        sb.AppendLine("4. Detecta la categoría según el contenido del evento y usa el ID exacto de la lista de categorías");
-        sb.AppendLine("5. Todas las fechas/horas deben devolverse en formato UTC ISO 8601");
-        sb.AppendLine("6. Determina la prioridad del evento: 1=Low, 2=Medium, 3=High, 4=Critical");
-        sb.AppendLine("   Usa 4 para emergencias o compromisos imprescindibles, 3 para eventos importantes, 2 como valor por defecto y 1 para actividades opcionales");
-        sb.AppendLine();
-        sb.AppendLine("Responde en formato JSON con esta estructura exacta:");
-        sb.AppendLine(@"{");
-        sb.AppendLine(@"  ""event"": {");
-        sb.AppendLine(@"    ""title"": ""Título del evento"",");
-        sb.AppendLine(@"    ""description"": ""Descripción opcional"",");
-        sb.AppendLine(@"    ""startDate"": ""2025-10-10T15:00:00Z"",");
-        sb.AppendLine(@"    ""endDate"": ""2025-10-10T16:00:00Z"",");
-        sb.AppendLine(@"    ""isAllDay"": false,");
-        sb.AppendLine(@"    ""location"": ""Ubicación opcional"",");
-        sb.AppendLine(@"    ""priority"": 2,");
-        var sampleCategoryId = categoryList.FirstOrDefault()?.Id ?? Guid.Empty;
-        sb.AppendLine($@"    ""eventCategoryId"": ""{sampleCategoryId}""");
-        sb.AppendLine(@"  },");
-        sb.AppendLine(@"  ""analysis"": {");
-        sb.AppendLine(@"    ""approved"": true/false,");
-        sb.AppendLine(@"    ""severity"": ""info""/""warning""/""critical"",");
-        sb.AppendLine(@"    ""message"": ""Tu mensaje personalizado aquí (sé específico y menciona el contexto)"",");
-        sb.AppendLine(@"    ""suggestions"": [""sugerencia específica 1"", ""sugerencia específica 2""]");
-        sb.AppendLine(@"  }");
-        sb.AppendLine(@"}");
-        sb.AppendLine();
-        sb.AppendLine("IMPORTANTE:");
-        sb.AppendLine("- eventCategoryId DEBE ser un string con el GUID exacto de la lista de categorías");
-        sb.AppendLine("- priority debe ser un entero entre 1 y 4 siguiendo la escala indicada");
-        sb.AppendLine("- Usa formato ISO 8601 con zona horaria Z (UTC) para las fechas");
-        sb.AppendLine("- Incluye SIEMPRE el objeto analysis aplicando los mismos criterios que la validación manual");
-        sb.AppendLine("- Sé inteligente al inferir contexto y categoría apropiada");
-
-        return sb.ToString();
+        return BuildUnifiedPrompt(
+            eventDto: null,
+            existingEvents: existingEvents,
+            timezoneOffsetMinutes: timezoneOffsetMinutes,
+            naturalLanguageText: naturalLanguageText,
+            availableCategories: availableCategories,
+            includeParsingInstructions: true);
     }
 
     private CreateEventDto ParseEventFromAIResponse(JsonElement aiRoot, IReadOnlyList<EventCategoryDto> availableCategories, int timezoneOffsetMinutes)
@@ -745,6 +590,249 @@ public class GeminiAIValidationService : IAIValidationService
         }
 
         return utcDateTime.ToLocalTime();
+    }
+
+    /// <summary>
+    /// Método unificado para construir prompts de IA con diferentes modos (validación o parsing)
+    /// </summary>
+    private string BuildUnifiedPrompt(
+        CreateEventDto? eventDto,
+        IEnumerable<EventDto>? existingEvents,
+        int timezoneOffsetMinutes,
+        string? naturalLanguageText,
+        IEnumerable<EventCategoryDto>? availableCategories,
+        bool includeParsingInstructions)
+    {
+        var sb = new StringBuilder();
+
+        // Sección de introducción y contexto
+        if (includeParsingInstructions)
+        {
+            // Modo parsing NLP
+            var utcNow = DateTime.UtcNow;
+            var userLocalNow = utcNow.AddMinutes(timezoneOffsetMinutes);
+            var offset = TimeSpan.FromMinutes(timezoneOffsetMinutes);
+            var timezoneString = timezoneOffsetMinutes == 0 ? "UTC" : $"UTC{offset.TotalHours:+0;-0}";
+
+            sb.AppendLine("Eres un asistente de calendario inteligente. Tu tarea es convertir texto en lenguaje natural a un evento estructurado.");
+            sb.AppendLine();
+            sb.AppendLine($"Fecha actual del usuario: {userLocalNow:yyyy-MM-dd HH:mm} ({timezoneString})");
+
+            if (timezoneOffsetMinutes == 0)
+            {
+                sb.AppendLine("El usuario ya está en UTC, no realices ajustes adicionales de zona horaria.");
+            }
+            else
+            {
+                var hoursOffset = Math.Abs(offset.TotalHours);
+                var adjustmentVerb = timezoneOffsetMinutes > 0 ? "restando" : "sumando";
+                sb.AppendLine($"Debes convertir todas las fechas/horas a UTC {adjustmentVerb} {hoursOffset:0.##} horas respecto a la hora local del usuario.");
+            }
+
+            sb.AppendLine("Cuando el usuario diga 'mañana 3pm' se refiere a su zona horaria local.");
+            sb.AppendLine();
+            sb.AppendLine("TEXTO DEL USUARIO:");
+            sb.AppendLine($"\"{naturalLanguageText}\"");
+            sb.AppendLine();
+        }
+        else
+        {
+            // Modo validación de evento existente
+            if (eventDto == null)
+                throw new ArgumentNullException(nameof(eventDto), "eventDto es requerido para modo validación");
+
+            var localStart = ConvertToUserLocalTime(eventDto.StartDate, eventDto.TimezoneOffsetMinutes);
+            var localEnd = ConvertToUserLocalTime(eventDto.EndDate, eventDto.TimezoneOffsetMinutes);
+            var dayOfWeek = localStart.DayOfWeek.ToString();
+            var dateFormatted = localStart.ToString("yyyy-MM-dd HH:mm");
+            var duration = (localEnd - localStart).TotalHours;
+            var timezoneLabel = FormatUserTimezone(eventDto.TimezoneOffsetMinutes);
+
+            sb.AppendLine("Eres un asistente de calendario inteligente y personal. Analiza el siguiente evento considerando el contexto del calendario del usuario.");
+            sb.AppendLine();
+            sb.AppendLine("EVENTO A VALIDAR:");
+            sb.AppendLine($"- Título: {eventDto.Title}");
+            sb.AppendLine($"- Descripción: {eventDto.Description ?? "Sin descripción"}");
+            sb.AppendLine($"- Fecha y hora: {dateFormatted} ({dayOfWeek}) [{timezoneLabel}]");
+            sb.AppendLine($"- Duración: {duration:F1} horas");
+            sb.AppendLine($"- Todo el día: {(eventDto.IsAllDay ? "Sí" : "No")}");
+            sb.AppendLine($"- Ubicación: {eventDto.Location ?? "Sin ubicación"}");
+            sb.AppendLine();
+        }
+
+        // Sección de contexto del calendario (compartida)
+        AppendCalendarContext(sb, existingEvents, eventDto?.TimezoneOffsetMinutes ?? timezoneOffsetMinutes, includeParsingInstructions);
+
+        // Categorías disponibles (solo para parsing)
+        if (includeParsingInstructions && availableCategories != null)
+        {
+            sb.AppendLine("CATEGORÍAS DISPONIBLES:");
+            var categoryList = availableCategories.ToList();
+            foreach (var category in categoryList)
+            {
+                sb.AppendLine($"• {category.Name} - ID: \"{category.Id}\" ({category.Description ?? "Sin descripción"})");
+            }
+            sb.AppendLine();
+        }
+
+        // Instrucciones de parsing NLP (solo para modo parsing)
+        if (includeParsingInstructions)
+        {
+            sb.AppendLine("INSTRUCCIONES:");
+            sb.AppendLine("1. Interpreta fechas relativas (hoy, mañana, el lunes, etc.) desde la fecha actual del usuario");
+            sb.AppendLine("2. Si no se especifica hora, usa horarios razonables según el tipo de evento");
+            sb.AppendLine("3. Si no se especifica duración, infiere una duración apropiada (reuniones: 1h, ejercicio: 1.5h, etc.)");
+            sb.AppendLine("4. Detecta la categoría según el contenido del evento y usa el ID exacto de la lista de categorías");
+            sb.AppendLine("5. Todas las fechas/horas deben devolverse en formato UTC ISO 8601");
+            sb.AppendLine("6. Determina la prioridad del evento: 1=Low, 2=Medium, 3=High, 4=Critical");
+            sb.AppendLine("   Usa 4 para emergencias o compromisos imprescindibles, 3 para eventos importantes, 2 como valor por defecto y 1 para actividades opcionales");
+            sb.AppendLine();
+        }
+
+        // Criterios de análisis (compartidos)
+        AppendAnalysisCriteria(sb);
+
+        // Formato de respuesta JSON
+        AppendJsonResponseFormat(sb, includeParsingInstructions, availableCategories);
+
+        // Criterios de decisión (compartidos)
+        AppendDecisionCriteria(sb, includeParsingInstructions);
+
+        return sb.ToString();
+    }
+
+    private void AppendCalendarContext(StringBuilder sb, IEnumerable<EventDto>? existingEvents, int timezoneOffsetMinutes, bool isParsingMode)
+    {
+        if (existingEvents != null && existingEvents.Any())
+        {
+            sb.AppendLine("CONTEXTO DEL CALENDARIO (eventos cercanos):");
+
+            if (!isParsingMode)
+            {
+                sb.AppendLine();
+            }
+
+            var sortedEvents = existingEvents
+                .OrderBy(e => e.StartDate)
+                .Take(isParsingMode ? 10 : int.MaxValue)
+                .ToList();
+
+            foreach (var evt in sortedEvents)
+            {
+                if (isParsingMode)
+                {
+                    var evtTime = evt.StartDate.ToString("yyyy-MM-dd HH:mm");
+                    sb.AppendLine($"• [{evtTime}] \"{evt.Title}\" - {evt.EventCategory?.Name ?? "Sin categoría"}");
+                }
+                else
+                {
+                    var evtStartLocal = ConvertToUserLocalTime(evt.StartDate, timezoneOffsetMinutes);
+                    var evtEndLocal = ConvertToUserLocalTime(evt.EndDate, timezoneOffsetMinutes);
+                    var evtDuration = (evtEndLocal - evtStartLocal).TotalHours;
+                    var evtDay = evtStartLocal.DayOfWeek.ToString();
+                    var evtTime = evtStartLocal.ToString("yyyy-MM-dd HH:mm");
+                    var category = evt.EventCategory?.Name ?? "Sin categoría";
+                    sb.AppendLine($"• [{evtTime} ({evtDay})] \"{evt.Title}\" - {evtDuration:F1}h - {category}");
+                }
+            }
+
+            sb.AppendLine();
+
+            if (!isParsingMode)
+            {
+                sb.AppendLine($"Total de eventos en el contexto: {sortedEvents.Count}");
+                sb.AppendLine();
+            }
+        }
+        else if (!isParsingMode)
+        {
+            sb.AppendLine("CONTEXTO DEL CALENDARIO: Sin eventos cercanos");
+            sb.AppendLine();
+        }
+    }
+
+    private void AppendAnalysisCriteria(StringBuilder sb)
+    {
+        sb.AppendLine("ANALIZA LOS SIGUIENTES ASPECTOS:");
+        sb.AppendLine("1. **Conflictos de horario**: ¿Se superpone con otros eventos?");
+        sb.AppendLine("2. **Carga de trabajo**: ¿El usuario ya tiene muchos eventos ese día/semana?");
+        sb.AppendLine("3. **Balance vida-trabajo**: ¿Hay suficiente tiempo libre y de descanso?");
+        sb.AppendLine("4. **Hora apropiada**: ¿Es la hora adecuada para este tipo de actividad?");
+        sb.AppendLine("5. **Duración razonable**: ¿La duración es apropiada?");
+        sb.AppendLine("6. **Descanso entre eventos**: ¿Hay tiempo suficiente entre eventos?");
+        sb.AppendLine("7. **Patrones saludables**: ¿Respeta horarios de descanso y sueño?");
+        sb.AppendLine();
+    }
+
+    private void AppendJsonResponseFormat(StringBuilder sb, bool includeParsingInstructions, IEnumerable<EventCategoryDto>? availableCategories)
+    {
+        sb.AppendLine("Responde en formato JSON con esta estructura exacta:");
+
+        if (includeParsingInstructions)
+        {
+            sb.AppendLine(@"{");
+            sb.AppendLine(@"  ""event"": {");
+            sb.AppendLine(@"    ""title"": ""Título del evento"",");
+            sb.AppendLine(@"    ""description"": ""Descripción opcional"",");
+            sb.AppendLine(@"    ""startDate"": ""2025-10-10T15:00:00Z"",");
+            sb.AppendLine(@"    ""endDate"": ""2025-10-10T16:00:00Z"",");
+            sb.AppendLine(@"    ""isAllDay"": false,");
+            sb.AppendLine(@"    ""location"": ""Ubicación opcional"",");
+            sb.AppendLine(@"    ""priority"": 2,");
+
+            var sampleCategoryId = availableCategories?.FirstOrDefault()?.Id ?? Guid.Empty;
+            sb.AppendLine($@"    ""eventCategoryId"": ""{sampleCategoryId}""");
+
+            sb.AppendLine(@"  },");
+            sb.AppendLine(@"  ""analysis"": {");
+            sb.AppendLine(@"    ""approved"": true/false,");
+            sb.AppendLine(@"    ""severity"": ""info""/""warning""/""critical"",");
+            sb.AppendLine(@"    ""message"": ""Tu mensaje personalizado aquí (sé específico y menciona el contexto)"",");
+            sb.AppendLine(@"    ""suggestions"": [""sugerencia específica 1"", ""sugerencia específica 2""]");
+            sb.AppendLine(@"  }");
+            sb.AppendLine(@"}");
+        }
+        else
+        {
+            sb.AppendLine(@"{");
+            sb.AppendLine(@"  ""approved"": true/false,");
+            sb.AppendLine(@"  ""severity"": ""info""/""warning""/""critical"",");
+            sb.AppendLine(@"  ""message"": ""Tu mensaje personalizado aquí (sé específico y menciona el contexto)"",");
+            sb.AppendLine(@"  ""suggestions"": [""sugerencia específica 1"", ""sugerencia específica 2""]");
+            sb.AppendLine(@"}");
+        }
+
+        sb.AppendLine();
+    }
+
+    private void AppendDecisionCriteria(StringBuilder sb, bool includeParsingInstructions)
+    {
+        if (includeParsingInstructions)
+        {
+            sb.AppendLine("IMPORTANTE:");
+            sb.AppendLine("- eventCategoryId DEBE ser un string con el GUID exacto de la lista de categorías");
+            sb.AppendLine("- priority debe ser un entero entre 1 y 4 siguiendo la escala indicada");
+            sb.AppendLine("- Usa formato ISO 8601 con zona horaria Z (UTC) para las fechas");
+            sb.AppendLine("- Incluye SIEMPRE el objeto analysis aplicando los mismos criterios que la validación manual");
+            sb.AppendLine("- Sé inteligente al inferir contexto y categoría apropiada");
+            sb.AppendLine();
+            sb.AppendLine("CRITERIOS DE DECISIÓN PARA EL BLOQUE analysis:");
+            sb.AppendLine("- approved = false si detectas conflicto directo, sobrecarga o riesgo evidente");
+            sb.AppendLine("- severity = 'critical' para problemas graves (conflicto de horario, más de 12h de trabajo continuo)");
+            sb.AppendLine("- severity = 'warning' si hay señales preocupantes pero no bloqueantes (poco descanso, agenda muy cargada)");
+            sb.AppendLine("- severity = 'info' solo si son recomendaciones ligeras");
+            sb.AppendLine("- Las suggestions deben ser acciones concretas para mejorar la planificación");
+        }
+        else
+        {
+            sb.AppendLine("CRITERIOS DE DECISIÓN:");
+            sb.AppendLine("- **approved = false** si hay conflictos directos, sobrecarga evidente o riesgos para la salud");
+            sb.AppendLine("- **severity = 'critical'** si es muy problemático (ej: conflicto de horario, más de 12h de trabajo seguido)");
+            sb.AppendLine("- **severity = 'warning'** si es cuestionable pero no crítico (ej: poco descanso, día muy cargado)");
+            sb.AppendLine("- **severity = 'info'** si solo son recomendaciones generales");
+            sb.AppendLine();
+            sb.AppendLine("Sé específico y personalizado en tu análisis. Menciona eventos específicos del contexto si son relevantes.");
+        }
     }
 
     private static string FormatUserTimezone(int? timezoneOffsetMinutes)
