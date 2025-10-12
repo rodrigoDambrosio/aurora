@@ -17,6 +17,7 @@ interface AuroraWeeklyCalendarProps {
   categories?: EventCategoryDto[];
   onCategoryChange?: (categoryId: string | null) => void;
   refreshToken?: number;
+  firstDayOfWeek?: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 }
 
 const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
@@ -28,7 +29,8 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   onToggleFilters,
   categories = [],
   onCategoryChange,
-  refreshToken
+  refreshToken,
+  firstDayOfWeek = 1 // Default to Monday
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weeklyData, setWeeklyData] = useState<WeeklyEventsResponseDto | null>(null);
@@ -39,15 +41,25 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   const [draggedEvent, setDraggedEvent] = useState<EventDto | null>(null);
   const [dragOverDate, setDragOverDate] = useState<Date | null>(null);
 
-  // Get start of the week (Monday)
-  const getWeekStart = (date: Date): Date => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
-  };
+  // Get start of the week based on user's preference
+  const weekStart = useMemo(() => {
+    const getWeekStart = (date: Date): Date => {
+      const d = new Date(date);
+      const day = d.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
-  const weekStart = useMemo(() => getWeekStart(currentDate), [currentDate]);
+      // Calculate the difference to get to firstDayOfWeek
+      let diff = day - firstDayOfWeek;
+      if (diff < 0) {
+        diff += 7; // Wrap around to previous week
+      }
+
+      const result = new Date(d);
+      result.setDate(d.getDate() - diff);
+      return result;
+    };
+
+    return getWeekStart(currentDate);
+  }, [currentDate, firstDayOfWeek]);
 
   // Generate week dates
   const weekDates = useMemo(() => {
