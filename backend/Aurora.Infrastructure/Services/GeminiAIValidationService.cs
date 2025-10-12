@@ -631,6 +631,8 @@ public class GeminiAIValidationService : IAIValidationService
 
             sb.AppendLine("Cuando el usuario diga 'mañana 3pm' se refiere a su zona horaria local.");
             sb.AppendLine();
+            sb.AppendLine("⚠️ IMPORTANTE: Cuando menciones horarios en tus mensajes y sugerencias, SIEMPRE usa la hora LOCAL del usuario, NO menciones UTC.");
+            sb.AppendLine();
             sb.AppendLine("TEXTO DEL USUARIO:");
             sb.AppendLine($"\"{naturalLanguageText}\"");
             sb.AppendLine();
@@ -649,6 +651,8 @@ public class GeminiAIValidationService : IAIValidationService
             var timezoneLabel = FormatUserTimezone(eventDto.TimezoneOffsetMinutes);
 
             sb.AppendLine("Eres un asistente de calendario inteligente y personal. Analiza el siguiente evento considerando el contexto del calendario del usuario.");
+            sb.AppendLine();
+            sb.AppendLine("⚠️ IMPORTANTE: Cuando menciones horarios en tus mensajes y sugerencias, SIEMPRE usa la hora LOCAL del usuario, NO menciones UTC.");
             sb.AppendLine();
             sb.AppendLine("EVENTO A VALIDAR:");
             sb.AppendLine($"- Título: {eventDto.Title}");
@@ -815,6 +819,7 @@ public class GeminiAIValidationService : IAIValidationService
             sb.AppendLine("- Usa formato ISO 8601 con zona horaria Z (UTC) para las fechas");
             sb.AppendLine("- Incluye SIEMPRE el objeto analysis aplicando los mismos criterios que la validación manual");
             sb.AppendLine("- Sé inteligente al inferir contexto y categoría apropiada");
+            sb.AppendLine("- SIEMPRE menciona horas en formato local del usuario (NO uses UTC en tus mensajes y sugerencias)");
             sb.AppendLine();
             sb.AppendLine("CRITERIOS DE DECISIÓN PARA EL BLOQUE analysis:");
             sb.AppendLine("- approved = false si detectas conflicto directo, sobrecarga o riesgo evidente");
@@ -822,6 +827,7 @@ public class GeminiAIValidationService : IAIValidationService
             sb.AppendLine("- severity = 'warning' si hay señales preocupantes pero no bloqueantes (poco descanso, agenda muy cargada)");
             sb.AppendLine("- severity = 'info' solo si son recomendaciones ligeras");
             sb.AppendLine("- Las suggestions deben ser acciones concretas para mejorar la planificación");
+            sb.AppendLine("- En tus mensajes, SIEMPRE usa horarios en la zona local del usuario, no menciones UTC");
         }
         else
         {
@@ -831,6 +837,7 @@ public class GeminiAIValidationService : IAIValidationService
             sb.AppendLine("- **severity = 'warning'** si es cuestionable pero no crítico (ej: poco descanso, día muy cargado)");
             sb.AppendLine("- **severity = 'info'** si solo son recomendaciones generales");
             sb.AppendLine();
+            sb.AppendLine("IMPORTANTE: En tus mensajes y sugerencias, SIEMPRE menciona las horas en formato local del usuario, NO uses UTC.");
             sb.AppendLine("Sé específico y personalizado en tu análisis. Menciona eventos específicos del contexto si son relevantes.");
         }
     }

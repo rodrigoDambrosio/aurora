@@ -38,6 +38,7 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; color: string }>>([]);
 
   const examples = [
     "reunión con cliente mañana a las 3pm",
@@ -102,8 +103,9 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
 
       // Obtener el nombre de la categoría para mostrar
       console.log('[FloatingNLPInput] Obteniendo categorías...');
-      const categories = await apiService.getEventCategories();
-      const category = categories.find(c => c.id === response.event.eventCategoryId);
+      const fetchedCategories = await apiService.getEventCategories();
+      setCategories(fetchedCategories);
+      const category = fetchedCategories.find(c => c.id === response.event.eventCategoryId);
 
       const parsed: ParsedEvent = {
         ...response.event,
@@ -428,6 +430,34 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
                         }}
                         className="nlp-form-input"
                       />
+                    </div>
+
+                    <div className="nlp-form-field">
+                      <label className="nlp-form-label">Categoría</label>
+                      <div className="nlp-category-selector">
+                        <div
+                          className="nlp-category-color-indicator"
+                          style={{ backgroundColor: categories.find(c => c.id === parsedEvent.eventCategoryId)?.color || '#1447e6' }}
+                        />
+                        <select
+                          value={parsedEvent.eventCategoryId}
+                          onChange={(e) => {
+                            const selectedCategory = categories.find(c => c.id === e.target.value);
+                            setParsedEvent({
+                              ...parsedEvent,
+                              eventCategoryId: e.target.value,
+                              categoryName: selectedCategory?.name || 'Sin categoría'
+                            });
+                          }}
+                          className="nlp-form-input nlp-category-select"
+                        >
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     <div className="nlp-form-field">

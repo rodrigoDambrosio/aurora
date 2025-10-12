@@ -367,9 +367,9 @@ public class EventsControllerTests
 
         fallback.Should().NotBeNull();
         fallback!.UsedAi.Should().BeFalse();
-        fallback.Severity.Should().Be(AIValidationSeverity.Warning);
+        fallback.Severity.Should().Be(AIValidationSeverity.Critical);
         fallback.IsApproved.Should().BeFalse();
-        fallback.RecommendationMessage.Should().Contain("solapamiento");
+        fallback.RecommendationMessage.Should().Contain("CONFLICTO");
         fallback.Suggestions.Should().NotBeNull();
         fallback.Suggestions.Should().NotBeEmpty();
 
@@ -554,9 +554,9 @@ public class EventsControllerTests
 
         payload!.Validation.Should().NotBeNull();
         payload.Validation!.UsedAi.Should().BeFalse();
-        payload.Validation.Severity.Should().Be(AIValidationSeverity.Warning);
+        payload.Validation.Severity.Should().Be(AIValidationSeverity.Critical);
         payload.Validation.IsApproved.Should().BeFalse();
-        payload.Validation.RecommendationMessage.Should().Contain("solapamiento");
+        payload.Validation.RecommendationMessage.Should().Contain("CONFLICTO");
 
         _aiValidationServiceMock.Verify(
             service => service.ValidateEventCreationAsync(

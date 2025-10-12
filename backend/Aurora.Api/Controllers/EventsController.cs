@@ -449,6 +449,18 @@ public class EventsController : ControllerBase
                 _logger.LogWarning("La respuesta de la IA no incluyó análisis; aplicando validación básica");
                 parseResult.Validation = RunFallbackValidation(parseResult.Event, existingEvents);
             }
+            else
+            {
+                // Siempre verificar conflictos explícitos aunque la IA haya respondido
+                var fallbackValidation = RunFallbackValidation(parseResult.Event, existingEvents);
+
+                // Si el fallback detectó un conflicto crítico, fusionar con la validación de la IA
+                if (fallbackValidation.Severity == AIValidationSeverity.Critical)
+                {
+                    parseResult.Validation = MergeValidations(parseResult.Validation, fallbackValidation);
+                    _logger.LogWarning("Se detectó conflicto crítico. Severidad actualizada a Critical");
+                }
+            }
 
             _logger.LogInformation(
                 "Validación: {IsApproved} - {Message} (Usó IA: {UsedAi})",
@@ -603,6 +615,31 @@ public class EventsController : ControllerBase
         return (AIValidationSeverity)Math.Max((int)first, (int)second);
     }
 
+    private AIValidationResult MergeValidations(AIValidationResult aiValidation, AIValidationResult fallbackValidation)
+    {
+        // Si el fallback detectó problemas críticos, priorizarlos
+        if (fallbackValidation.Severity == AIValidationSeverity.Critical)
+        {
+            return new AIValidationResult
+            {
+                IsApproved = false,
+                Severity = AIValidationSeverity.Critical,
+                RecommendationMessage = fallbackValidation.RecommendationMessage +
+                    (aiValidation.RecommendationMessage != null && aiValidation.RecommendationMessage.Length > 0
+                        ? " " + aiValidation.RecommendationMessage
+                        : ""),
+                Suggestions = (fallbackValidation.Suggestions ?? new List<string>())
+                    .Concat(aiValidation.Suggestions ?? new List<string>())
+                    .Distinct()
+                    .ToList(),
+                UsedAi = aiValidation.UsedAi
+            };
+        }
+
+        // Si no hay conflictos críticos, mantener la validación de la IA
+        return aiValidation;
+    }
+
     private AIValidationResult RunFallbackValidation(CreateEventDto createEventDto, IEnumerable<EventDto>? existingEvents)
     {
         // Validación crítica: fin anterior al inicio
@@ -639,15 +676,33 @@ public class EventsController : ControllerBase
         var contextEvents = existingEvents?.ToList() ?? new List<EventDto>();
         if (contextEvents.Any())
         {
-            var overlaps = contextEvents.Any(e =>
+            var overlappingEvents = contextEvents.Where(e =>
                 e.StartDate < createEventDto.EndDate &&
-                createEventDto.StartDate < e.EndDate);
+                createEventDto.StartDate < e.EndDate).ToList();
 
-            if (overlaps)
+            if (overlappingEvents.Any())
             {
-                severity = MaxSeverity(severity, AIValidationSeverity.Warning);
-                issues.Add("Se detectó un posible solapamiento con otro evento cercano.");
-                suggestions.Add("Revisa la agenda para evitar conflictos de horario.");
+                severity = MaxSeverity(severity, AIValidationSeverity.Critical);
+
+                // Crear mensaje detallado con los eventos que se superponen
+                var overlappingDetails = overlappingEvents.Select(e =>
+                {
+                    var eventStart = e.StartDate.ToString("HH:mm");
+                    var eventEnd = e.EndDate.ToString("HH:mm");
+                    return $"\"{e.Title}\" ({eventStart} - {eventEnd})";
+                }).ToList();
+
+                if (overlappingEvents.Count == 1)
+                {
+                    issues.Add($"⚠️ CONFLICTO DE HORARIO: Este evento se superpone con {overlappingDetails[0]}");
+                }
+                else
+                {
+                    issues.Add($"⚠️ CONFLICTO DE HORARIO: Este evento se superpone con {overlappingEvents.Count} eventos: {string.Join(", ", overlappingDetails)}");
+                }
+
+                suggestions.Add("Cambia la fecha/hora del evento o ajusta la duración para evitar el conflicto.");
+                suggestions.Add("Considera reprogramar uno de los eventos en conflicto.");
             }
         }
 
