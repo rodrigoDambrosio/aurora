@@ -4,6 +4,7 @@
    =========================== */
 
 .settings-screen {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -135,39 +136,61 @@
 }
 
 /* ===========================
-   NOTIFICATIONS & ALERTS
+   TOAST NOTIFICATIONS
    =========================== */
 
-.settings-error {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
-  border: 1px solid var(--color-danger);
-  color: var(--color-danger);
-  padding: 1rem 1.25rem;
+.settings-toast {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: 1rem 1.5rem;
   border-radius: 0.75rem;
-  margin: 1rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
   font-size: 0.875rem;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
-  animation: slideIn 0.3s ease-out;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  max-width: 600px;
+  width: fit-content;
+  min-width: 300px;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  text-align: center;
 }
 
-.settings-success {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.05));
-  border: 1px solid var(--color-success);
-  color: var(--color-success);
-  padding: 1rem 1.25rem;
-  border-radius: 0.75rem;
-  margin: 1rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
-  font-size: 0.875rem;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.1);
-  animation: slideIn 0.3s ease-out;
+.settings-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.settings-toast.error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.9));
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: white;
+}
+
+.settings-toast.success {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.95), rgba(22, 163, 74, 0.9));
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: white;
+}
+
+.settings-toast p {
+  margin: 0;
+  text-align: center;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .settings-toast {
+    bottom: 1rem;
+    min-width: 280px;
+    max-width: calc(100% - 2rem);
+    font-size: 0.8125rem;
+    padding: 0.875rem 1.25rem;
+  }
 }
 
 @keyframes slideIn {

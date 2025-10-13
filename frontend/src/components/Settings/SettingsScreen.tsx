@@ -50,7 +50,23 @@ const SettingsScreen: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
   const { setTheme } = useTheme();
+
+  // Auto-hide toast after 4 seconds
+  useEffect(() => {
+    if (error || successMessage) {
+      setShowToast(true);
+      const timer = setTimeout(() => {
+        setShowToast(false);
+        setTimeout(() => {
+          setError('');
+          setSuccessMessage('');
+        }, 300); // Wait for fade out animation
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, successMessage]);
 
   // Profile state
   const [profile, setProfile] = useState<UserProfileDto>({
@@ -119,8 +135,6 @@ const SettingsScreen: React.FC = () => {
       const updatedProfile = await apiService.updateUserProfile(payload);
       setProfile(updatedProfile);
       setSuccessMessage('Perfil actualizado correctamente');
-
-      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
       console.error('Error saving profile:', err);
       setError('Error al guardar el perfil');
@@ -160,7 +174,6 @@ const SettingsScreen: React.FC = () => {
       }
 
       setSuccessMessage('Preferencias actualizadas correctamente');
-      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
       console.error('Error saving preferences:', err);
       setError('Error al guardar las preferencias');
@@ -237,18 +250,6 @@ const SettingsScreen: React.FC = () => {
           </div>
         </div>
       </header>
-
-      {error && (
-        <div className="settings-error">
-          <p>{error}</p>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="settings-success">
-          <p>{successMessage}</p>
-        </div>
-      )}
 
       <div className="settings-tabs">
         {tabs.map(tab => {
@@ -543,6 +544,13 @@ const SettingsScreen: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Toast notification */}
+      {(error || successMessage) && (
+        <div className={`settings-toast ${showToast ? 'show' : ''} ${error ? 'error' : 'success'}`}>
+          <p>{error || successMessage}</p>
+        </div>
+      )}
     </div>
   );
 };
