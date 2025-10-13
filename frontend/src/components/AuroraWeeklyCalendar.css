@@ -80,11 +80,21 @@
 }
 
 /* Week Header */
-.week-header {
+.week-header-container {
     display: flex;
-    height: 72px;
     width: 100%;
     margin-top: 4px;
+}
+
+.time-column-header {
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.week-header {
+    display: flex;
+    flex: 1;
+    height: 72px;
 }
 
 .day-header {
@@ -94,12 +104,35 @@
     gap: 4px;
     padding: 12px;
     text-align: center;
+    align-items: center;
 }
 
 .day-header.today {
+    position: relative;
+}
+
+.day-header.today .day-name {
+    font-weight: 600;
+    color: var(--gradient-primary-start);
+}
+
+.day-header.today .day-number {
     background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
-    border-radius: 10px;
     color: white;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    max-width: 36px;
+    max-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 1;
+    aspect-ratio: 1 / 1;
 }
 
 .day-name {
@@ -110,10 +143,6 @@
     color: var(--color-text-muted);
 }
 
-.day-header.today .day-name {
-    color: white;
-}
-
 .day-number {
     font-family: 'Arial', sans-serif;
     font-weight: bold;
@@ -122,8 +151,360 @@
     color: var(--color-text-muted);
 }
 
-.day-header.today .day-number {
-    color: white;
+/* All-Day Events Row */
+.all-day-events-container {
+    display: flex;
+    border-top: 0.667px solid var(--color-border);
+    border-bottom: 0.667px solid var(--color-border);
+    background: var(--color-surface);
+    min-height: 40px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.all-day-time-label {
+    width: 60px;
+    flex-shrink: 0;
+    border-right: 0.667px solid var(--color-border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 8px 4px;
+}
+
+.all-day-time-label span {
+    font-family: 'Arial', sans-serif;
+    font-size: 10px;
+    line-height: 12px;
+    color: var(--color-text-muted);
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.all-day-events-grid-wrapper {
+    flex: 1;
+    position: relative;
+    min-height: 40px;
+}
+
+.all-day-events-grid {
+    display: flex;
+    height: 100%;
+}
+
+.all-day-column {
+    flex: 1;
+    border-right: 0.667px solid var(--color-border);
+}
+
+.all-day-column:last-child {
+    border-right: none;
+}
+
+.all-day-events-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.all-day-event-card {
+    position: absolute;
+    border-radius: 8px;
+    border-left: 4px solid;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+}
+
+.all-day-event-card.multi-day {
+    font-weight: 500;
+}
+
+.all-day-event-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.all-day-event-card .event-title {
+    font-size: 14px;
+    line-height: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.multi-day-indicator {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.8;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Calendar Grid with Hours */
+.calendar-grid-container {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-top: 0.667px solid var(--color-border);
+}
+
+.time-column {
+    width: 60px;
+    flex-shrink: 0;
+    border-right: 0.667px solid var(--color-border);
+    position: relative;
+    min-height: 1920px; /* 24 hours * 80px */
+}
+
+.time-slot {
+    position: relative;
+    border-bottom: 0.667px solid var(--color-border);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 4px;
+}
+
+.time-label {
+    font-family: 'Arial', sans-serif;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    padding: 0 4px;
+    margin-left: 4px;
+}
+
+.calendar-grid-with-hours {
+    display: flex;
+    flex: 1;
+    min-height: 1920px; /* 24 hours * 80px */
+}
+
+.day-column-with-hours {
+    flex: 1;
+    border-right: 0.667px solid var(--color-border);
+    position: relative;
+    height: 1920px; /* 24 hours * 80px */
+    overflow: hidden; /* Evitar cualquier desborde */
+}
+
+.day-column-with-hours:last-child {
+    border-right: none;
+}
+
+.hour-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 80px;
+    border-bottom: 0.667px solid var(--color-border);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Zebra striping for hours */
+.hour-line:nth-child(odd) {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.events-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    overflow: hidden; /* Evitar que los eventos se salgan del día */
+}
+
+/* Event Cards in hour grid */
+.event-card-timed {
+    position: absolute;
+    border-radius: 8px;
+    border-left: 4px solid;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 60px; /* Ancho mínimo para eventos muy superpuestos */
+    max-width: 100%; /* No exceder el ancho del contenedor */
+    box-sizing: border-box; /* Incluir padding y border en el ancho */
+}
+
+/* Ajustes de tamaño según la altura del evento */
+/* Eventos muy pequeños (< 40px) - Solo título, tamaño reducido solo si es necesario */
+.event-card-timed.very-small {
+    padding: 3px 6px;
+    justify-content: center;
+}
+
+.event-card-timed.very-small .event-title {
+    font-size: 12px;
+    line-height: 14px;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.event-card-timed.very-small .event-time,
+.event-card-timed.very-small .event-priority {
+    display: none;
+}
+
+/* Eventos pequeños (40-60px) - Mantener tamaño original */
+.event-card-timed.small {
+    padding: 5px 8px;
+}
+
+.event-card-timed.small .event-title {
+    font-size: 14px;
+    line-height: 18px;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+.event-card-timed.small .event-time,
+.event-card-timed.small .event-priority {
+    display: none;
+}
+
+/* Eventos medianos (60-80px) - Tamaño original completo */
+.event-card-timed.medium {
+    padding: 5px 9px;
+}
+
+.event-card-timed.medium .event-title {
+    font-size: 14px;
+    line-height: 20px;
+    margin-bottom: 2px;
+}
+
+.event-card-timed.medium .event-time {
+    font-size: 11px;
+    line-height: 14px;
+    opacity: 0.8;
+}
+
+.event-card-timed.medium .event-priority {
+    display: none;
+}
+
+/* Eventos grandes (>80px) usan estilos por defecto */
+
+/* Ajustes para eventos angostos (muchas columnas) */
+.event-card-timed.many-columns .event-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event-card-timed.many-columns .event-time {
+    font-size: 10px;
+    line-height: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+/* Continuation indicators for multi-day events */
+.event-card-timed.continues-from-previous {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    padding-top: 18px;
+}
+
+.event-card-timed.continues-to-next {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    padding-bottom: 18px;
+}
+
+.continuation-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 12px;
+    opacity: 0.7;
+}
+
+.continuation-indicator.top {
+    top: 2px;
+}
+
+.continuation-indicator.bottom {
+    bottom: 2px;
+}
+
+.continuation-indicator svg {
+    width: 12px;
+    height: 8px;
+}
+
+.event-card-timed:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100 !important;
+}
+
+.event-card-timed.overlapping {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.event-card-timed.overlapping:hover {
+    transform: translateX(-2px) translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Hover especial para eventos con muchas columnas - expandir a toda la celda */
+.event-card-timed.many-columns:hover {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    z-index: 200 !important;
+}
+
+/* Drag and drop for timed events */
+.event-card-timed[draggable="true"] {
+    cursor: grab;
+}
+
+.event-card-timed[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.event-card-timed.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.day-column-with-hours.drag-over {
+    background: rgba(99, 102, 241, 0.06);
 }
 
 /* Calendar Grid */
@@ -192,7 +573,14 @@
 .events-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
+    position: relative;
+    min-height: 60px;
+}
+
+/* When events are overlapping, we need less gap */
+.events-container:has(.event-card.overlapping) {
+    gap: 2px;
 }
 
 /* Event Cards */
@@ -207,6 +595,28 @@
     flex-direction: column;
     justify-content: space-between;
     position: relative;
+}
+
+/* Overlapping events styling */
+.event-card.overlapping {
+    padding: 7px 10px;
+    min-height: 54px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.event-card.overlapping:hover {
+    transform: translateX(-2px) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 100 !important;
+}
+
+/* Improve text readability for overlapping events */
+.event-card.overlapping .event-title {
+    font-weight: 500;
+}
+
+.event-card.overlapping .event-time {
+    font-size: 11.5px;
 }
 
 .event-card:hover {
@@ -406,6 +816,23 @@
     .day-number {
         font-size: 16px;
     }
+
+    /* Hour grid adjustments for tablets */
+    .time-column {
+        min-height: 1680px; /* 24 hours * 70px */
+    }
+
+    .calendar-grid-with-hours {
+        min-height: 1680px;
+    }
+
+    .day-column-with-hours {
+        height: 1680px;
+    }
+
+    .hour-line {
+        height: 70px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -423,6 +850,42 @@
 
     .calendar-add-btn span {
         display: none;
+    }
+
+    /* Reduce hour grid size on mobile */
+    .all-day-time-label {
+        width: 40px;
+    }
+
+    .time-column-header {
+        width: 40px;
+    }
+
+    .time-column {
+        width: 40px;
+        min-height: 1440px; /* 24 hours * 60px */
+    }
+
+    .time-label {
+        font-size: 10px;
+        left: 4px;
+    }
+
+    .calendar-grid-with-hours {
+        min-height: 1440px;
+    }
+
+    .day-column-with-hours {
+        height: 1440px;
+    }
+
+    .hour-line {
+        height: 60px;
+    }
+
+    .event-card-timed {
+        padding: 4px 8px;
+        font-size: 12px;
     }
 
     .calendar-grid {
@@ -464,6 +927,14 @@
         font-size: 16px;
     }
 
+    .all-day-time-label {
+        width: 35px;
+    }
+
+    .time-column-header {
+        width: 35px;
+    }
+
     .week-header {
         height: 50px;
     }
@@ -477,5 +948,15 @@
         flex-direction: column;
         gap: 8px;
         height: auto;
+    }
+
+    /* More compact hour grid on small mobile */
+    .time-column {
+        width: 35px;
+    }
+
+    .time-label {
+        font-size: 9px;
+        left: 2px;
     }
 }
