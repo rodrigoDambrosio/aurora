@@ -41,6 +41,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   const [weeklyData, setWeeklyData] = useState<WeeklyEventsResponseDto | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [timeFormat, setTimeFormat] = useState<'12h' | '24h'>('24h'); // Preferencia de formato de hora
 
   // Drag and drop state
   const [draggedEvent, setDraggedEvent] = useState<EventDto | null>(null);
@@ -112,6 +113,21 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekStart, selectedCategoryId, refreshToken]);
 
+  // Cargar preferencias de usuario
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const preferences = await apiService.getUserPreferences();
+        setTimeFormat(preferences.timeFormat);
+      } catch (err) {
+        console.error('Error loading user preferences:', err);
+        // Usar valor por defecto si falla
+      }
+    };
+
+    loadUserPreferences();
+  }, []);
+
   // Navigation functions
   const goToPreviousWeek = () => {
     const newDate = new Date(currentDate);
@@ -135,12 +151,23 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     return days[date.getDay()];
   };
 
+  // Formatear label de hora para la grilla (1-23)
+  const formatHourLabel = (hour: number): string => {
+    if (timeFormat === '12h') {
+      if (hour === 0 || hour === 24) return '12 AM';
+      if (hour < 12) return `${hour} AM`;
+      if (hour === 12) return '12 PM';
+      return `${hour - 12} PM`;
+    }
+    return hour.toString().padStart(2, '0');
+  };
+
   const formatTime = (dateTime: string): string => {
     const date = new Date(dateTime);
     return date.toLocaleTimeString('es-ES', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: timeFormat === '12h'
     });
   };
 
@@ -711,7 +738,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
             >
               {hour < 23 && (
                 <span className="time-label">
-                  {(hour + 1).toString().padStart(2, '0')}
+                  {formatHourLabel(hour + 1)}
                 </span>
               )}
             </div>

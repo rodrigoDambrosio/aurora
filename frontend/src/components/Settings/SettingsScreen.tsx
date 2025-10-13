@@ -2,6 +2,7 @@ import { Bell, BellOff, Clock, Globe, MessageSquare, Moon, Save, Settings, Sun, 
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { apiService, type UpdateUserPreferencesDto, type UpdateUserProfileDto, type UserPreferencesDto, type UserProfileDto } from '../../services/apiService';
+import { TimeInput } from '../TimeInput';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Input } from '../ui/input';
@@ -327,22 +328,22 @@ const SettingsScreen: React.FC = () => {
               </div>
               <div className="card-content">
                 <div className="time-inputs">
-                  <div className="form-group">
+                  <div className="event-form-field">
                     <label htmlFor="workStart">Hora inicio</label>
-                    <Input
+                    <TimeInput
                       id="workStart"
-                      type="time"
                       value={preferences.workStartTime || '09:00'}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, workStartTime: e.target.value }))}
+                      onChange={(value) => setPreferences(prev => ({ ...prev, workStartTime: value }))}
+                      timeFormat={preferences.timeFormat || '24h'}
                     />
                   </div>
-                  <div className="form-group">
+                  <div className="event-form-field">
                     <label htmlFor="workEnd">Hora fin</label>
-                    <Input
+                    <TimeInput
                       id="workEnd"
-                      type="time"
                       value={preferences.workEndTime || '18:00'}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, workEndTime: e.target.value }))}
+                      onChange={(value) => setPreferences(prev => ({ ...prev, workEndTime: value }))}
+                      timeFormat={preferences.timeFormat || '24h'}
                     />
                   </div>
                 </div>
