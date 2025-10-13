@@ -131,4 +131,38 @@ public class EventCategoryRepository : Repository<EventCategory>, IEventCategory
             .Include(c => c.User)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
+
+    public async Task<bool> ExistsCategoryWithNameAsync(string name, Guid userId, Guid? excludeCategoryId = null)
+    {
+        var query = _dbSet.Where(c => c.UserId == userId &&
+                                      c.Name.ToLower() == name.ToLower());
+
+        if (excludeCategoryId.HasValue)
+        {
+            query = query.Where(c => c.Id != excludeCategoryId);
+        }
+
+        return await query.AnyAsync();
+    }
+
+    public async Task<int> GetEventCountForCategoryAsync(Guid categoryId)
+    {
+        return await _context.Events
+            .CountAsync(e => e.EventCategoryId == categoryId);
+    }
+
+    public async Task<int> ReassignEventsToAnotherCategoryAsync(Guid fromCategoryId, Guid toCategoryId)
+    {
+        var events = await _context.Events
+            .Where(e => e.EventCategoryId == fromCategoryId)
+            .ToListAsync();
+
+        foreach (var ev in events)
+        {
+            ev.EventCategoryId = toCategoryId;
+        }
+
+        await _context.SaveChangesAsync();
+        return events.Count;
+    }
 }

@@ -124,6 +124,7 @@
     flex-direction: column;
     gap: 8px;
     margin-bottom: 16px;
+    width: 100%;
 }
 
 .event-form-field label {
@@ -144,6 +145,8 @@
     font-size: 14px;
     color: var(--color-text-primary);
     transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .event-form-input::placeholder,

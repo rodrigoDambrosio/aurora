@@ -98,11 +98,6 @@ function App() {
       ) : (
         <div className="aurora-app">
           <MainDashboard />
-          {import.meta.env.DEV && (
-            <div className="dev-overlay">
-              <a href="?test" className="dev-link">🧪 API Test</a>
-            </div>
-          )}
         </div>
       )}
     </div>

@@ -1,8 +1,8 @@
 /* Navigation Component */
 .navigation {
     background: var(--color-surface);
-    height: 778.667px;
-    width: 256px;
+    height: 100vh;
+    width: 225px;
     border-right: 0.667px solid var(--color-border);
     display: flex;
     flex-direction: column;
@@ -213,11 +213,12 @@
 
 /* Menu */
 .navigation-menu {
-    flex: 1;
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    flex: 1;
+    overflow-y: auto;
 }
 
 .nav-button {
@@ -296,78 +297,54 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-top: auto;
 }
 
-.dark-mode-toggle {
-    background: var(--color-surface-alt);
-    border: 0.667px solid var(--color-border);
-    border-radius: 8px;
-    height: 32px;
-    padding: 0 10.67px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    cursor: pointer;
-    transition: all 0.2s ease;
+.navigation .dark-mode-toggle,
+.navigation .logout-button {
+    background: var(--color-surface) !important;
+    border: 0.667px solid var(--color-border) !important;
+    border-radius: 8px !important;
+    height: 32px !important;
+    padding: 0 10.67px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    font-size: 14px !important;
+    font-weight: normal !important;
 }
 
-.dark-mode-toggle:hover {
-    background: var(--color-surface);
+.navigation .dark-mode-toggle:hover,
+.navigation .logout-button:hover {
+    background: var(--color-surface-alt) !important;
+    border-color: var(--color-border) !important;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
-.dark-mode-toggle svg {
-    width: 16px;
-    height: 16px;
-    color: var(--color-text-primary);
+.navigation .dark-mode-toggle:disabled,
+.navigation .logout-button:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
 }
 
-.dark-mode-toggle span {
-    font-family: 'Arial', sans-serif;
-    font-weight: normal;
-    font-size: 14px;
-    line-height: 20px;
-    color: var(--color-text-primary);
+.navigation .dark-mode-toggle svg,
+.navigation .logout-button svg {
+    width: 16px !important;
+    height: 16px !important;
+    color: var(--color-text-primary) !important;
 }
 
-.logout-button {
-    background: transparent;
-    border: 0.667px solid var(--color-border);
-    border-radius: 8px;
-    height: 32px;
-    padding: 0 10.67px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    color: var(--color-text-muted);
-}
-
-.logout-button:hover {
-    background: var(--color-surface-alt);
-    color: var(--color-text-primary);
-    border-color: var(--color-text-muted);
-}
-
-.logout-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.logout-button svg {
-    width: 16px;
-    height: 16px;
-    color: inherit;
-}
-
-.logout-button span {
-    font-family: 'Arial', sans-serif;
-    font-weight: normal;
-    font-size: 14px;
-    line-height: 20px;
-    color: inherit;
+.navigation .dark-mode-toggle span,
+.navigation .logout-button span {
+    font-family: 'Arial', sans-serif !important;
+    font-weight: normal !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+    color: var(--color-text-primary) !important;
 }
 
 /* Responsive */
@@ -397,14 +374,14 @@
         display: none;
     }
 
-    .dark-mode-toggle span,
-    .logout-button span {
-        display: none;
+    .navigation .dark-mode-toggle span,
+    .navigation .logout-button span {
+        display: none !important;
     }
     
-    .dark-mode-toggle,
-    .logout-button {
-        justify-content: center;
-        padding: 8px;
+    .navigation .dark-mode-toggle,
+    .navigation .logout-button {
+        justify-content: center !important;
+        padding: 8px !important;
     }
 }
