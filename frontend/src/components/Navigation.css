@@ -319,10 +319,16 @@
 
 .navigation .dark-mode-toggle:hover,
 .navigation .logout-button:hover {
-    background: var(--color-surface-alt) !important;
-    border-color: var(--color-border) !important;
-    transform: none !important;
-    box-shadow: none !important;
+    background: var(--color-hover) !important;
+    border-color: var(--color-border-hover) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+.navigation .dark-mode-toggle:active,
+.navigation .logout-button:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
 }
 
 .navigation .dark-mode-toggle:disabled,
@@ -378,7 +384,7 @@
     .navigation .logout-button span {
         display: none !important;
     }
-    
+
     .navigation .dark-mode-toggle,
     .navigation .logout-button {
         justify-content: center !important;

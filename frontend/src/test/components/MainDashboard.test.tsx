@@ -94,6 +94,14 @@ vi.mock('../../components/FloatingNLPInput', () => ({
   ),
 }))
 
+vi.mock('../../components/Settings/SettingsScreen', () => ({
+  default: () => (
+    <div data-testid="settings-screen">
+      Settings Mock
+    </div>
+  )
+}))
+
 describe('MainDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -115,8 +123,9 @@ describe('MainDashboard', () => {
     const settingsButton = screen.getByText('Settings')
     await user.click(settingsButton)
 
-    expect(screen.getByText('Configuración')).toBeInTheDocument()
-    expect(screen.getByText('Esta vista estará disponible pronto')).toBeInTheDocument()
+    // Mock SettingsScreen renders simple text
+    expect(screen.getByTestId('settings-screen')).toBeInTheDocument()
+    expect(screen.getByText('Settings Mock')).toBeInTheDocument()
   })
 
   it('switches to monthly view', async () => {
@@ -201,7 +210,8 @@ describe('MainDashboard', () => {
     const settingsButton = screen.getByText('Settings')
     await user.click(settingsButton)
 
-    expect(screen.getByText('Esta vista estará disponible pronto')).toBeInTheDocument()
+    // Mock SettingsScreen renders simple text
+    expect(screen.getByTestId('settings-screen')).toBeInTheDocument()
   })
 
   it('defaults back to weekly calendar for unknown views', () => {

@@ -111,7 +111,7 @@ describe('AuroraWeeklyCalendar', () => {
     render(<AuroraWeeklyCalendar />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Semana/)).toBeInTheDocument()
+      expect(screen.getByText(/eventos esta semana/)).toBeInTheDocument()
     })
   })
 
