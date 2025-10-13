@@ -16,8 +16,8 @@
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     padding: 0 0 0 16px;
-    margin-top: 16px;
-    margin-bottom: 8px;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .weekday-header {
@@ -40,6 +40,7 @@
     margin: 0 0 0 16px;
     overflow: hidden;
     border-radius: 12px 0 0 12px;
+    min-height: 600px; /* Altura mínima aumentada */
 }
 
 .calendar-day {
@@ -48,7 +49,7 @@
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    min-height: 100px;
+    min-height: 120px; /* Altura mínima aumentada */
     overflow: hidden;
     transition: background 0.2s ease, color 0.2s ease;
 }
@@ -62,15 +63,18 @@
 }
 
 .day-number {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--color-text-primary);
     margin-bottom: 4px;
     font-family: inherit;
+    height: 22px;
+    display: flex;
+    align-items: center;
 }
 
 .today-number {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -78,18 +82,19 @@
     color: white !important;
     border-radius: 50%;
     font-weight: 500;
+    margin-bottom: 4px;
 }
 
 .day-events {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
     flex: 1;
     overflow: hidden;
 }
 
 .month-event-chip {
-    padding: 4px;
+    padding: 4px 6px;
     border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
@@ -98,6 +103,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
     position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
 }
 
 .month-event-chip:hover {
@@ -105,24 +113,16 @@
 }
 
 /* Estilos para eventos multi-día */
-.month-event-chip.multi-day {
-    border-left: 2px solid;
-    border-left-color: inherit;
-    padding-left: 6px;
-}
-
 .month-event-chip.continues-from-before {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
     padding-left: 14px;
-    /* Espacio para la flecha */
 }
 
 .month-event-chip.continues-after {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     padding-right: 14px;
-    /* Espacio para la flecha */
 }
 
 .month-event-chip.continues-from-before::before {
@@ -155,9 +155,19 @@
 
 .more-events-indicator {
     font-size: 11px;
-    color: var(--color-text-muted);
-    padding: 2px 4px;
-    text-align: center;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    padding: 3px 6px;
+    margin-top: 2px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.more-events-indicator:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
 }
 
 /* Footer */
@@ -236,10 +246,11 @@
     .monthly-calendar-grid {
         margin: 0 0 0 12px;
         border-radius: 10px 0 0 10px;
+        min-height: 480px; /* Altura responsive aumentada */
     }
 
     .calendar-day {
-        min-height: 80px;
+        min-height: 90px; /* Altura responsive aumentada */
         padding: 4px;
     }
 
@@ -266,6 +277,7 @@
     z-index: 10000;
     pointer-events: none;
     animation: popoverFadeIn 0.2s ease-out;
+    max-width: calc(100vw - 32px);
 }
 
 .day-events-popover.bottom {
@@ -284,8 +296,8 @@
         0 2px 6px rgba(0, 0, 0, 0.04);
     padding: 0.875rem;
     min-width: 280px;
-    max-width: 400px;
-    max-height: 500px;
+    max-width: min(400px, calc(100vw - 32px));
+    max-height: min(500px, calc(100vh - 100px));
     overflow-y: auto;
     pointer-events: auto;
     font-family: inherit;
