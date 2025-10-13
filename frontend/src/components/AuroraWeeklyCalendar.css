@@ -87,7 +87,7 @@
 }
 
 .time-column-header {
-    width: 60px;
+    width: 80px; /* Aumentado de 60px */
     flex-shrink: 0;
 }
 
@@ -157,35 +157,36 @@
     border-top: 0.667px solid var(--color-border);
     border-bottom: 0.667px solid var(--color-border);
     background: var(--color-surface);
-    min-height: 40px;
+    min-height: 36px; /* Reducido de 40px */
     max-height: 120px;
     overflow-y: auto;
 }
 
 .all-day-time-label {
-    width: 60px;
+    width: 80px; /* Aumentado de 60px */
     flex-shrink: 0;
     border-right: 0.667px solid var(--color-border);
     display: flex;
-    align-items: flex-start;
+    align-items: center; /* Centrado verticalmente */
     justify-content: center;
-    padding: 8px 4px;
+    padding: 6px 4px; /* Reducido de 8px */
 }
 
 .all-day-time-label span {
     font-family: 'Arial', sans-serif;
-    font-size: 10px;
-    line-height: 12px;
+    font-size: 9px; /* Reducido de 10px para que entre en una línea */
+    line-height: 11px; /* Reducido de 12px */
     color: var(--color-text-muted);
     text-align: center;
     text-transform: uppercase;
     font-weight: 500;
+    white-space: nowrap; /* Evitar que se corte en dos líneas */
 }
 
 .all-day-events-grid-wrapper {
     flex: 1;
     position: relative;
-    min-height: 40px;
+    min-height: 36px; /* Reducido de 40px */
 }
 
 .all-day-events-grid {
@@ -218,18 +219,18 @@
     position: absolute;
     border-radius: 8px;
     border-left: 4px solid;
-    padding: 6px 10px;
+    padding: 4px 8px; /* Reducido de 6px 10px */
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 14px;
+    font-size: 13px; /* Reducido de 14px */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     pointer-events: auto;
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-height: 32px;
+    gap: 6px; /* Reducido de 8px */
+    min-height: 26px; /* Reducido de 32px */
 }
 
 .all-day-event-card.multi-day {
@@ -242,8 +243,8 @@
 }
 
 .all-day-event-card .event-title {
-    font-size: 14px;
-    line-height: 20px;
+    font-size: 13px; /* Reducido de 14px */
+    line-height: 18px; /* Reducido de 20px */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -251,7 +252,7 @@
 }
 
 .multi-day-indicator {
-    font-size: 11px;
+    font-size: 10px; /* Reducido de 11px */
     font-weight: 600;
     opacity: 0.8;
     white-space: nowrap;
@@ -269,7 +270,7 @@
 }
 
 .time-column {
-    width: 60px;
+    width: 80px; /* Aumentado de 60px */
     flex-shrink: 0;
     border-right: 0.667px solid var(--color-border);
     position: relative;
