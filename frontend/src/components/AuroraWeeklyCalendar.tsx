@@ -32,6 +32,11 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   refreshToken,
   firstDayOfWeek = 1 // Default to Monday
 }) => {
+  // Hour grid configuration
+  const START_HOUR = 0;
+  const END_HOUR = 24;
+  const HOUR_HEIGHT = 80; // pixels per hour
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weeklyData, setWeeklyData] = useState<WeeklyEventsResponseDto | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -153,6 +158,23 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     return `${startTime} - ${endTime}`;
   };
 
+  // Formato compacto para eventos angostos
+  const getCompactTimeRange = (event: EventDto): string => {
+    const start = new Date(event.startDate);
+    const end = new Date(event.endDate);
+    const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const isMultiDay = startDay.getTime() !== endDay.getTime();
+
+    if (isMultiDay) {
+      return `${start.getDate()}/${start.getMonth() + 1} ${formatTime(event.startDate)}`;
+    }
+
+    const startTime = formatTime(event.startDate);
+    const endTime = formatTime(event.endDate);
+    return `${startTime}-${endTime}`; // Sin espacios para ahorrar espacio
+  };
+
   const getEventsByDate = (date: Date): EventDto[] => {
     if (!weeklyData?.events) return [];
 
@@ -170,6 +192,177 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
       return (eventStartDay.getTime() <= dayStart.getTime() && eventEndDay.getTime() >= dayStart.getTime());
     });
   };
+
+  // Separar eventos de todo el día de eventos con hora específica
+  const getAllDayEvents = (date: Date): EventDto[] => {
+    const dayEvents = getEventsByDate(date);
+    return dayEvents.filter(event => event.isAllDay);
+  };
+
+  const getTimedEvents = (date: Date): EventDto[] => {
+    const dayEvents = getEventsByDate(date);
+    return dayEvents.filter(event => !event.isAllDay);
+  };
+
+  // Detectar superposiciones y calcular columnas para eventos
+  interface EventWithLayout extends EventDto {
+    column: number;
+    totalColumns: number;
+  }
+
+  const calculateEventLayout = (events: EventDto[]): EventWithLayout[] => {
+    if (events.length === 0) return [];
+    if (events.length === 1) {
+      return [{
+        ...events[0],
+        column: 0,
+        totalColumns: 1
+      }];
+    }
+
+    // Ordenar eventos por hora de inicio, luego por duración (más largos primero)
+    const sortedEvents = [...events].sort((a, b) => {
+      const startA = new Date(a.startDate).getTime();
+      const startB = new Date(b.startDate).getTime();
+      if (startA !== startB) return startA - startB;
+
+      // Si empiezan igual, ordenar por duración (más largos primero)
+      const durationA = new Date(a.endDate).getTime() - startA;
+      const durationB = new Date(b.endDate).getTime() - startB;
+      return durationB - durationA;
+    });
+
+    // Detectar grupos de eventos superpuestos
+    const groups: EventDto[][] = [];
+    let currentGroup: EventDto[] = [sortedEvents[0]];
+    let groupEndTime = new Date(sortedEvents[0].endDate).getTime();
+
+    for (let i = 1; i < sortedEvents.length; i++) {
+      const event = sortedEvents[i];
+      const eventStart = new Date(event.startDate).getTime();
+      const eventEnd = new Date(event.endDate).getTime();
+
+      // Si el evento empieza antes de que termine el grupo, es parte del grupo
+      if (eventStart < groupEndTime) {
+        currentGroup.push(event);
+        groupEndTime = Math.max(groupEndTime, eventEnd);
+      } else {
+        // Nuevo grupo
+        groups.push(currentGroup);
+        currentGroup = [event];
+        groupEndTime = eventEnd;
+      }
+    }
+    groups.push(currentGroup);
+
+    // Asignar columnas dentro de cada grupo
+    const eventsWithLayout: EventWithLayout[] = [];
+
+    groups.forEach(group => {
+      if (group.length === 1) {
+        eventsWithLayout.push({
+          ...group[0],
+          column: 0,
+          totalColumns: 1
+        });
+      } else {
+        // Sin límite de columnas - crear tantas como sean necesarias
+        const columns: { end: number }[] = [];
+
+        group.forEach(event => {
+          const eventStart = new Date(event.startDate).getTime();
+          const eventEnd = new Date(event.endDate).getTime();
+
+          // Encontrar la primera columna disponible
+          let columnIndex = -1;
+          for (let i = 0; i < columns.length; i++) {
+            if (columns[i].end <= eventStart) {
+              columnIndex = i;
+              break;
+            }
+          }
+
+          // Si no hay columna disponible, crear una nueva
+          if (columnIndex === -1) {
+            columnIndex = columns.length;
+            columns.push({ end: eventEnd });
+          } else {
+            columns[columnIndex].end = eventEnd;
+          }
+
+          eventsWithLayout.push({
+            ...event,
+            column: columnIndex,
+            totalColumns: columns.length
+          });
+        });
+
+        // Actualizar totalColumns para todos los eventos del grupo
+        const actualColumns = columns.length;
+        eventsWithLayout
+          .filter(e => group.some(ge => ge.id === e.id))
+          .forEach(e => {
+            e.totalColumns = actualColumns;
+          });
+      }
+    });
+
+    return eventsWithLayout;
+  };
+
+  // Calculate event position in hour grid
+  const getEventPosition = (event: EventDto, currentDate: Date): { top: number; height: number } => {
+    const start = new Date(event.startDate);
+    const end = new Date(event.endDate);
+
+    // Get the current day boundaries
+    const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    // Determine effective start and end times for this day
+    let effectiveStart = start;
+    let effectiveEnd = end;
+
+    // If event starts before this day, use 00:00 of this day
+    if (start < dayStart) {
+      effectiveStart = dayStart;
+    }
+
+    // If event ends after this day, use 23:59 of this day
+    if (end > dayEnd) {
+      effectiveEnd = dayEnd;
+    }
+
+    // Get hours and minutes as decimal
+    const startHour = effectiveStart.getHours() + effectiveStart.getMinutes() / 60;
+    const endHour = effectiveEnd.getHours() + effectiveEnd.getMinutes() / 60;
+
+    // Calculate position
+    const top = (startHour - START_HOUR) * HOUR_HEIGHT;
+    const height = (endHour - startHour) * HOUR_HEIGHT;
+
+    return { top, height: Math.max(height, 30) }; // Minimum height of 30px
+  };
+
+  // Helper function to create event background that hides grid lines
+  const getEventBackgroundColor = (color: string) => {
+    // Convert hex to RGB
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    // Use linear-gradient with two layers:
+    // 1. Semi-transparent color layer (20% opacity)
+    // 2. Solid surface color layer underneath
+    return `linear-gradient(rgba(${r}, ${g}, ${b}, 0.20), rgba(${r}, ${g}, ${b}, 0.20)), var(--color-surface)`;
+  };
+
+  // Generate hours array for grid
+  const hours = useMemo(() => {
+    return Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR);
+  }, []);
 
   const isToday = (date: Date): boolean => {
     const today = new Date();
@@ -355,41 +548,166 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
       <div className="calendar-divider" />
 
       {/* Week Days Header */}
-      <div className="week-header">
-        {weekDates.map((date, index) => (
-          <div
-            key={index}
-            className={`day-header ${isToday(date) ? 'today' : ''}`}
-          >
-            <div className="day-name">{formatDayName(date)}</div>
-            <div className="day-number">{date.getDate()}</div>
-          </div>
-        ))}
+      <div className="week-header-container">
+        {/* Empty space for time column */}
+        <div className="time-column-header"></div>
+
+        {/* Days header */}
+        <div className="week-header">
+          {weekDates.map((date, index) => (
+            <div
+              key={index}
+              className={`day-header ${isToday(date) ? 'today' : ''}`}
+            >
+              <div className="day-name">{formatDayName(date)}</div>
+              <div className="day-number">{date.getDate()}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="calendar-grid">
-        {weekDates.map((date, dayIndex) => {
-          const dayEvents = getEventsByDate(date);
+      {/* All-Day Events Row */}
+      <div className="all-day-events-container">
+        {/* Time column label */}
+        <div className="all-day-time-label">
+          <span>Todo el día</span>
+        </div>
 
-          return (
+        {/* All-day events grid with absolute positioning */}
+        <div className="all-day-events-grid-wrapper">
+          <div className="all-day-events-grid">
+            {weekDates.map((_, dayIndex) => (
+              <div
+                key={dayIndex}
+                className="all-day-column"
+              />
+            ))}
+          </div>
+
+          {/* Positioned all-day events */}
+          <div className="all-day-events-layer">
+            {(() => {
+              // Get all unique all-day events for the week
+              const allDayEventsSet = new Set<string>();
+              const allDayEventsMap = new Map<string, { event: EventDto, startDay: number, endDay: number }>();
+
+              weekDates.forEach((date) => {
+                const dayEvents = getAllDayEvents(date);
+                dayEvents.forEach(event => {
+                  if (!allDayEventsSet.has(event.id)) {
+                    allDayEventsSet.add(event.id);
+
+                    const eventStart = new Date(event.startDate);
+                    const eventEnd = new Date(event.endDate);
+                    const eventStartDay = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+                    const eventEndDay = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate());
+
+                    // Calculate which day columns this event spans in the current week
+                    let startDayIndex = -1;
+                    let endDayIndex = -1;
+
+                    weekDates.forEach((weekDate, idx) => {
+                      const weekDay = new Date(weekDate.getFullYear(), weekDate.getMonth(), weekDate.getDate());
+
+                      if (eventStartDay.getTime() <= weekDay.getTime() && eventEndDay.getTime() >= weekDay.getTime()) {
+                        if (startDayIndex === -1) startDayIndex = idx;
+                        endDayIndex = idx;
+                      }
+                    });
+
+                    if (startDayIndex !== -1) {
+                      allDayEventsMap.set(event.id, { event, startDay: startDayIndex, endDay: endDayIndex });
+                    }
+                  }
+                });
+              });
+
+              // Render events with calculated positions
+              return Array.from(allDayEventsMap.values()).map(({ event, startDay, endDay }) => {
+                const categoryColor = event.eventCategory?.color || '#1447e6';
+                const spanDays = endDay - startDay + 1;
+                const widthPercentage = (spanDays * 100) / 7;
+                const leftPercentage = (startDay * 100) / 7;
+
+                const eventStart = new Date(event.startDate);
+                const eventEnd = new Date(event.endDate);
+                const eventStartDay = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+                const eventEndDay = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate());
+                const isMultiDay = eventStartDay.getTime() !== eventEndDay.getTime();
+
+                return (
+                  <div
+                    key={event.id}
+                    className={`all-day-event-card ${isMultiDay ? 'multi-day' : ''}`}
+                    style={{
+                      background: getEventBackgroundColor(categoryColor),
+                      borderLeftColor: categoryColor,
+                      color: categoryColor,
+                      width: `calc(${widthPercentage}% - 8px)`,
+                      left: `calc(${leftPercentage}% + 4px)`,
+                    }}
+                    onClick={() => onEventClick?.(event)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Ver detalle del evento ${event.title}`}
+                  >
+                    <div className="event-title">{event.title}</div>
+                    {isMultiDay && (
+                      <div className="multi-day-indicator">
+                        {spanDays} días
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      </div>
+
+      {/* Calendar Grid with Hours */}
+      <div className="calendar-grid-container">
+        {/* Time column */}
+        <div className="time-column">
+          {hours.map((hour) => (
             <div
-              key={dayIndex}
-              className={`day-column ${dragOverDate?.toDateString() === date.toDateString() ? 'drag-over' : ''}`}
-              onDragOver={(e) => handleDragOver(date, e)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(date, e)}
+              key={hour}
+              className="time-slot"
+              style={{ height: `${HOUR_HEIGHT}px` }}
             >
-              {dayEvents.length === 0 ? (
-                <div className="add-event-placeholder" onClick={() => onAddEvent?.(date)}>
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" />
-                  </svg>
-                  <span>Agregar evento</span>
-                </div>
-              ) : (
-                <div className="events-container">
-                  {dayEvents.map((event) => {
+              <span className="time-label">
+                {hour.toString().padStart(2, '0')}:00
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Days grid */}
+        <div className="calendar-grid-with-hours">
+          {weekDates.map((date, dayIndex) => {
+            const timedEvents = getTimedEvents(date);
+            const eventsWithLayout = calculateEventLayout(timedEvents);
+
+            return (
+              <div
+                key={dayIndex}
+                className={`day-column-with-hours ${dragOverDate?.toDateString() === date.toDateString() ? 'drag-over' : ''}`}
+                onDragOver={(e) => handleDragOver(date, e)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(date, e)}
+              >
+                {/* Hour grid lines */}
+                {hours.map((hour) => (
+                  <div
+                    key={hour}
+                    className="hour-line"
+                    style={{ top: `${(hour - START_HOUR) * HOUR_HEIGHT}px` }}
+                  />
+                ))}
+
+                {/* Events positioned by time */}
+                <div className="events-layer">
+                  {eventsWithLayout.map((event) => {
                     const categoryColor = event.eventCategory?.color || '#1447e6';
                     const priorityLevel = Math.min(Math.max(event.priority ?? 2, 1), 4);
 
@@ -400,17 +718,59 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                     const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
                     const isMultiDay = startDay.getTime() !== endDay.getTime();
 
+                    // Detectar si el evento continúa desde el día anterior o hacia el día siguiente
+                    const currentDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                    const continuesFromPrevious = startDay.getTime() < currentDay.getTime();
+                    const continuesToNext = endDay.getTime() > currentDay.getTime();
+
+                    // Get position in hour grid
+                    const { top, height } = getEventPosition(event, date);
+
+                    // Determinar la clase de tamaño según la altura
+                    let sizeClass = '';
+                    if (height < 40) {
+                      sizeClass = 'very-small';
+                    } else if (height < 60) {
+                      sizeClass = 'small';
+                    } else if (height < 80) {
+                      sizeClass = 'medium';
+                    }
+
+                    // Calcular estilos para eventos superpuestos
+                    const isOverlapping = event.totalColumns > 1;
+                    const hasManyColumns = event.totalColumns > 3;
+                    let width: string;
+                    let left: string;
+
+                    if (isOverlapping) {
+                      // Eventos en paralelo: dividir el ancho equitativamente
+                      const widthPercentage = 100 / event.totalColumns;
+                      const leftPercentage = (event.column * 100) / event.totalColumns;
+
+                      width = `${widthPercentage}%`;
+                      left = `${leftPercentage}%`;
+                    } else {
+                      // Evento único: usar todo el ancho
+                      width = '100%';
+                      left = '0';
+                    }
+
                     return (
                       <div
                         key={event.id}
-                        className={`event-card ${isMultiDay ? 'multi-day-event' : ''}`}
+                        className={`event-card-timed ${sizeClass} ${isMultiDay ? 'multi-day-event' : ''} ${isOverlapping ? 'overlapping' : ''} ${hasManyColumns ? 'many-columns' : ''} ${continuesFromPrevious ? 'continues-from-previous' : ''} ${continuesToNext ? 'continues-to-next' : ''}`}
                         draggable
                         onDragStart={(e) => handleDragStart(event, e)}
                         onDragEnd={handleDragEnd}
                         style={{
-                          backgroundColor: categoryColor + '33',
+                          background: getEventBackgroundColor(categoryColor),
                           borderLeftColor: categoryColor,
-                          color: categoryColor
+                          color: categoryColor,
+                          top: `${top}px`,
+                          height: `${height}px`,
+                          left: left,
+                          width: width,
+                          zIndex: event.column + 2
                         }}
                         onClick={() => onEventClick?.(event)}
                         onKeyDown={(keyboardEvent) => {
@@ -429,38 +789,49 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                         tabIndex={0}
                         aria-label={`Ver detalle del evento ${event.title}`}
                       >
-                        <div className="event-title">{event.title}</div>
-                        <div className="event-time">{getEventTimeRange(event)}</div>
-                        <div className="event-priority" aria-label={`Prioridad ${priorityLevel} de 4`}>
-                          {Array.from({ length: 4 }).map((_, i) => (
-                            <svg
-                              key={i}
-                              width="12"
-                              height="12"
-                              viewBox="0 0 12 12"
-                              fill="none"
-                              className={i < priorityLevel ? 'filled' : ''}
-                              aria-hidden="true"
-                            >
-                              <path d="M6 1L7.5 4.5L11 5L8.5 7.5L9 11L6 9.5L3 11L3.5 7.5L1 5L4.5 4.5L6 1Z" fill="currentColor" />
+                        {continuesFromPrevious && (
+                          <div className="continuation-indicator top">
+                            <svg width="12" height="8" viewBox="0 0 12 8" fill="currentColor">
+                              <path d="M6 0L0 8h12L6 0z" />
                             </svg>
-                          ))}
+                          </div>
+                        )}
+                        <div className="event-title">{event.title}</div>
+                        <div className="event-time">
+                          {hasManyColumns ? getCompactTimeRange(event) : getEventTimeRange(event)}
                         </div>
+                        {height > 45 && (
+                          <div className="event-priority" aria-label={`Prioridad ${priorityLevel} de 4`}>
+                            {Array.from({ length: 4 }).map((_, i) => (
+                              <svg
+                                key={i}
+                                width="12"
+                                height="12"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                className={i < priorityLevel ? 'filled' : ''}
+                                aria-hidden="true"
+                              >
+                                <path d="M6 1L7.5 4.5L11 5L8.5 7.5L9 11L6 9.5L3 11L3.5 7.5L1 5L4.5 4.5L6 1Z" fill="currentColor" />
+                              </svg>
+                            ))}
+                          </div>
+                        )}
+                        {continuesToNext && (
+                          <div className="continuation-indicator bottom">
+                            <svg width="12" height="8" viewBox="0 0 12 8" fill="currentColor">
+                              <path d="M6 8L0 0h12L6 8z" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
-                  {/* Add event button at the bottom */}
-                  <div className="add-event-placeholder compact" onClick={() => onAddEvent?.(date)}>
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" />
-                    </svg>
-                    <span>Agregar evento</span>
-                  </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Footer */}
