@@ -97,10 +97,54 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    position: relative;
 }
 
 .month-event-chip:hover {
     transform: scale(1.02);
+}
+
+/* Estilos para eventos multi-día */
+.month-event-chip.multi-day {
+    border-left: 2px solid;
+    border-left-color: inherit;
+    padding-left: 6px;
+}
+
+.month-event-chip.continues-from-before {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    padding-left: 14px;
+    /* Espacio para la flecha */
+}
+
+.month-event-chip.continues-after {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    padding-right: 14px;
+    /* Espacio para la flecha */
+}
+
+.month-event-chip.continues-from-before::before {
+    content: '←';
+    position: absolute;
+    left: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    opacity: 0.7;
+    font-weight: bold;
+}
+
+.month-event-chip.continues-after::after {
+    content: '→';
+    position: absolute;
+    right: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    opacity: 0.7;
+    font-weight: bold;
 }
 
 .event-chip-text {
