@@ -175,6 +175,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -272,6 +273,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -669,17 +671,17 @@
   background-color: var(--color-text-muted);
 }
 
-input:checked + .slider {
+input:checked+.slider {
   background: linear-gradient(135deg, var(--gradient-primary-start), var(--gradient-primary-end));
   box-shadow: 0 2px 12px rgba(99, 102, 241, 0.3);
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
   transform: translateX(1.375rem);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-input:focus + .slider {
+input:focus+.slider {
   box-shadow: 0 0 0 4px var(--color-outline);
 }
 
