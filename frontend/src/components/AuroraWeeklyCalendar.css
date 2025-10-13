@@ -503,6 +503,14 @@
     cursor: grabbing;
 }
 
+.event-card-timed.being-dragged {
+    transition: top 0.15s ease-out;
+    cursor: grabbing;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+                0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: scale(1.02);
+}
+
 .day-column-with-hours.drag-over {
     background: rgba(99, 102, 241, 0.06);
 }
