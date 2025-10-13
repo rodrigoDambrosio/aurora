@@ -278,10 +278,27 @@
 
 .time-slot {
     position: relative;
-    border-bottom: 0.667px solid var(--color-border);
+    height: 80px;
     display: flex;
-    align-items: flex-start;
-    padding-top: 4px;
+    align-items: flex-end; /* Alinear al final para posicionar el label en el borde inferior */
+    justify-content: center;
+}
+
+/* Línea de la grilla - en el borde inferior, se extiende desde el centro hacia la derecha */
+.time-slot::after {
+    content: '';
+    position: absolute;
+    left: 50%; /* Empieza desde el centro de la columna */
+    right: 0;
+    bottom: 0; /* Alineada con el borde inferior, igual que .hour-line */
+    height: 0.667px;
+    background: var(--color-border);
+    z-index: 0;
+}
+
+/* Ocultar la línea del último slot (hora 23) */
+.time-slot.last-slot::after {
+    display: none;
 }
 
 .time-label {
@@ -290,8 +307,10 @@
     line-height: 16px;
     color: var(--color-text-muted);
     background: var(--color-surface);
-    padding: 0 4px;
-    margin-left: 4px;
+    padding: 0 8px;
+    transform: translateY(50%); /* Desplazar hacia arriba 50% de su altura para centrar en la línea */
+    position: relative;
+    z-index: 1; /* Sobre la línea */
 }
 
 .calendar-grid-with-hours {

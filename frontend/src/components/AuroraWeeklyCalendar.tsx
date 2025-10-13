@@ -362,8 +362,9 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   };
 
   // Generate hours array for grid
-  const hours = useMemo(() => {
-    return Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR);
+  // Array para todas las horas (0-23) - usado para líneas de grilla y labels
+  const allHours = useMemo(() => {
+    return Array.from({ length: 24 }, (_, i) => i);
   }, []);
 
   const isToday = (date: Date): boolean => {
@@ -702,15 +703,17 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
       <div className="calendar-grid-container">
         {/* Time column */}
         <div className="time-column">
-          {hours.map((hour) => (
+          {allHours.map((hour) => (
             <div
               key={hour}
-              className="time-slot"
+              className={`time-slot ${hour === 23 ? 'last-slot' : ''}`}
               style={{ height: `${HOUR_HEIGHT}px` }}
             >
-              <span className="time-label">
-                {hour.toString().padStart(2, '0')}:00
-              </span>
+              {hour < 23 && (
+                <span className="time-label">
+                  {(hour + 1).toString().padStart(2, '0')}
+                </span>
+              )}
             </div>
           ))}
         </div>
@@ -753,7 +756,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                 style={{ cursor: 'pointer' }}
               >
                 {/* Hour grid lines */}
-                {hours.map((hour) => (
+                {allHours.filter(hour => hour < 23).map((hour) => (
                   <div
                     key={hour}
                     className="hour-line"
