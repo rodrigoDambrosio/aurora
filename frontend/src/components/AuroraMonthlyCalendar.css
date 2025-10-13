@@ -414,25 +414,6 @@
     }
 }
 
-/* Scrollbar para el popover */
-.popover-content::-webkit-scrollbar {
-    width: 5px;
-}
-
-.popover-content::-webkit-scrollbar-track {
-    background: transparent;
-    margin: 4px 0;
-}
-
-.popover-content::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: 2.5px;
-}
-
-.popover-content::-webkit-scrollbar-thumb:hover {
-    background: var(--color-text-muted);
-}
-
 /* Mobile adjustments */
 @media (max-width: 768px) {
     .day-events-popover {

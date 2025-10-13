@@ -222,15 +222,6 @@
   flex-shrink: 0;
 }
 
-.settings-tabs::-webkit-scrollbar {
-  height: 4px;
-}
-
-.settings-tabs::-webkit-scrollbar-thumb {
-  background: var(--color-scrollbar-thumb);
-  border-radius: 2px;
-}
-
 .settings-tab {
   display: flex;
   align-items: center;
@@ -824,29 +815,4 @@ input:focus+.slider {
 
 .settings-screen {
   scroll-behavior: smooth;
-}
-
-/* Settings content scrollbar styles */
-.settings-content {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
-}
-
-.settings-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.settings-content::-webkit-scrollbar-track {
-  background: var(--color-scrollbar-track);
-  border-radius: 4px;
-}
-
-.settings-content::-webkit-scrollbar-thumb {
-  background: var(--color-scrollbar-thumb);
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.settings-content::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-strong);
 }

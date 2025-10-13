@@ -1,11 +1,4 @@
-/* Forzar scrollbar nativo en el dropdown, anulando personalizaciones heredadas */
-/* Forzar scrollbar nativo en el dropdown, incluso dentro de settings-content */
-/* Restaurar scrollbar nativo en el dropdown, sin eliminar el scroll */
-.settings-content .time-input-dropdown,
-.time-input-dropdown {
-  scrollbar-width: auto !important;
-  scrollbar-color: auto !important;
-}
+
 /* TimeInput.css - Selector de hora personalizado */
 
 .time-input-container {
