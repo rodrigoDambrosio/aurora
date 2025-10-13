@@ -206,11 +206,6 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
     return [...allDays.slice(firstDayOfWeek), ...allDays.slice(0, firstDayOfWeek)];
   }, [firstDayOfWeek]);
 
-  const getEventCountText = (): string => {
-    const count = events.length;
-    return `${count} evento${count !== 1 ? 's' : ''} este mes`;
-  };
-
   return (
     <div className="monthly-calendar">
       {/* Header */}
@@ -307,7 +302,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
                   const spaceAbove = rect.top;
 
                   // Estimar altura del popover (aproximado)
-                  const estimatedPopoverHeight = Math.min(day.events.length * 80 + 100, 500);
+                  const estimatedPopoverHeight = Math.min(day.events.length * 80 + 100, Math.min(500, viewportHeight - 100));
 
                   let top = rect.bottom + 8; // Por defecto, debajo del día
                   let placement: 'top' | 'bottom' = 'bottom';
@@ -318,16 +313,27 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
                     placement = 'top';
                   }
 
+                  // Ajustar si se sale por arriba
+                  if (placement === 'top' && top - estimatedPopoverHeight < 16) {
+                    top = Math.max(16 + estimatedPopoverHeight, rect.top - 8);
+                  }
+
+                  // Ajustar si se sale por abajo
+                  if (placement === 'bottom' && top + estimatedPopoverHeight > viewportHeight - 16) {
+                    top = Math.min(viewportHeight - 16, rect.bottom + 8);
+                  }
+
                   // Ajustar posición horizontal para mantenerlo en pantalla
+                  const popoverWidth = Math.min(400, viewportWidth - 32);
                   let left = rect.left + rect.width / 2;
 
-                  // Si está muy a la derecha, ajustar
-                  if (left > viewportWidth - 220) {
-                    left = viewportWidth - 220;
+                  // Asegurar que el popover no se salga por la derecha
+                  if (left + popoverWidth / 2 > viewportWidth - 16) {
+                    left = viewportWidth - popoverWidth / 2 - 16;
                   }
-                  // Si está muy a la izquierda, ajustar
-                  if (left < 220) {
-                    left = 220;
+                  // Asegurar que el popover no se salga por la izquierda
+                  if (left - popoverWidth / 2 < 16) {
+                    left = popoverWidth / 2 + 16;
                   }
 
                   setPopoverPosition({
@@ -346,7 +352,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
               {day.dayNumber}
             </div>
             <div className="day-events">
-              {day.events.slice(0, 3).map(event => {
+              {day.events.slice(0, 2).map(event => {
                 const eventStart = new Date(event.startDate);
                 const eventEnd = new Date(event.endDate);
                 const eventStartDay = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
@@ -390,9 +396,9 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
                   </div>
                 );
               })}
-              {day.events.length > 3 && (
+              {day.events.length > 2 && (
                 <div className="more-events-indicator">
-                  +{day.events.length - 3} más
+                  +{day.events.length - 2} más
                 </div>
               )}
             </div>
@@ -480,11 +486,6 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
           </div>
         </div>
       )}
-
-      {/* Footer */}
-      <div className="monthly-calendar-footer">
-        <div className="footer-stats">{getEventCountText()}</div>
-      </div>
 
       {loading && <div className="loading-overlay">Cargando eventos...</div>}
       {error && <div className="error-message">{error}</div>}
