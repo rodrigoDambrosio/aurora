@@ -48,4 +48,28 @@ public interface IEventCategoryRepository : IRepository<EventCategory>
     /// <param name="userId">ID del usuario</param>
     /// <returns>Lista de categorías predeterminadas</returns>
     Task<IEnumerable<EventCategory>> GetDefaultCategoriesAsync(Guid userId);
+
+    /// <summary>
+    /// Verifica si existe una categoría con el mismo nombre para un usuario
+    /// </summary>
+    /// <param name="name">Nombre de la categoría</param>
+    /// <param name="userId">ID del usuario</param>
+    /// <param name="excludeCategoryId">ID de categoría a excluir (para edición)</param>
+    /// <returns>True si existe duplicado</returns>
+    Task<bool> ExistsCategoryWithNameAsync(string name, Guid userId, Guid? excludeCategoryId = null);
+
+    /// <summary>
+    /// Obtiene el número de eventos asociados a una categoría
+    /// </summary>
+    /// <param name="categoryId">ID de la categoría</param>
+    /// <returns>Número de eventos</returns>
+    Task<int> GetEventCountForCategoryAsync(Guid categoryId);
+
+    /// <summary>
+    /// Reasigna todos los eventos de una categoría a otra
+    /// </summary>
+    /// <param name="fromCategoryId">ID de la categoría origen</param>
+    /// <param name="toCategoryId">ID de la categoría destino</param>
+    /// <returns>Número de eventos reasignados</returns>
+    Task<int> ReassignEventsToAnotherCategoryAsync(Guid fromCategoryId, Guid toCategoryId);
 }

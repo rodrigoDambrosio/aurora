@@ -39,6 +39,27 @@ export interface EventCategoryDto {
   icon?: string;
   isSystemDefault: boolean;
   sortOrder: number;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateEventCategoryDto {
+  name: string;
+  description?: string;
+  color: string;
+  icon?: string;
+}
+
+export interface UpdateEventCategoryDto {
+  name: string;
+  description?: string;
+  color: string;
+  icon?: string;
+}
+
+export interface DeleteEventCategoryDto {
+  reassignToCategoryId?: string;
 }
 
 export type EventPriority = 1 | 2 | 3 | 4;
@@ -356,6 +377,39 @@ export const apiService = {
    */
   async getEventCategory(id: string): Promise<EventCategoryDto> {
     return this.fetchApi<EventCategoryDto>(`/eventcategories/${id}`);
+  },
+
+  /**
+   * Create a new custom event category
+   */
+  async createEventCategory(categoryData: CreateEventCategoryDto, userId?: string): Promise<EventCategoryDto> {
+    const queryParam = userId ? `?userId=${userId}` : '';
+    return this.fetchApi<EventCategoryDto>(`/eventcategories${queryParam}`, {
+      method: 'POST',
+      body: JSON.stringify(categoryData)
+    });
+  },
+
+  /**
+   * Update an existing custom event category
+   */
+  async updateEventCategory(id: string, categoryData: UpdateEventCategoryDto, userId?: string): Promise<EventCategoryDto> {
+    const queryParam = userId ? `?userId=${userId}` : '';
+    return this.fetchApi<EventCategoryDto>(`/eventcategories/${id}${queryParam}`, {
+      method: 'PUT',
+      body: JSON.stringify(categoryData)
+    });
+  },
+
+  /**
+   * Delete a custom event category, optionally reassigning events to another category
+   */
+  async deleteEventCategory(id: string, deleteData?: DeleteEventCategoryDto, userId?: string): Promise<void> {
+    const queryParam = userId ? `?userId=${userId}` : '';
+    return this.fetchApi<void>(`/eventcategories/${id}${queryParam}`, {
+      method: 'DELETE',
+      body: deleteData ? JSON.stringify(deleteData) : undefined
+    });
   },
 
   // ===== EVENTS ENDPOINTS =====

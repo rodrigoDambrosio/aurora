@@ -7,6 +7,8 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   background: var(--color-body);
   color: var(--color-text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -193,6 +195,7 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  flex-shrink: 0;
 }
 
 .settings-tabs::-webkit-scrollbar {
@@ -248,9 +251,10 @@
 .settings-content {
   flex: 1;
   padding: 1.5rem 1rem;
-  max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .settings-panel {
@@ -258,6 +262,9 @@
   flex-direction: column;
   gap: 1.5rem;
   animation: fadeIn 0.4s ease-out;
+  padding-bottom: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 @keyframes fadeIn {
@@ -677,51 +684,6 @@ input:focus + .slider {
 }
 
 /* ===========================
-   FOOTER - Botón save destacado
-   =========================== */
-
-.settings-footer {
-  padding: 2rem 0 1rem;
-  border-top: 1.5px solid var(--color-border);
-  margin-top: 2rem;
-}
-
-.save-button-footer {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.625rem;
-  padding: 1rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, var(--gradient-primary-start), var(--gradient-primary-end));
-  color: white;
-  border: none;
-  border-radius: 0.75rem;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
-}
-
-.save-button-footer:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--gradient-primary-hover-start), var(--gradient-primary-hover-end));
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.4);
-}
-
-.save-button-footer:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.3);
-}
-
-.save-button-footer:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* ===========================
    RESPONSIVE - TABLET
    =========================== */
 
@@ -751,18 +713,13 @@ input:focus + .slider {
 
   .settings-content {
     padding: 2.5rem 1.5rem;
+    padding-bottom: 3rem;
   }
 
   .settings-panel {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.75rem;
-  }
-
-  .save-button-footer {
-    width: auto;
-    min-width: 200px;
-    margin-left: auto;
   }
 
   .weekday-selector {
@@ -801,6 +758,7 @@ input:focus + .slider {
 
   .settings-content {
     padding: 3rem 2.5rem;
+    padding-bottom: 4rem;
   }
 
   .settings-panel {
@@ -842,8 +800,8 @@ input:focus + .slider {
   scroll-behavior: smooth;
 }
 
+/* Settings content scrollbar styles */
 .settings-content {
-  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
 }
@@ -860,6 +818,7 @@ input:focus + .slider {
 .settings-content::-webkit-scrollbar-thumb {
   background: var(--color-scrollbar-thumb);
   border-radius: 4px;
+  transition: background 0.2s;
 }
 
 .settings-content::-webkit-scrollbar-thumb:hover {

@@ -157,14 +157,6 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     return date.toDateString() === today.toDateString();
   };
 
-  const getWeekNumber = (date: Date): number => {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  };
-
   // Drag and drop handlers
   const handleDragStart = (event: EventDto, e: React.DragEvent) => {
     setDraggedEvent(event);
@@ -449,9 +441,6 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
       <div className="calendar-footer">
         <div className="events-summary">
           {totalEvents} eventos esta semana
-        </div>
-        <div className="week-badge">
-          Semana {getWeekNumber(currentDate)}
         </div>
       </div>
     </div>

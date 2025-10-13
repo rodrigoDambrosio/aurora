@@ -179,10 +179,6 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
     return `${count} evento${count !== 1 ? 's' : ''} este mes`;
   };
 
-  const getCurrentMonthBadge = (): string => {
-    return currentDate.toLocaleDateString('es-ES', { month: 'long' });
-  };
-
   return (
     <div className="monthly-calendar">
       {/* Header */}
@@ -309,7 +305,6 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
       {/* Footer */}
       <div className="monthly-calendar-footer">
         <div className="footer-stats">{getEventCountText()}</div>
-        <div className="footer-badge">{getCurrentMonthBadge()}</div>
       </div>
 
       {loading && <div className="loading-overlay">Cargando eventos...</div>}

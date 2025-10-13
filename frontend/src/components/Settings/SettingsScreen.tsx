@@ -1,13 +1,14 @@
-import { Bell, BellOff, Clock, Globe, MessageSquare, Moon, Save, Settings, Sun, User } from 'lucide-react';
+import { Bell, BellOff, Clock, Globe, MessageSquare, Moon, Save, Settings, Sun, Tag, User } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { apiService, type UpdateUserPreferencesDto, type UpdateUserProfileDto, type UserPreferencesDto, type UserProfileDto } from '../../services/apiService';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Input } from '../ui/input';
+import { CategoryManagement } from './CategoryManagement';
 import './SettingsScreen.css';
 
-type TabId = 'profile' | 'preferences' | 'ai-nlp' | 'notifications';
+type TabId = 'profile' | 'preferences' | 'categories' | 'ai-nlp' | 'notifications';
 
 interface Tab {
   id: TabId;
@@ -18,6 +19,7 @@ interface Tab {
 const tabs: Tab[] = [
   { id: 'profile', label: 'Perfil', icon: User },
   { id: 'preferences', label: 'Preferencias', icon: Settings },
+  { id: 'categories', label: 'Categorías', icon: Tag },
   { id: 'ai-nlp', label: 'IA & NLP', icon: MessageSquare },
   { id: 'notifications', label: 'Notificaciones', icon: Bell }
 ];
@@ -225,12 +227,12 @@ const SettingsScreen: React.FC = () => {
           </div>
           <div className="settings-actions">
             <Button
-              onClick={handleSaveProfile}
+              onClick={activeTab === 'profile' ? handleSaveProfile : handleSavePreferences}
               disabled={isSaving}
               className="save-button"
             >
               <Save size={16} />
-              <span>Guardar</span>
+              <span>{isSaving ? 'Guardando...' : 'Guardar cambios'}</span>
             </Button>
           </div>
         </div>
@@ -439,6 +441,13 @@ const SettingsScreen: React.FC = () => {
           </div>
         )}
 
+        {/* CATEGORÍAS TAB */}
+        {activeTab === 'categories' && (
+          <div className="settings-panel">
+            <CategoryManagement />
+          </div>
+        )}
+
         {/* IA & NLP TAB */}
         {activeTab === 'ai-nlp' && (
           <div className="settings-panel">
@@ -533,17 +542,6 @@ const SettingsScreen: React.FC = () => {
             </Card>
           </div>
         )}
-
-        <div className="settings-footer">
-          <Button
-            onClick={activeTab === 'profile' ? handleSaveProfile : handleSavePreferences}
-            disabled={isSaving}
-            className="save-button-footer"
-          >
-            <Save size={16} />
-            <span>{isSaving ? 'Guardando...' : 'Guardar cambios'}</span>
-          </Button>
-        </div>
       </div>
     </div>
   );
