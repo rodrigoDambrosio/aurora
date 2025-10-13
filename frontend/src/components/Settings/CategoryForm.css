@@ -116,6 +116,7 @@
   color: var(--color-danger);
 }
 
+.form-group input[type="email"],
 .form-group input[type="text"],
 .form-group textarea {
   background: var(--color-surface-alt);
@@ -128,11 +129,13 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.form-group input[type="email"]::placeholder
 .form-group input[type="text"]::placeholder,
 .form-group textarea::placeholder {
   color: var(--color-text-muted);
 }
 
+.form-group input[type="email"]:focus,
 .form-group input[type="text"]:focus,
 .form-group textarea:focus {
   outline: none;
