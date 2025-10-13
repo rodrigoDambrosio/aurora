@@ -44,12 +44,30 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
   const [events, setEvents] = useState<EventDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number; placement?: 'top' | 'bottom' } | null>(null);
 
   // Usar ref para evitar que onCategoriesLoaded cause re-renders infinitos
   const onCategoriesLoadedRef = useRef(onCategoriesLoaded);
   useEffect(() => {
     onCategoriesLoadedRef.current = onCategoriesLoaded;
   }, [onCategoriesLoaded]);
+
+  // Cerrar popover al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.day-events-popover') && !target.closest('.calendar-day')) {
+        setSelectedDay(null);
+        setPopoverPosition(null);
+      }
+    };
+
+    if (selectedDay !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [selectedDay]);
 
   const loadMonthlyEvents = useCallback(async () => {
     setLoading(true);
@@ -252,8 +270,63 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
           <div
             key={index}
             className={`calendar-day ${!day.isCurrentMonth ? 'other-month' : ''} ${day.isToday ? 'today' : ''
-              }`}
-            onClick={() => day.isCurrentMonth && onAddEvent(day.date)}
+              } ${selectedDay === index ? 'selected' : ''}`}
+            onClick={(e) => {
+              if (!day.isCurrentMonth) return;
+
+              // Si el día tiene eventos, mostrar popover
+              if (day.events.length > 0) {
+                e.stopPropagation();
+                if (selectedDay === index) {
+                  // Si ya está seleccionado, cerrarlo
+                  setSelectedDay(null);
+                  setPopoverPosition(null);
+                } else {
+                  // Abrir popover con posicionamiento inteligente
+                  setSelectedDay(index);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const viewportHeight = window.innerHeight;
+                  const viewportWidth = window.innerWidth;
+
+                  // Calcular si hay más espacio arriba o abajo
+                  const spaceBelow = viewportHeight - rect.bottom;
+                  const spaceAbove = rect.top;
+
+                  // Estimar altura del popover (aproximado)
+                  const estimatedPopoverHeight = Math.min(day.events.length * 80 + 100, 500);
+
+                  let top = rect.bottom + 8; // Por defecto, debajo del día
+                  let placement: 'top' | 'bottom' = 'bottom';
+
+                  // Si no hay suficiente espacio abajo y hay más espacio arriba, mostrarlo arriba
+                  if (spaceBelow < estimatedPopoverHeight && spaceAbove > spaceBelow) {
+                    top = rect.top - 8;
+                    placement = 'top';
+                  }
+
+                  // Ajustar posición horizontal para mantenerlo en pantalla
+                  let left = rect.left + rect.width / 2;
+
+                  // Si está muy a la derecha, ajustar
+                  if (left > viewportWidth - 220) {
+                    left = viewportWidth - 220;
+                  }
+                  // Si está muy a la izquierda, ajustar
+                  if (left < 220) {
+                    left = 220;
+                  }
+
+                  setPopoverPosition({
+                    top,
+                    left,
+                    placement
+                  });
+                }
+              } else {
+                // Si no hay eventos, abrir formulario de creación
+                onAddEvent(day.date);
+              }
+            }}
           >
             <div className={`day-number ${day.isToday ? 'today-number' : ''}`}>
               {day.dayNumber}
@@ -301,6 +374,71 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Event Popover */}
+      {selectedDay !== null && popoverPosition && (
+        <div
+          className={`day-events-popover ${popoverPosition.placement || 'bottom'}`}
+          style={{
+            top: `${popoverPosition.top}px`,
+            left: `${popoverPosition.left}px`
+          }}
+        >
+          <div className="popover-content">
+            <div className="popover-header">
+              <div className="popover-date">
+                {calendarDays[selectedDay].date.toLocaleDateString('es-ES', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long'
+                })}
+              </div>
+              <button
+                className="popover-close-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedDay(null);
+                  setPopoverPosition(null);
+                }}
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+            <div className="popover-events">
+              {calendarDays[selectedDay].events.map(event => (
+                <div
+                  key={event.id}
+                  className="popover-event-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEventClick(event);
+                  }}
+                >
+                  <div
+                    className="popover-event-color"
+                    style={{ backgroundColor: event.eventCategory.color }}
+                  />
+                  <div className="popover-event-details">
+                    <div className="popover-event-title">{event.title}</div>
+                    <div className="popover-event-time">
+                      {new Date(event.startDate).toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                      {' - '}
+                      {new Date(event.endDate).toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="monthly-calendar-footer">
