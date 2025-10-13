@@ -138,6 +138,16 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   };
 
   const getEventTimeRange = (event: EventDto): string => {
+    const start = new Date(event.startDate);
+    const end = new Date(event.endDate);
+    const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const isMultiDay = startDay.getTime() !== endDay.getTime();
+
+    if (isMultiDay) {
+      return `${start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} ${formatTime(event.startDate)} - ${end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} ${formatTime(event.endDate)}`;
+    }
+
     const startTime = formatTime(event.startDate);
     const endTime = formatTime(event.endDate);
     return `${startTime} - ${endTime}`;
@@ -146,10 +156,19 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   const getEventsByDate = (date: Date): EventDto[] => {
     if (!weeklyData?.events) return [];
 
-    const dateStr = date.toISOString().split('T')[0];
-    return weeklyData.events.filter((event: EventDto) =>
-      event.startDate.startsWith(dateStr)
-    );
+    // Normalizar la fecha del día a medianoche para comparación
+    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    return weeklyData.events.filter((event: EventDto) => {
+      const eventStart = new Date(event.startDate);
+      const eventEnd = new Date(event.endDate);
+
+      const eventStartDay = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+      const eventEndDay = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate());
+
+      // El evento se muestra si abarca este día
+      return (eventStartDay.getTime() <= dayStart.getTime() && eventEndDay.getTime() >= dayStart.getTime());
+    });
   };
 
   const isToday = (date: Date): boolean => {
@@ -374,10 +393,17 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                     const categoryColor = event.eventCategory?.color || '#1447e6';
                     const priorityLevel = Math.min(Math.max(event.priority ?? 2, 1), 4);
 
+                    // Detectar si es evento multi-día
+                    const start = new Date(event.startDate);
+                    const end = new Date(event.endDate);
+                    const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+                    const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+                    const isMultiDay = startDay.getTime() !== endDay.getTime();
+
                     return (
                       <div
                         key={event.id}
-                        className="event-card"
+                        className={`event-card ${isMultiDay ? 'multi-day-event' : ''}`}
                         draggable
                         onDragStart={(e) => handleDragStart(event, e)}
                         onDragEnd={handleDragEnd}

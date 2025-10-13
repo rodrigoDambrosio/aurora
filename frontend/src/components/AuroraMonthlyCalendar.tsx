@@ -160,14 +160,28 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
     setCalendarDays(days);
   }, [currentDate, firstDayOfWeek]);
 
-  // Asignar eventos a los días
+  // Asignar eventos a los días (incluyendo eventos multi-día)
   useEffect(() => {
     setCalendarDays(prevDays =>
       prevDays.map(day => ({
         ...day,
         events: events.filter(event => {
-          const eventDate = new Date(event.startDate);
-          return eventDate.toDateString() === day.date.toDateString();
+          const eventStart = new Date(event.startDate);
+          const eventEnd = new Date(event.endDate);
+
+          // Normalizar las fechas a medianoche para comparación de días
+          const dayStart = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
+
+          const eventStartDay = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+          const eventEndDay = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate());
+
+          // El evento se muestra si:
+          // 1. Empieza en este día (eventStartDay === dayStart)
+          // 2. Termina en este día (eventEndDay === dayStart)
+          // 3. Abarca este día (eventStartDay < dayStart && eventEndDay > dayStart)
+          return (
+            (eventStartDay.getTime() <= dayStart.getTime() && eventEndDay.getTime() >= dayStart.getTime())
+          );
         })
       }))
     );
@@ -332,39 +346,50 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
               {day.dayNumber}
             </div>
             <div className="day-events">
-              {day.events.slice(0, 3).map(event => (
-                <div
-                  key={event.id}
-                  className="month-event-chip"
-                  style={{ backgroundColor: event.eventCategory.color + '33' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEventClick(event);
-                  }}
-                  onKeyDown={(keyboardEvent) => {
-                    if (keyboardEvent.key === 'Enter') {
-                      keyboardEvent.preventDefault();
+              {day.events.slice(0, 3).map(event => {
+                const eventStart = new Date(event.startDate);
+                const eventEnd = new Date(event.endDate);
+                const eventStartDay = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+                const eventEndDay = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate());
+                const isMultiDay = eventStartDay.getTime() !== eventEndDay.getTime();
+                const currentDay = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
+                const isFirstDay = eventStartDay.getTime() === currentDay.getTime();
+                const isLastDay = eventEndDay.getTime() === currentDay.getTime();
+
+                return (
+                  <div
+                    key={event.id}
+                    className={`month-event-chip ${isMultiDay ? 'multi-day' : ''} ${isMultiDay && !isFirstDay ? 'continues-from-before' : ''} ${isMultiDay && !isLastDay ? 'continues-after' : ''}`}
+                    style={{ backgroundColor: event.eventCategory.color + '33' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onEventClick(event);
-                    }
-                  }}
-                  onKeyUp={(keyboardEvent) => {
-                    if (keyboardEvent.key === ' ') {
-                      keyboardEvent.preventDefault();
-                      onEventClick(event);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Ver detalle del evento ${event.title}`}
-                >
-                  <span
-                    className="event-chip-text"
-                    style={{ color: event.eventCategory.color }}
+                    }}
+                    onKeyDown={(keyboardEvent) => {
+                      if (keyboardEvent.key === 'Enter') {
+                        keyboardEvent.preventDefault();
+                        onEventClick(event);
+                      }
+                    }}
+                    onKeyUp={(keyboardEvent) => {
+                      if (keyboardEvent.key === ' ') {
+                        keyboardEvent.preventDefault();
+                        onEventClick(event);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Ver detalle del evento ${event.title}`}
                   >
-                    {event.title}
-                  </span>
-                </div>
-              ))}
+                    <span
+                      className="event-chip-text"
+                      style={{ color: event.eventCategory.color }}
+                    >
+                      {event.title}
+                    </span>
+                  </div>
+                );
+              })}
               {day.events.length > 3 && (
                 <div className="more-events-indicator">
                   +{day.events.length - 3} más
@@ -422,15 +447,31 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
                   <div className="popover-event-details">
                     <div className="popover-event-title">{event.title}</div>
                     <div className="popover-event-time">
-                      {new Date(event.startDate).toLocaleTimeString('es-ES', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                      {' - '}
-                      {new Date(event.endDate).toLocaleTimeString('es-ES', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {(() => {
+                        const start = new Date(event.startDate);
+                        const end = new Date(event.endDate);
+                        const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+                        const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+                        const isMultiDay = startDay.getTime() !== endDay.getTime();
+
+                        if (isMultiDay) {
+                          return (
+                            <>
+                              {start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                              {' - '}
+                              {end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            </>
+                          );
+                        }
+
+                        return (
+                          <>
+                            {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            {' - '}
+                            {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
