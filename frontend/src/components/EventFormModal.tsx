@@ -166,8 +166,6 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setTitle('');
       setDescription('');
       setIsAllDay(false);
-      setStartTime('09:00');
-      setEndTime('10:00');
       setLocation('');
       setPriority(2);
 
@@ -176,12 +174,32 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         const dateStr = new Date(initialDate.getTime() - offsetMs).toISOString().split('T')[0];
         setStartDate(dateStr);
         setEndDate(dateStr);
+
+        // Usar la hora de initialDate si está disponible
+        const timeStr = initialDate.toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        setStartTime(timeStr);
+
+        // Calcular hora de fin (1 hora después)
+        const endDateTime = new Date(initialDate);
+        endDateTime.setHours(endDateTime.getHours() + 1);
+        const endTimeStr = endDateTime.toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        setEndTime(endTimeStr);
       } else {
         const now = new Date();
         const offsetMs = now.getTimezoneOffset() * 60000;
         const today = new Date(now.getTime() - offsetMs).toISOString().split('T')[0];
         setStartDate(today);
         setEndDate(today);
+        setStartTime('09:00');
+        setEndTime('10:00');
       }
     }
   }, [isOpen, isCreateMode, eventToEdit, initialDate]);

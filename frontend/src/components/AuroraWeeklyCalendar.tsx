@@ -695,6 +695,29 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                 onDragOver={(e) => handleDragOver(date, e)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(date, e)}
+                onClick={(e) => {
+                  // Solo crear evento si el click no fue en un evento existente
+                  if ((e.target as HTMLElement).classList.contains('day-column-with-hours') ||
+                    (e.target as HTMLElement).classList.contains('hour-line') ||
+                    (e.target as HTMLElement).classList.contains('events-layer')) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const clickY = e.clientY - rect.top;
+
+                    // Calcular la hora basada en la posición del click
+                    const clickedHour = START_HOUR + (clickY / HOUR_HEIGHT);
+
+                    // Redondear a la media hora más cercana
+                    const roundedHour = Math.floor(clickedHour);
+                    const minutes = clickY % HOUR_HEIGHT > HOUR_HEIGHT / 2 ? 30 : 0;
+
+                    // Crear fecha con la hora estimada
+                    const eventDate = new Date(date);
+                    eventDate.setHours(roundedHour, minutes, 0, 0);
+
+                    onAddEvent?.(eventDate);
+                  }
+                }}
+                style={{ cursor: 'pointer' }}
               >
                 {/* Hour grid lines */}
                 {hours.map((hour) => (
