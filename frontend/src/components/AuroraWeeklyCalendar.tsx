@@ -41,10 +41,13 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   const [weeklyData, setWeeklyData] = useState<WeeklyEventsResponseDto | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [timeFormat, setTimeFormat] = useState<'12h' | '24h'>('24h'); // Preferencia de formato de hora
 
   // Drag and drop state
   const [draggedEvent, setDraggedEvent] = useState<EventDto | null>(null);
   const [dragOverDate, setDragOverDate] = useState<Date | null>(null);
+  const [dragOffsetY, setDragOffsetY] = useState<number>(0);
+  const [dragPreviewTop, setDragPreviewTop] = useState<number | null>(null);
 
   // Get start of the week based on user's preference
   const weekStart = useMemo(() => {
@@ -110,6 +113,21 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekStart, selectedCategoryId, refreshToken]);
 
+  // Cargar preferencias de usuario
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const preferences = await apiService.getUserPreferences();
+        setTimeFormat(preferences.timeFormat);
+      } catch (err) {
+        console.error('Error loading user preferences:', err);
+        // Usar valor por defecto si falla
+      }
+    };
+
+    loadUserPreferences();
+  }, []);
+
   // Navigation functions
   const goToPreviousWeek = () => {
     const newDate = new Date(currentDate);
@@ -133,12 +151,23 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     return days[date.getDay()];
   };
 
+  // Formatear label de hora para la grilla (1-23)
+  const formatHourLabel = (hour: number): string => {
+    if (timeFormat === '12h') {
+      if (hour === 0 || hour === 24) return '12 AM';
+      if (hour < 12) return `${hour} AM`;
+      if (hour === 12) return '12 PM';
+      return `${hour - 12} PM`;
+    }
+    return hour.toString().padStart(2, '0');
+  };
+
   const formatTime = (dateTime: string): string => {
     const date = new Date(dateTime);
     return date.toLocaleTimeString('es-ES', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: timeFormat === '12h'
     });
   };
 
@@ -360,8 +389,9 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   };
 
   // Generate hours array for grid
-  const hours = useMemo(() => {
-    return Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR);
+  // Array para todas las horas (0-23) - usado para líneas de grilla y labels
+  const allHours = useMemo(() => {
+    return Array.from({ length: 24 }, (_, i) => i);
   }, []);
 
   const isToday = (date: Date): boolean => {
@@ -373,6 +403,12 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   const handleDragStart = (event: EventDto, e: React.DragEvent) => {
     setDraggedEvent(event);
     e.dataTransfer.effectAllowed = 'move';
+
+    // Calcular el offset Y dentro del elemento arrastrado
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    setDragOffsetY(offsetY);
+
     // Add visual feedback
     e.currentTarget.classList.add('dragging');
   };
@@ -380,6 +416,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
   const handleDragEnd = (e: React.DragEvent) => {
     setDraggedEvent(null);
     setDragOverDate(null);
+    setDragOffsetY(0);
     e.currentTarget.classList.remove('dragging');
   };
 
@@ -387,15 +424,37 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverDate(date);
+
+    if (draggedEvent) {
+      // Calcular la posición ajustada a intervalos de 15 minutos
+      const rect = e.currentTarget.getBoundingClientRect();
+      const mouseY = e.clientY - rect.top - dragOffsetY;
+
+      // Calcular la hora basada en la posición
+      const hour = START_HOUR + (mouseY / HOUR_HEIGHT);
+
+      // Redondear a 15 minutos
+      const totalMinutes = hour * 60;
+      const roundedMinutes = Math.round(totalMinutes / 15) * 15;
+      const snappedHour = Math.floor(roundedMinutes / 60);
+      const snappedMinutes = roundedMinutes % 60;
+
+      // Calcular la posición top en pixels para el snap
+      const snappedTop = ((snappedHour - START_HOUR) * HOUR_HEIGHT) + (snappedMinutes / 60 * HOUR_HEIGHT);
+
+      setDragPreviewTop(snappedTop);
+    }
   };
 
   const handleDragLeave = () => {
     setDragOverDate(null);
+    setDragPreviewTop(null);
   };
 
   const handleDrop = async (targetDate: Date, e: React.DragEvent) => {
     e.preventDefault();
     setDragOverDate(null);
+    setDragPreviewTop(null);
 
     if (!draggedEvent) return;
 
@@ -403,9 +462,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
       // Parse dates as UTC to preserve the original time
       const originalStart = new Date(draggedEvent.startDate);
       const originalEnd = new Date(draggedEvent.endDate);
-
-      // Get UTC date components to compare dates without time
-      const originalDateOnly = `${originalStart.getUTCFullYear()}-${String(originalStart.getUTCMonth() + 1).padStart(2, '0')}-${String(originalStart.getUTCDate()).padStart(2, '0')}`;
+      const duration = originalEnd.getTime() - originalStart.getTime();
 
       // Get target date in UTC
       const targetYear = targetDate.getFullYear();
@@ -413,21 +470,26 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
       const targetDay = String(targetDate.getDate()).padStart(2, '0');
       const targetDateOnly = `${targetYear}-${targetMonth}-${targetDay}`;
 
-      // Check if the date actually changed
-      if (originalDateOnly === targetDateOnly) {
-        console.log('Event dropped on same day, no update needed');
-        setDraggedEvent(null);
-        return;
-      }
+      // Calcular la nueva hora basándose en la posición del drop
+      const rect = e.currentTarget.getBoundingClientRect();
+      const dropY = e.clientY - rect.top - dragOffsetY; // Restar el offset para obtener la posición del inicio de la tarjeta
 
-      // Calculate day difference using UTC dates
-      const originalDateObj = new Date(originalDateOnly + 'T00:00:00Z');
-      const targetDateObj = new Date(targetDateOnly + 'T00:00:00Z');
-      const dayDiff = Math.floor((targetDateObj.getTime() - originalDateObj.getTime()) / (1000 * 60 * 60 * 24));
+      // Calculate the hour based on the top of the card position
+      const droppedHour = START_HOUR + (dropY / HOUR_HEIGHT);
 
-      // Create new dates in UTC by preserving the time and only changing the date
-      const newStartDate = new Date(originalStart.getTime() + (dayDiff * 24 * 60 * 60 * 1000));
-      const newEndDate = new Date(originalEnd.getTime() + (dayDiff * 24 * 60 * 60 * 1000));
+      // Round to nearest 15 minutes
+      const roundedHour = Math.floor(droppedHour);
+      const fractionalHour = droppedHour - roundedHour;
+      const minutes = Math.round(fractionalHour * 60 / 15) * 15;
+
+      // Create new start date with calculated time on target date
+      const newStartDate = new Date(targetDate);
+      newStartDate.setHours(roundedHour, minutes, 0, 0);
+
+      // Calculate end date maintaining the duration
+      const newEndDate = new Date(newStartDate.getTime() + duration);
+
+      console.log('Event moved to', targetDateOnly, 'at', `${roundedHour}:${String(minutes).padStart(2, '0')}`);
 
       // Update event via API using ISO strings (which preserve UTC)
       const updatedEvent = {
@@ -441,7 +503,6 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
         priority: draggedEvent.priority
       };
 
-      console.log('Moving event from', originalDateOnly, 'to', targetDateOnly);
       console.log('Original time:', originalStart.toISOString(), '-> New time:', newStartDate.toISOString());
       await apiService.updateEvent(draggedEvent.id, updatedEvent);
       console.log('Event moved successfully');
@@ -669,15 +730,17 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
       <div className="calendar-grid-container">
         {/* Time column */}
         <div className="time-column">
-          {hours.map((hour) => (
+          {allHours.map((hour) => (
             <div
               key={hour}
-              className="time-slot"
+              className={`time-slot ${hour === 23 ? 'last-slot' : ''}`}
               style={{ height: `${HOUR_HEIGHT}px` }}
             >
-              <span className="time-label">
-                {hour.toString().padStart(2, '0')}:00
-              </span>
+              {hour < 23 && (
+                <span className="time-label">
+                  {formatHourLabel(hour + 1)}
+                </span>
+              )}
             </div>
           ))}
         </div>
@@ -720,7 +783,7 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                 style={{ cursor: 'pointer' }}
               >
                 {/* Hour grid lines */}
-                {hours.map((hour) => (
+                {allHours.filter(hour => hour < 23).map((hour) => (
                   <div
                     key={hour}
                     className="hour-line"
@@ -778,10 +841,17 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                       left = '0';
                     }
 
+                    // Detectar si este evento está siendo arrastrado
+                    const isBeingDragged = draggedEvent?.id === event.id;
+                    const usePreviewPosition = isBeingDragged && dragPreviewTop !== null && dragOverDate?.toDateString() === date.toDateString();
+
+                    // Usar la posición del preview si está siendo arrastrado en el mismo día
+                    const displayTop = usePreviewPosition ? dragPreviewTop : top;
+
                     return (
                       <div
                         key={event.id}
-                        className={`event-card-timed ${sizeClass} ${isMultiDay ? 'multi-day-event' : ''} ${isOverlapping ? 'overlapping' : ''} ${hasManyColumns ? 'many-columns' : ''} ${continuesFromPrevious ? 'continues-from-previous' : ''} ${continuesToNext ? 'continues-to-next' : ''}`}
+                        className={`event-card-timed ${sizeClass} ${isMultiDay ? 'multi-day-event' : ''} ${isOverlapping ? 'overlapping' : ''} ${hasManyColumns ? 'many-columns' : ''} ${continuesFromPrevious ? 'continues-from-previous' : ''} ${continuesToNext ? 'continues-to-next' : ''} ${isBeingDragged ? 'being-dragged' : ''}`}
                         draggable
                         onDragStart={(e) => handleDragStart(event, e)}
                         onDragEnd={handleDragEnd}
@@ -789,11 +859,11 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
                           background: getEventBackgroundColor(categoryColor),
                           borderLeftColor: categoryColor,
                           color: categoryColor,
-                          top: `${top}px`,
+                          top: `${displayTop}px`,
                           height: `${height}px`,
                           left: left,
                           width: width,
-                          zIndex: event.column + 2
+                          zIndex: isBeingDragged ? 999 : event.column + 2
                         }}
                         onClick={() => onEventClick?.(event)}
                         onKeyDown={(keyboardEvent) => {

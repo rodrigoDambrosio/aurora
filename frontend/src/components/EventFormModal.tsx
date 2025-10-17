@@ -1,8 +1,9 @@
-import { AlertTriangle, Calendar, Clock, FileText, MapPin, Sparkles, Star, X } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, Calendar, FileText, MapPin, Sparkles, Star, X } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AIValidationResult, CreateEventDto, EventCategoryDto, EventDto, EventPriority } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './EventFormModal.css';
+import { TimeInput } from './TimeInput';
 
 interface EventFormModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<AIValidationResult | null>(null);
   const [validationError, setValidationError] = useState<string>('');
+  const [timeFormat, setTimeFormat] = useState<'12h' | '24h'>('24h'); // Preferencia de formato de hora
 
   // Form state
   const [title, setTitle] = useState('');
@@ -41,9 +43,6 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<EventPriority>(2);
-  const startTimeInputRef = useRef<HTMLInputElement>(null);
-  const endTimeInputRef = useRef<HTMLInputElement>(null);
-  const [supportsNativeTimePicker, setSupportsNativeTimePicker] = useState(true);
 
   const isCreateMode = mode === 'create';
 
@@ -65,16 +64,16 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
     return new Date(date.getTime() - tzOffset).toISOString().slice(0, 10);
   };
 
-  const toTimeInputValue = (isoDate?: string) => {
+  const toTimeInputValue = useCallback((isoDate?: string) => {
     if (!isoDate) return '';
     const date = new Date(isoDate);
     if (Number.isNaN(date.getTime())) return '';
-    return date.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
+    // El input type="time" siempre usa formato 24h (HH:MM) independientemente de la preferencia del usuario
+    // El navegador se encarga de mostrarlo en el formato apropiado según la configuración regional
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }, []);
 
   const combineLocalDateTimeToUtc = (datePart: string, timePart: string) => {
     const local = new Date(`${datePart}T${timePart}`);
@@ -87,37 +86,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
     return Number.isNaN(local.getTime()) ? '' : local.toISOString();
   };
 
-  const openTimePicker = (input: HTMLInputElement | null) => {
-    if (!input) {
-      return;
-    }
-
-    const extended = input as HTMLInputElement & { showPicker?: () => void };
-    if (typeof extended.showPicker === 'function') {
-      extended.showPicker();
-    } else {
-      input.focus();
-    }
-  };
-
-  const timeOptions = useMemo(() => {
-    const options: string[] = [];
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const hh = String(hour).padStart(2, '0');
-        const mm = String(minute).padStart(2, '0');
-        options.push(`${hh}:${mm}`);
-      }
-    }
-    return options;
-  }, []);
-
+  // Cargar preferencias de usuario
   useEffect(() => {
-    const hasPicker = typeof window !== 'undefined'
-      && typeof HTMLInputElement !== 'undefined'
-      && 'showPicker' in HTMLInputElement.prototype;
+    const loadUserPreferences = async () => {
+      try {
+        const preferences = await apiService.getUserPreferences();
+        setTimeFormat(preferences.timeFormat);
+      } catch (err) {
+        console.error('Error loading user preferences:', err);
+        // Usar valor por defecto si falla
+      }
+    };
 
-    setSupportsNativeTimePicker(hasPicker);
+    loadUserPreferences();
   }, []);
 
   // Load categories on mount
@@ -176,21 +157,13 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         setEndDate(dateStr);
 
         // Usar la hora de initialDate si está disponible
-        const timeStr = initialDate.toLocaleTimeString('es-ES', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        });
+        const timeStr = toTimeInputValue(initialDate.toISOString());
         setStartTime(timeStr);
 
         // Calcular hora de fin (1 hora después)
         const endDateTime = new Date(initialDate);
         endDateTime.setHours(endDateTime.getHours() + 1);
-        const endTimeStr = endDateTime.toLocaleTimeString('es-ES', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        });
+        const endTimeStr = toTimeInputValue(endDateTime.toISOString());
         setEndTime(endTimeStr);
       } else {
         const now = new Date();
@@ -202,7 +175,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         setEndTime('10:00');
       }
     }
-  }, [isOpen, isCreateMode, eventToEdit, initialDate]);
+  }, [isOpen, isCreateMode, eventToEdit, initialDate, toTimeInputValue]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -549,87 +522,21 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             <div className="event-form-row">
               <div className="event-form-field">
                 <label htmlFor="event-start-time">Hora inicio</label>
-                {supportsNativeTimePicker ? (
-                  <input
-                    id="event-start-time"
-                    type="time"
-                    className="event-form-input"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    required
-                    ref={startTimeInputRef}
-                  />
-                ) : (
-                  <div className="event-form-time-picker">
-                    <input
-                      id="event-start-time"
-                      type="time"
-                      className="event-form-input event-form-time-input"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      required
-                      ref={startTimeInputRef}
-                      inputMode="numeric"
-                      pattern="\\d{2}:\\d{2}"
-                      list="event-start-time-options"
-                    />
-                    <button
-                      type="button"
-                      className="event-form-time-button"
-                      onClick={() => openTimePicker(startTimeInputRef.current)}
-                      aria-label="Seleccionar hora de inicio"
-                    >
-                      <Clock size={16} aria-hidden="true" />
-                    </button>
-                    <datalist id="event-start-time-options">
-                      {timeOptions.map((option) => (
-                        <option key={option} value={option} />
-                      ))}
-                    </datalist>
-                  </div>
-                )}
+                <TimeInput
+                  id="event-start-time"
+                  value={startTime}
+                  onChange={setStartTime}
+                  timeFormat={timeFormat}
+                />
               </div>
               <div className="event-form-field">
                 <label htmlFor="event-end-time">Hora fin</label>
-                {supportsNativeTimePicker ? (
-                  <input
-                    id="event-end-time"
-                    type="time"
-                    className="event-form-input"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    required
-                    ref={endTimeInputRef}
-                  />
-                ) : (
-                  <div className="event-form-time-picker">
-                    <input
-                      id="event-end-time"
-                      type="time"
-                      className="event-form-input event-form-time-input"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      required
-                      ref={endTimeInputRef}
-                      inputMode="numeric"
-                      pattern="\\d{2}:\\d{2}"
-                      list="event-end-time-options"
-                    />
-                    <button
-                      type="button"
-                      className="event-form-time-button"
-                      onClick={() => openTimePicker(endTimeInputRef.current)}
-                      aria-label="Seleccionar hora de fin"
-                    >
-                      <Clock size={16} aria-hidden="true" />
-                    </button>
-                    <datalist id="event-end-time-options">
-                      {timeOptions.map((option) => (
-                        <option key={option} value={option} />
-                      ))}
-                    </datalist>
-                  </div>
-                )}
+                <TimeInput
+                  id="event-end-time"
+                  value={endTime}
+                  onChange={setEndTime}
+                  timeFormat={timeFormat}
+                />
               </div>
             </div>
           )}

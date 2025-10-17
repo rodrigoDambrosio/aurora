@@ -87,7 +87,7 @@
 }
 
 .time-column-header {
-    width: 60px;
+    width: 80px; /* Aumentado de 60px */
     flex-shrink: 0;
 }
 
@@ -157,35 +157,36 @@
     border-top: 0.667px solid var(--color-border);
     border-bottom: 0.667px solid var(--color-border);
     background: var(--color-surface);
-    min-height: 40px;
+    min-height: 36px; /* Reducido de 40px */
     max-height: 120px;
     overflow-y: auto;
 }
 
 .all-day-time-label {
-    width: 60px;
+    width: 80px; /* Aumentado de 60px */
     flex-shrink: 0;
     border-right: 0.667px solid var(--color-border);
     display: flex;
-    align-items: flex-start;
+    align-items: center; /* Centrado verticalmente */
     justify-content: center;
-    padding: 8px 4px;
+    padding: 6px 4px; /* Reducido de 8px */
 }
 
 .all-day-time-label span {
     font-family: 'Arial', sans-serif;
-    font-size: 10px;
-    line-height: 12px;
+    font-size: 9px; /* Reducido de 10px para que entre en una línea */
+    line-height: 11px; /* Reducido de 12px */
     color: var(--color-text-muted);
     text-align: center;
     text-transform: uppercase;
     font-weight: 500;
+    white-space: nowrap; /* Evitar que se corte en dos líneas */
 }
 
 .all-day-events-grid-wrapper {
     flex: 1;
     position: relative;
-    min-height: 40px;
+    min-height: 36px; /* Reducido de 40px */
 }
 
 .all-day-events-grid {
@@ -218,18 +219,18 @@
     position: absolute;
     border-radius: 8px;
     border-left: 4px solid;
-    padding: 6px 10px;
+    padding: 4px 8px; /* Reducido de 6px 10px */
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 14px;
+    font-size: 13px; /* Reducido de 14px */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     pointer-events: auto;
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-height: 32px;
+    gap: 6px; /* Reducido de 8px */
+    min-height: 26px; /* Reducido de 32px */
 }
 
 .all-day-event-card.multi-day {
@@ -242,8 +243,8 @@
 }
 
 .all-day-event-card .event-title {
-    font-size: 14px;
-    line-height: 20px;
+    font-size: 13px; /* Reducido de 14px */
+    line-height: 18px; /* Reducido de 20px */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -251,7 +252,7 @@
 }
 
 .multi-day-indicator {
-    font-size: 11px;
+    font-size: 10px; /* Reducido de 11px */
     font-weight: 600;
     opacity: 0.8;
     white-space: nowrap;
@@ -269,7 +270,7 @@
 }
 
 .time-column {
-    width: 60px;
+    width: 80px; /* Aumentado de 60px */
     flex-shrink: 0;
     border-right: 0.667px solid var(--color-border);
     position: relative;
@@ -278,10 +279,27 @@
 
 .time-slot {
     position: relative;
-    border-bottom: 0.667px solid var(--color-border);
+    height: 80px;
     display: flex;
-    align-items: flex-start;
-    padding-top: 4px;
+    align-items: flex-end; /* Alinear al final para posicionar el label en el borde inferior */
+    justify-content: center;
+}
+
+/* Línea de la grilla - en el borde inferior, se extiende desde el centro hacia la derecha */
+.time-slot::after {
+    content: '';
+    position: absolute;
+    left: 50%; /* Empieza desde el centro de la columna */
+    right: 0;
+    bottom: 0; /* Alineada con el borde inferior, igual que .hour-line */
+    height: 0.667px;
+    background: var(--color-border);
+    z-index: 0;
+}
+
+/* Ocultar la línea del último slot (hora 23) */
+.time-slot.last-slot::after {
+    display: none;
 }
 
 .time-label {
@@ -290,8 +308,10 @@
     line-height: 16px;
     color: var(--color-text-muted);
     background: var(--color-surface);
-    padding: 0 4px;
-    margin-left: 4px;
+    padding: 0 8px;
+    transform: translateY(50%); /* Desplazar hacia arriba 50% de su altura para centrar en la línea */
+    position: relative;
+    z-index: 1; /* Sobre la línea */
 }
 
 .calendar-grid-with-hours {
@@ -501,6 +521,14 @@
 .event-card-timed.dragging {
     opacity: 0.5;
     cursor: grabbing;
+}
+
+.event-card-timed.being-dragged {
+    transition: top 0.15s ease-out;
+    cursor: grabbing;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+                0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: scale(1.02);
 }
 
 .day-column-with-hours.drag-over {

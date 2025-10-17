@@ -1,0 +1,131 @@
+
+/* TimeInput.css - Selector de hora personalizado */
+
+.time-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.time-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1.333px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.time-input-wrapper:hover:not(.disabled) {
+  border-color: var(--color-link);
+  background: var(--color-surface-alt);
+}
+
+.time-input-wrapper.open {
+  border-color: var(--color-link);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-link) 12%, transparent);
+}
+
+.time-input-wrapper.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--color-surface-alt);
+}
+
+.time-input-display {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.time-input-display:disabled {
+  cursor: not-allowed;
+}
+
+.time-input-display::placeholder {
+  color: var(--color-text-muted);
+}
+
+.time-input-icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  margin-left: 8px;
+  pointer-events: none; /* El click se maneja en el wrapper */
+}
+
+.time-input-icon-wrapper {
+  flex-shrink: 0;
+  margin-left: 8px;
+  pointer-events: auto;
+}
+
+.time-input-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1.333px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1),
+              0 2px 6px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.time-input-option {
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.time-input-option:hover {
+  background: var(--color-surface-hover);
+}
+
+.time-input-option.selected {
+  background: color-mix(in srgb, var(--color-link) 15%, transparent);
+  color: var(--color-link);
+  font-weight: 500;
+}
+
+.time-input-no-results {
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Scrollbar para el dropdown */
+
+/* Responsive */
+@media (max-width: 768px) {
+  .time-input-dropdown {
+    max-height: 200px;
+  }
+}
