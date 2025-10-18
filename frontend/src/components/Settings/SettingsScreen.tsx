@@ -26,6 +26,7 @@ const tabs: Tab[] = [
 ];
 
 const TIMEZONES = [
+  { value: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires (GMT-3)' },
   { value: 'America/Mexico_City', label: 'México (GMT-6)' },
   { value: 'America/New_York', label: 'Nueva York (GMT-5)' },
   { value: 'America/Chicago', label: 'Chicago (GMT-6)' },
