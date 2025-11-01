@@ -58,6 +58,7 @@ builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IReminderService, ReminderService>();
 
 // AI Validation Service with HttpClient
 builder.Services.AddHttpClient<IAIValidationService, GeminiAIValidationService>(client =>

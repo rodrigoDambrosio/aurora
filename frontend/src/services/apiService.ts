@@ -5,6 +5,8 @@
  * Uses environment variables or falls back to proxy configuration in development.
  */
 
+import type { CreateReminderDto, ReminderDto } from '../types/reminder.types';
+
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -551,6 +553,57 @@ export const apiService = {
     return this.fetchApi<UserPreferencesDto>('/user/preferences', {
       method: 'PUT',
       body: JSON.stringify(payload)
+    });
+  },
+
+  // ===== REMINDERS ENDPOINTS =====
+
+  /**
+   * Create a new reminder for an event
+   */
+  async createReminder(payload: CreateReminderDto): Promise<ReminderDto> {
+    return this.fetchApi<ReminderDto>('/reminders', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  /**
+   * Get pending reminders (ready to trigger)
+   */
+  async getPendingReminders(): Promise<ReminderDto[]> {
+    return this.fetchApi<ReminderDto[]>('/reminders/pending');
+  },
+
+  /**
+   * Get reminder by ID
+   */
+  async getReminderById(id: string): Promise<ReminderDto> {
+    return this.fetchApi<ReminderDto>(`/reminders/${id}`);
+  },
+
+  /**
+   * Get all reminders for a specific event
+   */
+  async getRemindersByEventId(eventId: string): Promise<ReminderDto[]> {
+    return this.fetchApi<ReminderDto[]>(`/reminders/event/${eventId}`);
+  },
+
+  /**
+   * Delete a reminder
+   */
+  async deleteReminder(id: string): Promise<void> {
+    await this.fetchApi<void>(`/reminders/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  /**
+   * Mark a reminder as sent
+   */
+  async markReminderAsSent(id: string): Promise<void> {
+    await this.fetchApi<void>(`/reminders/${id}/mark-sent`, {
+      method: 'PUT'
     });
   }
 };

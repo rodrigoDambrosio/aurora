@@ -38,6 +38,11 @@ public class AuroraDbContext : DbContext
     /// </summary>
     public DbSet<UserSession> UserSessions { get; set; }
 
+    /// <summary>
+    /// Conjunto de recordatorios de eventos
+    /// </summary>
+    public DbSet<EventReminder> EventReminders { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -48,6 +53,7 @@ public class AuroraDbContext : DbContext
         modelBuilder.ApplyConfiguration(new EventCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new UserPreferencesConfiguration());
         modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
+        modelBuilder.ApplyConfiguration(new EventReminderConfiguration());
 
         // Configurar filtros globales para soft delete
         modelBuilder.Entity<User>().HasQueryFilter(e => e.IsActive);

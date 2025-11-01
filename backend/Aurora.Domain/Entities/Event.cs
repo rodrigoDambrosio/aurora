@@ -84,6 +84,11 @@ public class Event : BaseEntity
     /// </summary>
     public virtual User? User { get; set; }
 
+    /// <summary>
+    /// Recordatorios asociados al evento
+    /// </summary>
+    public virtual ICollection<EventReminder> Reminders { get; set; } = new List<EventReminder>();
+
     // Métodos de dominio
     /// <summary>
     /// Valida si las fechas del evento son consistentes
@@ -135,13 +140,8 @@ public class Event : BaseEntity
     public bool BelongsToUser(Guid? userId)
     {
         // En modo desarrollo, si no hay usuario específico, usa el demo
-        if (Constants.DomainConstants.Development.AllowAnonymousAccess)
-        {
-            var targetUserId = userId ?? Constants.DomainConstants.DemoUser.Id;
-            return UserId == targetUserId;
-        }
-
-        return UserId == userId;
+        var targetUserId = userId ?? Constants.DomainConstants.DemoUser.Id;
+        return UserId == targetUserId;
     }
 
     /// <summary>

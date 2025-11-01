@@ -3,6 +3,7 @@ import './App.css';
 import ApiTest from './components/ApiTest';
 import AuthScreen from './components/Auth/AuthScreen';
 import MainDashboard from './components/MainDashboard';
+import { NotificationPermissionBanner } from './components/NotificationPermissionBanner';
 import { useTheme } from './context/ThemeContext';
 import { apiService } from './services/apiService';
 
@@ -97,6 +98,7 @@ function App() {
         <AuthScreen onAuthSuccess={() => setIsAuthenticated(true)} />
       ) : (
         <div className="aurora-app">
+          <NotificationPermissionBanner />
           <MainDashboard />
         </div>
       )}

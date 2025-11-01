@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AIValidationResult, CreateEventDto, EventCategoryDto, EventDto, EventPriority } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './EventFormModal.css';
+import { ReminderSection } from './ReminderSection';
 import { TimeInput } from './TimeInput';
 
 interface EventFormModalProps {
@@ -572,6 +573,14 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               />
             </div>
           </div>
+
+          {/* Reminders Section - solo visible en modo edición cuando el evento existe */}
+          {mode === 'edit' && eventToEdit && (
+            <ReminderSection
+              eventId={eventToEdit.id}
+              eventStartDate={eventToEdit.startDate}
+            />
+          )}
 
           {validationError && (
             <div className="event-validation-error" role="alert">
