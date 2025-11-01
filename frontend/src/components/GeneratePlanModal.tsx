@@ -12,6 +12,7 @@ interface GeneratePlanModalProps {
 }
 
 interface PlanOptions {
+  startDate?: string;
   durationWeeks?: number;
   sessionsPerWeek?: number;
   sessionDurationMinutes?: number;
@@ -104,34 +105,6 @@ export function GeneratePlanModal({ isOpen, onClose, onPlanCreated }: GeneratePl
     setEditedEvents(updated);
   };
 
-  const formatDate = (isoDate: string) => {
-    try {
-      return new Intl.DateTimeFormat('es-ES', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(new Date(isoDate));
-    } catch {
-      return 'Fecha inválida';
-    }
-  };
-
-  const calculateDuration = (start: string, end: string) => {
-    try {
-      const startDate = new Date(start);
-      const endDate = new Date(end);
-      const minutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
-      if (minutes < 60) return `${minutes}min`;
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
-    } catch {
-      return '?';
-    }
-  };
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -212,6 +185,21 @@ export function GeneratePlanModal({ isOpen, onClose, onPlanCreated }: GeneratePl
                   <div className="generate-plan-options">
                     <p className="generate-plan-options-title">Preferencias (opcional)</p>
                     <div className="generate-plan-options-grid">
+                      <div className="generate-plan-option">
+                        <label htmlFor="start-date">
+                          <Calendar size={16} />
+                          Fecha de inicio
+                        </label>
+                        <input
+                          id="start-date"
+                          type="date"
+                          min={new Date().toISOString().split('T')[0]}
+                          value={options.startDate ?? ''}
+                          onChange={(e) => setOptions({ ...options, startDate: e.target.value || undefined })}
+                          disabled={isGenerating}
+                        />
+                      </div>
+
                       <div className="generate-plan-option">
                         <label htmlFor="duration-weeks">
                           <Calendar size={16} />
@@ -395,14 +383,66 @@ export function GeneratePlanModal({ isOpen, onClose, onPlanCreated }: GeneratePl
                             placeholder="Descripción..."
                           />
 
-                          <div className="generate-plan-event-details">
-                            <div className="generate-plan-event-detail">
-                              <Calendar size={14} />
-                              <span>{formatDate(event.startDate)}</span>
+                          <div className="generate-plan-event-datetime">
+                            <div className="generate-plan-event-datetime-group">
+                              <label>
+                                <Calendar size={14} />
+                                Fecha
+                              </label>
+                              <input
+                                type="date"
+                                value={new Date(event.startDate).toISOString().split('T')[0]}
+                                onChange={(e) => {
+                                  const newDate = e.target.value;
+                                  const oldStart = new Date(event.startDate);
+                                  const oldEnd = new Date(event.endDate);
+
+                                  // Mantener la hora, cambiar solo la fecha
+                                  const [year, month, day] = newDate.split('-').map(Number);
+                                  const newStart = new Date(oldStart);
+                                  newStart.setFullYear(year, month - 1, day);
+
+                                  const newEnd = new Date(oldEnd);
+                                  newEnd.setFullYear(year, month - 1, day);
+
+                                  handleEventEdit(idx, 'startDate', newStart.toISOString());
+                                  handleEventEdit(idx, 'endDate', newEnd.toISOString());
+                                }}
+                              />
                             </div>
-                            <div className="generate-plan-event-detail">
-                              <Clock size={14} />
-                              <span>{calculateDuration(event.startDate, event.endDate)}</span>
+
+                            <div className="generate-plan-event-datetime-group">
+                              <label>
+                                <Clock size={14} />
+                                Inicio
+                              </label>
+                              <input
+                                type="time"
+                                value={new Date(event.startDate).toISOString().slice(11, 16)}
+                                onChange={(e) => {
+                                  const [hours, minutes] = e.target.value.split(':').map(Number);
+                                  const newStart = new Date(event.startDate);
+                                  newStart.setHours(hours, minutes);
+                                  handleEventEdit(idx, 'startDate', newStart.toISOString());
+                                }}
+                              />
+                            </div>
+
+                            <div className="generate-plan-event-datetime-group">
+                              <label>
+                                <Clock size={14} />
+                                Fin
+                              </label>
+                              <input
+                                type="time"
+                                value={new Date(event.endDate).toISOString().slice(11, 16)}
+                                onChange={(e) => {
+                                  const [hours, minutes] = e.target.value.split(':').map(Number);
+                                  const newEnd = new Date(event.endDate);
+                                  newEnd.setHours(hours, minutes);
+                                  handleEventEdit(idx, 'endDate', newEnd.toISOString());
+                                }}
+                              />
                             </div>
                           </div>
                         </div>

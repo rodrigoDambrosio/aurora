@@ -129,6 +129,7 @@ export interface ParseNaturalLanguageResponseDto {
 export interface GeneratePlanRequestDto {
   goal: string;
   timezoneOffsetMinutes: number;
+  startDate?: string;
   durationWeeks?: number;
   sessionsPerWeek?: number;
   sessionDurationMinutes?: number;
@@ -541,6 +542,7 @@ export const apiService = {
    * Generate a multi-day plan from a high-level goal using AI
    */
   async generatePlan(goal: string, options?: {
+    startDate?: string;
     durationWeeks?: number;
     sessionsPerWeek?: number;
     sessionDurationMinutes?: number;

@@ -1034,8 +1034,22 @@ public class GeminiAIValidationService : IAIValidationService
         sb.AppendLine($"\"{request.Goal}\"");
         sb.AppendLine();
 
+        // Fecha de inicio del plan
+        DateTime planStartDate;
+        if (request.StartDate.HasValue)
+        {
+            planStartDate = request.StartDate.Value.AddMinutes(request.TimezoneOffsetMinutes);
+            sb.AppendLine($"FECHA DE INICIO DEL PLAN: {planStartDate:yyyy-MM-dd} (especificada por el usuario)");
+        }
+        else
+        {
+            planStartDate = userLocalNow.AddDays(1).Date; // Mañana por defecto
+            sb.AppendLine($"FECHA DE INICIO DEL PLAN: {planStartDate:yyyy-MM-dd} (mañana)");
+        }
+        sb.AppendLine();
+
         // Preferencias del plan
-        if (request.DurationWeeks.HasValue || request.SessionsPerWeek.HasValue || request.SessionDurationMinutes.HasValue)
+        if (request.DurationWeeks.HasValue || request.SessionsPerWeek.HasValue || request.SessionDurationMinutes.HasValue || !string.IsNullOrEmpty(request.PreferredTimeOfDay))
         {
             sb.AppendLine("PREFERENCIAS DEL PLAN:");
             if (request.DurationWeeks.HasValue)
@@ -1074,7 +1088,7 @@ public class GeminiAIValidationService : IAIValidationService
         sb.AppendLine("6. Incluye descripciones detalladas con objetivos específicos de cada sesión");
         sb.AppendLine("7. Asigna la categoría apropiada del catálogo disponible");
         sb.AppendLine("8. Establece prioridades coherentes (sesiones iniciales: Medium, sesiones clave: High)");
-        sb.AppendLine("9. IMPORTANTE: Inicia el plan desde MAÑANA, no desde hoy");
+        sb.AppendLine($"9. IMPORTANTE: Inicia el plan desde la FECHA DE INICIO especificada ({planStartDate:yyyy-MM-dd})");
         sb.AppendLine();
 
         // Formato de respuesta JSON

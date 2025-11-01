@@ -39,4 +39,9 @@ public class GeneratePlanRequestDto
     /// ID de categoría para asignar a todos los eventos del plan (opcional)
     /// </summary>
     public Guid? CategoryId { get; set; }
+
+    /// <summary>
+    /// Fecha de inicio del plan (opcional, por defecto mañana)
+    /// </summary>
+    public DateTime? StartDate { get; set; }
 }

@@ -107,7 +107,7 @@ public class EventService : IEventService
         // Verificar que la categoría existe y el usuario puede usarla
         var canUseCategory = await _categoryRepository.UserCanUseCategoryAsync(createEventDto.EventCategoryId, currentUserId);
         EventCategory? categoryEntity;
-        
+
         if (!canUseCategory)
         {
             // Si hay un nombre de categoría sugerido, intentar crearla automáticamente
@@ -116,12 +116,12 @@ public class EventService : IEventService
                 _logger.LogInformation(
                     "Categoría {CategoryId} no disponible. Creando nueva categoría '{SuggestedName}' para usuario {UserId}",
                     createEventDto.EventCategoryId, createEventDto.SuggestedCategoryName, currentUserId);
-                
+
                 // Verificar si ya existe una categoría con ese nombre
                 var existingCategories = await _categoryRepository.GetAvailableCategoriesForUserAsync(currentUserId);
-                categoryEntity = existingCategories.FirstOrDefault(c => 
+                categoryEntity = existingCategories.FirstOrDefault(c =>
                     c.Name.Equals(createEventDto.SuggestedCategoryName, StringComparison.OrdinalIgnoreCase));
-                
+
                 if (categoryEntity == null)
                 {
                     // Crear la nueva categoría
@@ -139,15 +139,15 @@ public class EventService : IEventService
                         UpdatedAt = DateTime.UtcNow,
                         IsActive = true
                     };
-                    
+
                     await _categoryRepository.AddAsync(categoryEntity);
                     await _categoryRepository.SaveChangesAsync();
-                    
+
                     _logger.LogInformation(
                         "Nueva categoría '{CategoryName}' creada con ID {CategoryId}",
                         categoryEntity.Name, categoryEntity.Id);
                 }
-                
+
                 createEventDto.EventCategoryId = categoryEntity.Id;
             }
             else
@@ -156,11 +156,11 @@ public class EventService : IEventService
                 _logger.LogWarning(
                     "Categoría {CategoryId} no disponible para usuario {UserId}. Usando categoría por defecto.",
                     createEventDto.EventCategoryId, currentUserId);
-                    
+
                 var availableCategories = await _categoryRepository.GetAvailableCategoriesForUserAsync(currentUserId);
                 categoryEntity = availableCategories.FirstOrDefault()
                     ?? throw new InvalidOperationException("El usuario no tiene categorías disponibles. Por favor, crea una categoría primero.");
-                    
+
                 createEventDto.EventCategoryId = categoryEntity.Id;
             }
         }
@@ -377,7 +377,7 @@ public class EventService : IEventService
             "#f97316", // Naranja oscuro
             "#6366f1"  // Índigo
         };
-        
+
         var random = new Random();
         return colors[random.Next(colors.Length)];
     }
