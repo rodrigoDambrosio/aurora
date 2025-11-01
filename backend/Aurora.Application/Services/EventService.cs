@@ -2,6 +2,7 @@ using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
 using Aurora.Domain.Entities;
 using Aurora.Domain.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Aurora.Application.Services;
 
@@ -12,11 +13,16 @@ public class EventService : IEventService
 {
     private readonly IEventRepository _eventRepository;
     private readonly IEventCategoryRepository _categoryRepository;
+    private readonly ILogger<EventService> _logger;
 
-    public EventService(IEventRepository eventRepository, IEventCategoryRepository categoryRepository)
+    public EventService(
+        IEventRepository eventRepository,
+        IEventCategoryRepository categoryRepository,
+        ILogger<EventService> logger)
     {
         _eventRepository = eventRepository ?? throw new ArgumentNullException(nameof(eventRepository));
         _categoryRepository = categoryRepository ?? throw new ArgumentNullException(nameof(categoryRepository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<WeeklyEventsResponseDto> GetWeeklyEventsAsync(Guid? userId, DateTime weekStart, Guid? categoryId = null)
@@ -100,13 +106,69 @@ public class EventService : IEventService
 
         // Verificar que la categoría existe y el usuario puede usarla
         var canUseCategory = await _categoryRepository.UserCanUseCategoryAsync(createEventDto.EventCategoryId, currentUserId);
+        EventCategory? categoryEntity;
+        
         if (!canUseCategory)
         {
-            throw new InvalidOperationException("La categoría especificada no está disponible para este usuario");
+            // Si hay un nombre de categoría sugerido, intentar crearla automáticamente
+            if (!string.IsNullOrWhiteSpace(createEventDto.SuggestedCategoryName))
+            {
+                _logger.LogInformation(
+                    "Categoría {CategoryId} no disponible. Creando nueva categoría '{SuggestedName}' para usuario {UserId}",
+                    createEventDto.EventCategoryId, createEventDto.SuggestedCategoryName, currentUserId);
+                
+                // Verificar si ya existe una categoría con ese nombre
+                var existingCategories = await _categoryRepository.GetAvailableCategoriesForUserAsync(currentUserId);
+                categoryEntity = existingCategories.FirstOrDefault(c => 
+                    c.Name.Equals(createEventDto.SuggestedCategoryName, StringComparison.OrdinalIgnoreCase));
+                
+                if (categoryEntity == null)
+                {
+                    // Crear la nueva categoría
+                    categoryEntity = new EventCategory
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = createEventDto.SuggestedCategoryName.Trim(),
+                        Description = $"Categoría creada automáticamente por IA",
+                        Color = GenerateRandomColor(),
+                        Icon = "category",
+                        IsSystemDefault = false,
+                        SortOrder = 100,
+                        UserId = currentUserId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        IsActive = true
+                    };
+                    
+                    await _categoryRepository.AddAsync(categoryEntity);
+                    await _categoryRepository.SaveChangesAsync();
+                    
+                    _logger.LogInformation(
+                        "Nueva categoría '{CategoryName}' creada con ID {CategoryId}",
+                        categoryEntity.Name, categoryEntity.Id);
+                }
+                
+                createEventDto.EventCategoryId = categoryEntity.Id;
+            }
+            else
+            {
+                // Si no hay categoría sugerida, usar la primera disponible como fallback
+                _logger.LogWarning(
+                    "Categoría {CategoryId} no disponible para usuario {UserId}. Usando categoría por defecto.",
+                    createEventDto.EventCategoryId, currentUserId);
+                    
+                var availableCategories = await _categoryRepository.GetAvailableCategoriesForUserAsync(currentUserId);
+                categoryEntity = availableCategories.FirstOrDefault()
+                    ?? throw new InvalidOperationException("El usuario no tiene categorías disponibles. Por favor, crea una categoría primero.");
+                    
+                createEventDto.EventCategoryId = categoryEntity.Id;
+            }
         }
-
-        var categoryEntity = await _categoryRepository.GetByIdAsync(createEventDto.EventCategoryId)
-            ?? throw new InvalidOperationException("La categoría seleccionada no existe.");
+        else
+        {
+            categoryEntity = await _categoryRepository.GetByIdAsync(createEventDto.EventCategoryId)
+                ?? throw new InvalidOperationException("La categoría seleccionada no existe.");
+        }
 
         // Crear entidad evento
         var eventEntity = new Event
@@ -297,5 +359,26 @@ public class EventService : IEventService
         }
 
         return DateTime.SpecifyKind(value, DateTimeKind.Utc);
+    }
+
+    private static string GenerateRandomColor()
+    {
+        // Paleta de colores predefinidos para categorías
+        var colors = new[]
+        {
+            "#3b82f6", // Azul
+            "#8b5cf6", // Púrpura
+            "#10b981", // Verde
+            "#f59e0b", // Naranja
+            "#ef4444", // Rojo
+            "#06b6d4", // Cyan
+            "#ec4899", // Rosa
+            "#14b8a6", // Teal
+            "#f97316", // Naranja oscuro
+            "#6366f1"  // Índigo
+        };
+        
+        var random = new Random();
+        return colors[random.Next(colors.Length)];
     }
 }

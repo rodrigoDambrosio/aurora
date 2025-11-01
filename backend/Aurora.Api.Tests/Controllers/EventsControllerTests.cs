@@ -17,6 +17,7 @@ public class EventsControllerTests
     private readonly Mock<IEventService> _eventServiceMock;
     private readonly Mock<IAIValidationService> _aiValidationServiceMock;
     private readonly Mock<IEventCategoryRepository> _categoryRepositoryMock;
+    private readonly Mock<IUserService> _userServiceMock;
     private readonly Mock<ILogger<EventsController>> _loggerMock;
     private readonly EventsController _controller;
     private readonly Guid _currentUserId = Guid.NewGuid();
@@ -26,8 +27,9 @@ public class EventsControllerTests
         _eventServiceMock = new Mock<IEventService>();
         _aiValidationServiceMock = new Mock<IAIValidationService>();
         _categoryRepositoryMock = new Mock<IEventCategoryRepository>();
+        _userServiceMock = new Mock<IUserService>();
         _loggerMock = new Mock<ILogger<EventsController>>();
-        _controller = new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _loggerMock.Object);
+        _controller = new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _userServiceMock.Object, _loggerMock.Object);
         SetAuthenticatedUser(_currentUserId);
     }
 
@@ -46,7 +48,7 @@ public class EventsControllerTests
     public void Constructor_WithNullEventService_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(null!, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _loggerMock.Object);
+        var act = () => new EventsController(null!, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _userServiceMock.Object, _loggerMock.Object);
         act.Should().Throw<ArgumentNullException>().WithParameterName("eventService");
     }
 
@@ -54,7 +56,7 @@ public class EventsControllerTests
     public void Constructor_WithNullAIValidationService_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(_eventServiceMock.Object, null!, _categoryRepositoryMock.Object, _loggerMock.Object);
+        var act = () => new EventsController(_eventServiceMock.Object, null!, _categoryRepositoryMock.Object, _userServiceMock.Object, _loggerMock.Object);
         act.Should().Throw<ArgumentNullException>().WithParameterName("aiValidationService");
     }
 
@@ -62,7 +64,7 @@ public class EventsControllerTests
     public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, null!);
+        var act = () => new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _userServiceMock.Object, null!);
         act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
     }
 
@@ -438,7 +440,8 @@ public class EventsControllerTests
                 It.Is<Guid>(userId => BeCurrentUser(userId)),
                 It.IsAny<IEnumerable<EventCategoryDto>>(),
                 parseRequest.TimezoneOffsetMinutes,
-                It.IsAny<IEnumerable<EventDto>>()))
+                It.IsAny<IEnumerable<EventDto>>(),
+                null))
             .ReturnsAsync(new ParseNaturalLanguageResponseDto
             {
                 Success = true,
@@ -536,7 +539,8 @@ public class EventsControllerTests
                 It.Is<Guid>(userId => BeCurrentUser(userId)),
                 It.IsAny<IEnumerable<EventCategoryDto>>(),
                 parseRequest.TimezoneOffsetMinutes,
-                It.IsAny<IEnumerable<EventDto>>()))
+                It.IsAny<IEnumerable<EventDto>>(),
+                null))
             .ReturnsAsync(new ParseNaturalLanguageResponseDto
             {
                 Success = true,
@@ -845,5 +849,176 @@ public class EventsControllerTests
         });
 
         _eventServiceMock.Verify(x => x.GetWeeklyEventsAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), startDate, categoryId), Times.Once);
+    }
+
+    [Fact]
+    public async Task GeneratePlan_WithValidRequest_ShouldReturnOkResult()
+    {
+        // Arrange
+        var request = new GeneratePlanRequestDto
+        {
+            Goal = "Aprender a tocar la guitarra",
+            TimezoneOffsetMinutes = -180,
+            DurationWeeks = 8,
+            SessionsPerWeek = 3,
+            SessionDurationMinutes = 90
+        };
+
+        var categoryId = Guid.NewGuid();
+        var categories = new List<EventCategory>
+        {
+            new EventCategory
+            {
+                Id = categoryId,
+                Name = "Música",
+                Color = "#FF5733",
+                Description = "Actividades musicales",
+                SortOrder = 1,
+                UserId = _currentUserId
+            }
+        };
+
+        var startDate = DateTime.UtcNow.Date;
+        var endDate = startDate.AddDays(90);
+        var existingEvents = new List<EventDto>();
+
+        var planResponse = new GeneratePlanResponseDto
+        {
+            PlanTitle = "Plan de 8 semanas para aprender guitarra",
+            PlanDescription = "Plan progresivo para dominar los fundamentos de la guitarra",
+            DurationWeeks = 8,
+            TotalSessions = 24,
+            Events = new List<CreateEventDto>
+            {
+                new CreateEventDto
+                {
+                    Title = "Semana 1 - Sesión 1: Introducción y fundamentos",
+                    Description = "Aprender las partes de la guitarra y acordes básicos",
+                    StartDate = startDate.AddDays(1).AddHours(10),
+                    EndDate = startDate.AddDays(1).AddHours(11).AddMinutes(30),
+                    Priority = EventPriority.Medium,
+                    EventCategoryId = categoryId
+                }
+            },
+            AdditionalTips = "Practica diariamente al menos 15 minutos adicionales",
+            HasPotentialConflicts = false,
+            ConflictWarnings = new List<string>()
+        };
+
+        _categoryRepositoryMock
+            .Setup(x => x.GetAllAsync())
+            .ReturnsAsync(categories);
+
+        _eventServiceMock
+            .Setup(x => x.GetEventsByDateRangeAsync(It.Is<Guid?>(userId => BeCurrentUser(userId)), startDate, endDate))
+            .ReturnsAsync(existingEvents);
+
+        _aiValidationServiceMock
+            .Setup(x => x.GeneratePlanAsync(
+                It.Is<GeneratePlanRequestDto>(r => r.Goal == request.Goal),
+                It.Is<Guid>(userId => BeCurrentUser(userId)),
+                It.IsAny<IEnumerable<EventCategoryDto>>(),
+                It.IsAny<IEnumerable<EventDto>>(),
+                null))
+            .ReturnsAsync(planResponse);
+
+        // Act
+        var result = await _controller.GeneratePlan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Result as OkObjectResult;
+        var actualResponse = okResult!.Value as GeneratePlanResponseDto;
+        actualResponse.Should().NotBeNull();
+        actualResponse!.PlanTitle.Should().Be("Plan de 8 semanas para aprender guitarra");
+        actualResponse.TotalSessions.Should().Be(24);
+        actualResponse.DurationWeeks.Should().Be(8);
+        actualResponse.Events.Should().HaveCount(1);
+        actualResponse.HasPotentialConflicts.Should().BeFalse();
+
+        _categoryRepositoryMock.Verify(x => x.GetAllAsync(), Times.Once);
+        _eventServiceMock.Verify(x => x.GetEventsByDateRangeAsync(
+            It.Is<Guid?>(userId => BeCurrentUser(userId)),
+            It.IsAny<DateTime>(),
+            It.IsAny<DateTime>()), Times.Once);
+        _aiValidationServiceMock.Verify(x => x.GeneratePlanAsync(
+            It.IsAny<GeneratePlanRequestDto>(),
+            It.Is<Guid>(userId => BeCurrentUser(userId)),
+            It.IsAny<IEnumerable<EventCategoryDto>>(),
+            It.IsAny<IEnumerable<EventDto>>(),
+            null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GeneratePlan_WithEmptyGoal_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var request = new GeneratePlanRequestDto
+        {
+            Goal = "",
+            TimezoneOffsetMinutes = -180
+        };
+
+        // Act
+        var result = await _controller.GeneratePlan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<BadRequestObjectResult>();
+        var badRequestResult = result.Result as BadRequestObjectResult;
+        var problemDetails = badRequestResult!.Value as ProblemDetails;
+        problemDetails.Should().NotBeNull();
+        problemDetails!.Title.Should().Be("Objetivo requerido");
+    }
+
+    [Fact]
+    public async Task GeneratePlan_WithAIServiceError_ShouldReturnInternalServerError()
+    {
+        // Arrange
+        var request = new GeneratePlanRequestDto
+        {
+            Goal = "Aprender a tocar la guitarra",
+            TimezoneOffsetMinutes = -180
+        };
+
+        var categoryId = Guid.NewGuid();
+        var categories = new List<EventCategory>
+        {
+            new EventCategory
+            {
+                Id = categoryId,
+                Name = "Música",
+                Color = "#FF5733",
+                SortOrder = 1,
+                UserId = _currentUserId
+            }
+        };
+
+        _categoryRepositoryMock
+            .Setup(x => x.GetAllAsync())
+            .ReturnsAsync(categories);
+
+        _eventServiceMock
+            .Setup(x => x.GetEventsByDateRangeAsync(It.IsAny<Guid?>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(new List<EventDto>());
+
+        _aiValidationServiceMock
+            .Setup(x => x.GeneratePlanAsync(
+                It.IsAny<GeneratePlanRequestDto>(),
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<EventCategoryDto>>(),
+                It.IsAny<IEnumerable<EventDto>>(),
+                null))
+            .ThrowsAsync(new InvalidOperationException("Error de IA"));
+
+        // Act
+        var result = await _controller.GeneratePlan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<ObjectResult>();
+        var objectResult = result.Result as ObjectResult;
+        objectResult!.StatusCode.Should().Be(500);
+        var problemDetails = objectResult.Value as ProblemDetails;
+        problemDetails.Should().NotBeNull();
+        problemDetails!.Title.Should().Be("Error al generar plan");
     }
 }

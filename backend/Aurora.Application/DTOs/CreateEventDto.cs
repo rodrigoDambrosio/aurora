@@ -66,6 +66,12 @@ public class CreateEventDto
     /// ID de la categoría del evento
     /// </summary>
     public Guid EventCategoryId { get; set; }
+    
+    /// <summary>
+    /// Nombre de categoría sugerida por IA (opcional, se crea si no existe)
+    /// </summary>
+    public string? SuggestedCategoryName { get; set; }
+    
     /// <summary>
     /// Desplazamiento de la zona horaria en minutos (opcional)
     /// </summary>
