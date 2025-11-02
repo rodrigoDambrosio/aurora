@@ -48,6 +48,12 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
             .IsRequired()
             .HasDefaultValue(EventPriority.Medium);
 
+        builder.Property(e => e.MoodRating)
+            .HasColumnType("INTEGER");
+
+        builder.Property(e => e.MoodNotes)
+            .HasMaxLength(500);
+
         // Índices
         builder.HasIndex(e => e.StartDate)
             .HasDatabaseName("IX_Events_StartDate");

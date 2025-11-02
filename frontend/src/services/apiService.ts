@@ -76,7 +76,13 @@ export interface EventDto {
   notes?: string;
   isRecurring: boolean;
   priority: EventPriority;
-  eventCategory: EventCategoryDto;
+  eventCategoryId: string;
+  eventCategory?: EventCategoryDto;
+  moodRating?: number | null;
+  moodNotes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  userId?: string;
 }
 
 export interface WeeklyEventsRequestDto {
@@ -104,6 +110,11 @@ export interface CreateEventDto {
   eventCategoryId: string;
   priority: EventPriority;
   timezoneOffsetMinutes?: number;
+}
+
+export interface UpdateEventMoodDto {
+  moodRating?: number | null;
+  moodNotes?: string | null;
 }
 
 export interface ParseNaturalLanguageRequestDto {
@@ -517,6 +528,16 @@ export const apiService = {
   async deleteEvent(id: string): Promise<void> {
     return this.fetchApi<void>(`/events/${id}`, {
       method: 'DELETE'
+    });
+  },
+
+  /**
+   * Update mood tracking for an event
+   */
+  async updateEventMood(eventId: string, payload: UpdateEventMoodDto): Promise<EventDto> {
+    return this.fetchApi<EventDto>(`/events/${eventId}/mood`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload)
     });
   },
 

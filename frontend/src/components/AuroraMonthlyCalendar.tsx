@@ -366,7 +366,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
                   <div
                     key={event.id}
                     className={`month-event-chip ${isMultiDay ? 'multi-day' : ''} ${isMultiDay && !isFirstDay ? 'continues-from-before' : ''} ${isMultiDay && !isLastDay ? 'continues-after' : ''}`}
-                    style={{ backgroundColor: event.eventCategory.color + '33' }}
+                    style={{ backgroundColor: (event.eventCategory?.color ?? '#3b82f6') + '33' }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onEventClick(event);
@@ -389,7 +389,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
                   >
                     <span
                       className="event-chip-text"
-                      style={{ color: event.eventCategory.color }}
+                      style={{ color: event.eventCategory?.color ?? '#3b82f6' }}
                     >
                       {event.title}
                     </span>
@@ -448,7 +448,7 @@ const AuroraMonthlyCalendar: React.FC<AuroraMonthlyCalendarProps> = ({
                 >
                   <div
                     className="popover-event-color"
-                    style={{ backgroundColor: event.eventCategory.color }}
+                    style={{ backgroundColor: event.eventCategory?.color ?? '#3b82f6' }}
                   />
                   <div className="popover-event-details">
                     <div className="popover-event-title">{event.title}</div>

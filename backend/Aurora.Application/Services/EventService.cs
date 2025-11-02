@@ -300,6 +300,43 @@ public class EventService : IEventService
         return overlappingEvents.Select(MapEventToDto);
     }
 
+    public async Task<EventDto> UpdateEventMoodAsync(Guid eventId, Guid? userId, UpdateEventMoodDto moodDto)
+    {
+        var currentUserId = DevelopmentUserService.GetCurrentUserId(userId);
+
+        var eventEntity = await _eventRepository.GetByIdAsync(eventId);
+
+        if (eventEntity == null || !eventEntity.BelongsToUser(currentUserId))
+        {
+            throw new InvalidOperationException("Evento no encontrado o sin permisos para modificarlo");
+        }
+
+        if (moodDto.MoodRating.HasValue && (moodDto.MoodRating < 1 || moodDto.MoodRating > 5))
+        {
+            throw new ArgumentException("La calificación del estado de ánimo debe estar entre 1 y 5.", nameof(moodDto.MoodRating));
+        }
+
+        var trimmedNotes = string.IsNullOrWhiteSpace(moodDto.MoodNotes)
+            ? null
+            : moodDto.MoodNotes!.Trim();
+
+        // Actualizar mood
+        eventEntity.MoodRating = moodDto.MoodRating;
+        eventEntity.MoodNotes = trimmedNotes;
+        eventEntity.UpdatedAt = DateTime.UtcNow;
+
+        var updatedEvent = await _eventRepository.UpdateAsync(eventEntity);
+        await _eventRepository.SaveChangesAsync();
+
+        if (updatedEvent.EventCategory == null)
+        {
+            updatedEvent = await _eventRepository.GetByIdAsync(updatedEvent.Id)
+                          ?? updatedEvent;
+        }
+
+        return MapEventToDto(updatedEvent);
+    }
+
     private static EventDto MapEventToDto(Event eventEntity)
     {
         return new EventDto
@@ -320,7 +357,9 @@ public class EventService : IEventService
             EventCategory = eventEntity.EventCategory != null ? MapCategoryToDto(eventEntity.EventCategory) : null,
             UserId = eventEntity.UserId,
             CreatedAt = eventEntity.CreatedAt,
-            UpdatedAt = eventEntity.UpdatedAt
+            UpdatedAt = eventEntity.UpdatedAt,
+            MoodRating = eventEntity.MoodRating,
+            MoodNotes = eventEntity.MoodNotes
         };
     }
 
