@@ -4,12 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // Use vi.hoisted to ensure mock functions are available
 const mockGetWeeklyEvents = vi.hoisted(() => vi.fn())
 const mockGetEventCategories = vi.hoisted(() => vi.fn())
+const mockGetUserPreferences = vi.hoisted(() => vi.fn())
 
 // Mock the apiService
 vi.mock('../../services/apiService', () => ({
   apiService: {
     getWeeklyEvents: mockGetWeeklyEvents,
-    getEventCategories: mockGetEventCategories
+    getEventCategories: mockGetEventCategories,
+    getUserPreferences: mockGetUserPreferences
   }
 }))
 
@@ -59,6 +61,10 @@ describe('AuroraWeeklyCalendar', () => {
         sortOrder: 1
       }
     ])
+
+    mockGetUserPreferences.mockResolvedValue({
+      timeFormat: '24h'
+    })
   })
 
   it('renders calendar with loading state initially', () => {
@@ -115,7 +121,7 @@ describe('AuroraWeeklyCalendar', () => {
     })
   })
 
-  it('displays add event placeholders', async () => {
+  it('shows empty state summary when no events', async () => {
     mockGetWeeklyEvents.mockResolvedValueOnce({
       weekStart: '2025-09-29T00:00:00.000Z',
       weekEnd: '2025-10-05T23:59:59.999Z',
@@ -127,8 +133,7 @@ describe('AuroraWeeklyCalendar', () => {
     render(<AuroraWeeklyCalendar />)
 
     await waitFor(() => {
-      const addEventElements = screen.getAllByText('Agregar evento')
-      expect(addEventElements).toHaveLength(7) // One for each day
+      expect(screen.getByText('0 eventos esta semana')).toBeInTheDocument()
     })
   })
 

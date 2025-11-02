@@ -1,14 +1,18 @@
 using Aurora.Api.Controllers;
 using Aurora.Application.DTOs;
+using Aurora.Application.DTOs.User;
 using Aurora.Application.Interfaces;
 using Aurora.Domain.Entities;
 using Aurora.Domain.Enums;
 using FluentAssertions;
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
+using System.Threading;
 
 namespace Aurora.Api.Tests.Controllers;
 
@@ -18,6 +22,7 @@ public class EventsControllerTests
     private readonly Mock<IAIValidationService> _aiValidationServiceMock;
     private readonly Mock<IEventCategoryRepository> _categoryRepositoryMock;
     private readonly Mock<IUserService> _userServiceMock;
+    private readonly Mock<IValidator<UpdateEventMoodDto>> _updateEventMoodValidatorMock;
     private readonly Mock<ILogger<EventsController>> _loggerMock;
     private readonly EventsController _controller;
     private readonly Guid _currentUserId = Guid.NewGuid();
@@ -28,8 +33,31 @@ public class EventsControllerTests
         _aiValidationServiceMock = new Mock<IAIValidationService>();
         _categoryRepositoryMock = new Mock<IEventCategoryRepository>();
         _userServiceMock = new Mock<IUserService>();
+        _userServiceMock
+            .Setup(service => service.GetPreferencesAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserPreferencesDto
+            {
+                Id = Guid.NewGuid(),
+                UserId = _currentUserId,
+                WorkDaysOfWeek = new List<int> { 1, 2, 3, 4, 5 },
+                WorkStartTime = "09:00",
+                WorkEndTime = "18:00"
+            });
+        _updateEventMoodValidatorMock = new Mock<IValidator<UpdateEventMoodDto>>();
+        _updateEventMoodValidatorMock
+            .Setup(v => v.ValidateAsync(It.IsAny<UpdateEventMoodDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ValidationResult());
+        _updateEventMoodValidatorMock
+            .Setup(v => v.Validate(It.IsAny<UpdateEventMoodDto>()))
+            .Returns(new ValidationResult());
         _loggerMock = new Mock<ILogger<EventsController>>();
-        _controller = new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _userServiceMock.Object, _loggerMock.Object);
+        _controller = new EventsController(
+            _eventServiceMock.Object,
+            _aiValidationServiceMock.Object,
+            _categoryRepositoryMock.Object,
+            _userServiceMock.Object,
+            _updateEventMoodValidatorMock.Object,
+            _loggerMock.Object);
         SetAuthenticatedUser(_currentUserId);
     }
 
@@ -48,7 +76,13 @@ public class EventsControllerTests
     public void Constructor_WithNullEventService_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(null!, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _userServiceMock.Object, _loggerMock.Object);
+        var act = () => new EventsController(
+            null!,
+            _aiValidationServiceMock.Object,
+            _categoryRepositoryMock.Object,
+            _userServiceMock.Object,
+            _updateEventMoodValidatorMock.Object,
+            _loggerMock.Object);
         act.Should().Throw<ArgumentNullException>().WithParameterName("eventService");
     }
 
@@ -56,15 +90,41 @@ public class EventsControllerTests
     public void Constructor_WithNullAIValidationService_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(_eventServiceMock.Object, null!, _categoryRepositoryMock.Object, _userServiceMock.Object, _loggerMock.Object);
+        var act = () => new EventsController(
+            _eventServiceMock.Object,
+            null!,
+            _categoryRepositoryMock.Object,
+            _userServiceMock.Object,
+            _updateEventMoodValidatorMock.Object,
+            _loggerMock.Object);
         act.Should().Throw<ArgumentNullException>().WithParameterName("aiValidationService");
+    }
+
+    [Fact]
+    public void Constructor_WithNullUpdateEventMoodValidator_ShouldThrowArgumentNullException()
+    {
+        // Act & Assert
+        var act = () => new EventsController(
+            _eventServiceMock.Object,
+            _aiValidationServiceMock.Object,
+            _categoryRepositoryMock.Object,
+            _userServiceMock.Object,
+            null!,
+            _loggerMock.Object);
+        act.Should().Throw<ArgumentNullException>().WithParameterName("updateEventMoodValidator");
     }
 
     [Fact]
     public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventsController(_eventServiceMock.Object, _aiValidationServiceMock.Object, _categoryRepositoryMock.Object, _userServiceMock.Object, null!);
+        var act = () => new EventsController(
+            _eventServiceMock.Object,
+            _aiValidationServiceMock.Object,
+            _categoryRepositoryMock.Object,
+            _userServiceMock.Object,
+            _updateEventMoodValidatorMock.Object,
+            null!);
         act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
     }
 
@@ -441,7 +501,7 @@ public class EventsControllerTests
                 It.IsAny<IEnumerable<EventCategoryDto>>(),
                 parseRequest.TimezoneOffsetMinutes,
                 It.IsAny<IEnumerable<EventDto>>(),
-                null))
+                It.IsAny<UserPreferencesDto?>()))
             .ReturnsAsync(new ParseNaturalLanguageResponseDto
             {
                 Success = true,
@@ -540,7 +600,7 @@ public class EventsControllerTests
                 It.IsAny<IEnumerable<EventCategoryDto>>(),
                 parseRequest.TimezoneOffsetMinutes,
                 It.IsAny<IEnumerable<EventDto>>(),
-                null))
+                It.IsAny<UserPreferencesDto?>()))
             .ReturnsAsync(new ParseNaturalLanguageResponseDto
             {
                 Success = true,
@@ -906,7 +966,7 @@ public class EventsControllerTests
         };
 
         _categoryRepositoryMock
-            .Setup(x => x.GetAllAsync())
+            .Setup(x => x.GetAvailableCategoriesForUserAsync(It.Is<Guid>(userId => BeCurrentUser(userId))))
             .ReturnsAsync(categories);
 
         _eventServiceMock
@@ -936,7 +996,7 @@ public class EventsControllerTests
         actualResponse.Events.Should().HaveCount(1);
         actualResponse.HasPotentialConflicts.Should().BeFalse();
 
-        _categoryRepositoryMock.Verify(x => x.GetAllAsync(), Times.Once);
+        _categoryRepositoryMock.Verify(x => x.GetAvailableCategoriesForUserAsync(It.Is<Guid>(userId => BeCurrentUser(userId))), Times.Once);
         _eventServiceMock.Verify(x => x.GetEventsByDateRangeAsync(
             It.Is<Guid?>(userId => BeCurrentUser(userId)),
             It.IsAny<DateTime>(),
@@ -994,7 +1054,7 @@ public class EventsControllerTests
         };
 
         _categoryRepositoryMock
-            .Setup(x => x.GetAllAsync())
+            .Setup(x => x.GetAvailableCategoriesForUserAsync(It.Is<Guid>(userId => BeCurrentUser(userId))))
             .ReturnsAsync(categories);
 
         _eventServiceMock

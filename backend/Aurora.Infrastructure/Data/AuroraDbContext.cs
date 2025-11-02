@@ -38,6 +38,11 @@ public class AuroraDbContext : DbContext
     /// </summary>
     public DbSet<UserSession> UserSessions { get; set; }
 
+    /// <summary>
+    /// Conjunto de registros diarios de estado de ánimo
+    /// </summary>
+    public DbSet<DailyMoodEntry> DailyMoodEntries { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -48,6 +53,7 @@ public class AuroraDbContext : DbContext
         modelBuilder.ApplyConfiguration(new EventCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new UserPreferencesConfiguration());
         modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
+        modelBuilder.ApplyConfiguration(new DailyMoodEntryConfiguration());
 
         // Configurar filtros globales para soft delete
         modelBuilder.Entity<User>().HasQueryFilter(e => e.IsActive);
@@ -55,6 +61,7 @@ public class AuroraDbContext : DbContext
         modelBuilder.Entity<EventCategory>().HasQueryFilter(e => e.IsActive);
         modelBuilder.Entity<UserPreferences>().HasQueryFilter(e => e.IsActive);
         modelBuilder.Entity<UserSession>().HasQueryFilter(e => e.IsActive);
+        modelBuilder.Entity<DailyMoodEntry>().HasQueryFilter(e => e.IsActive);
     }
 
     /// <summary>

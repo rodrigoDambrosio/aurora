@@ -6,6 +6,7 @@ import EventDetailModal from './EventDetailModal';
 import { EventFormModal } from './EventFormModal';
 import { FloatingNLPInput } from './FloatingNLPInput';
 import './MainDashboard.css';
+import MonthlyMoodTracker from './MonthlyMoodTracker';
 import Navigation from './Navigation';
 import SettingsScreen from './Settings/SettingsScreen';
 
@@ -138,8 +139,9 @@ const MainDashboard: React.FC = () => {
     }
   };
 
-  const showCalendarContainer = !['wellness', 'assistant', 'settings'].includes(activeView);
+  const showCalendarContainer = activeView === 'calendar-week' || activeView === 'calendar-month';
   const calendarView = activeView === 'calendar-month' ? 'calendar-month' : 'calendar-week';
+  const showMonthlyMood = activeView === 'mood-month';
 
   const renderPlaceholderContent = () => {
     switch (activeView) {
@@ -211,7 +213,13 @@ const MainDashboard: React.FC = () => {
           </section>
         </div>
 
-        {!showCalendarContainer && renderPlaceholderContent()}
+        {showMonthlyMood && (
+          <section className="mood-view-panel" aria-label="Seguimiento mensual de ánimo">
+            <MonthlyMoodTracker firstDayOfWeek={firstDayOfWeek} />
+          </section>
+        )}
+
+        {!showCalendarContainer && !showMonthlyMood && renderPlaceholderContent()}
       </main>
 
       {/* NLP Input */}

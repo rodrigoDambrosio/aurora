@@ -1,10 +1,10 @@
-import { Calendar, Heart, LogOut, MessageCircle, Moon, Settings, Sparkles, Sun } from 'lucide-react';
+import { Calendar, Heart, LogOut, MessageCircle, Moon, Settings, Smile, Sparkles, Sun } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { apiService } from '../services/apiService';
 import './Navigation.css';
 
-type View = 'calendar-week' | 'calendar-month' | 'wellness' | 'assistant' | 'settings';
+type View = 'calendar-week' | 'calendar-month' | 'mood-month' | 'wellness' | 'assistant' | 'settings';
 
 interface NavigationProps {
   activeView?: string;
@@ -23,6 +23,12 @@ const navigationItems = [
     label: 'Vista Mensual',
     icon: Calendar,
     description: 'Calendario mensual'
+  },
+  {
+    id: 'mood-month' as View,
+    label: 'Humor mensual',
+    icon: Smile,
+    description: 'Seguimiento diario'
   },
   {
     id: 'wellness' as View,
@@ -90,14 +96,14 @@ const Navigation: React.FC<NavigationProps> = ({
 
     try {
       setIsLoggingOut(true);
-      
+
       // Call backend to revoke session
       await apiService.logoutUser();
-      
+
       // Clear local storage
       localStorage.removeItem('auroraAccessToken');
       localStorage.removeItem('auroraAccessTokenExpiry');
-      
+
       // Reload to trigger login screen
       window.location.reload();
     } catch (error) {
@@ -160,7 +166,7 @@ const Navigation: React.FC<NavigationProps> = ({
           )}
           <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}</span>
         </button>
-        
+
         <button
           className="logout-button"
           onClick={handleLogout}

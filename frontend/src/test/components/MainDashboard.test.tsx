@@ -10,7 +10,12 @@ vi.mock('../../services/apiService', () => ({
     deleteEvent: vi.fn().mockResolvedValue(undefined),
     getEventCategories: vi.fn().mockResolvedValue([]),
     createEvent: vi.fn().mockResolvedValue({}),
-    updateEvent: vi.fn().mockResolvedValue({})
+    updateEvent: vi.fn().mockResolvedValue({}),
+    getUserPreferences: vi.fn().mockResolvedValue({
+      firstDayOfWeek: 1,
+      timeFormat: '24h'
+    }),
+    updateEventMood: vi.fn().mockResolvedValue({})
   }
 }))
 
