@@ -91,4 +91,14 @@ public class EventDto
     /// Fecha de última actualización
     /// </summary>
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Calificación del estado de ánimo (1-5, opcional)
+    /// </summary>
+    public int? MoodRating { get; set; }
+
+    /// <summary>
+    /// Notas sobre el estado de ánimo durante el evento (opcional)
+    /// </summary>
+    public string? MoodNotes { get; set; }
 }

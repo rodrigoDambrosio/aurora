@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { apiService, type EventCategoryDto, type EventDto } from '../services/apiService';
+import { apiService, type EventCategoryDto, type EventDto, type UpdateEventMoodDto } from '../services/apiService';
 import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
 import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
 import EventDetailModal from './EventDetailModal';
@@ -126,6 +126,18 @@ const MainDashboard: React.FC = () => {
     }
   };
 
+  const handleUpdateEventMood = async (eventId: string, mood: UpdateEventMoodDto) => {
+    try {
+      const updatedEvent = await apiService.updateEventMood(eventId, mood);
+      setSelectedEvent(updatedEvent);
+      bumpRefreshToken();
+      return updatedEvent;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo guardar el estado de ánimo';
+      throw new Error(message);
+    }
+  };
+
   const showCalendarContainer = !['wellness', 'assistant', 'settings'].includes(activeView);
   const calendarView = activeView === 'calendar-month' ? 'calendar-month' : 'calendar-week';
 
@@ -223,6 +235,7 @@ const MainDashboard: React.FC = () => {
         onClose={closeEventDetailModal}
         onEdit={handleEditEvent}
         onDelete={handleDeleteEvent}
+        onUpdateMood={handleUpdateEventMood}
         isDeleting={isDeletingEvent}
         errorMessage={detailError}
       />

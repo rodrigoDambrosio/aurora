@@ -72,6 +72,16 @@ public class Event : BaseEntity
     /// </summary>
     public string? RecurrencePattern { get; set; }
 
+    /// <summary>
+    /// Estado de ánimo asociado al evento (1-5, opcional)
+    /// </summary>
+    public int? MoodRating { get; set; }
+
+    /// <summary>
+    /// Notas sobre el estado de ánimo durante el evento (opcional)
+    /// </summary>
+    public string? MoodNotes { get; set; }
+
     // Relaciones
     /// <summary>
     /// ID del usuario propietario del evento

@@ -20,6 +20,7 @@
     z-index: 41;
     width: 100%;
     max-width: 420px;
+    max-height: calc(100vh - 48px);
     background: var(--color-surface);
     border-radius: 20px;
     box-shadow: var(--shadow-elevated);
@@ -89,6 +90,8 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
+    flex: 1 1 auto;
+    overflow-y: auto;
 }
 
 .event-detail-row {
@@ -150,6 +153,327 @@
     background: color-mix(in srgb, var(--color-link) 12%, transparent);
     border-radius: 14px;
     padding: 14px 16px;
+}
+
+.event-detail-mood-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.event-detail-mood-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.event-detail-mood-edit {
+    border: none;
+    background: color-mix(in srgb, var(--color-link) 18%, transparent);
+    color: color-mix(in srgb, var(--color-link) 75%, var(--color-text-primary) 25%);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.event-detail-mood-edit:hover,
+.event-detail-mood-edit:focus {
+    outline: none;
+    background: color-mix(in srgb, var(--color-link) 26%, transparent);
+    transform: translateY(-1px);
+}
+
+.event-detail-mood-reminder {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--color-link) 18%, transparent);
+    color: var(--color-text-primary);
+}
+
+.event-detail-mood-reminder svg {
+    color: color-mix(in srgb, var(--color-link) 75%, var(--color-text-primary) 25%);
+}
+
+.event-detail-mood-reminder-title {
+    margin: 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.event-detail-mood-reminder-text {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    color: color-mix(in srgb, var(--color-text-secondary) 70%, var(--color-text-primary) 30%);
+}
+
+.event-detail-mood-reminder-button {
+    margin-left: auto;
+    border: none;
+    background: var(--color-text-primary);
+    color: var(--color-surface);
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 8px 14px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.event-detail-mood-reminder-button:hover,
+.event-detail-mood-reminder-button:focus {
+    outline: none;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(20, 71, 230, 0.15);
+}
+
+.event-detail-mood-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.event-detail-mood-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.event-detail-mood-option {
+    flex: 1 1 48%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--color-link) 20%, transparent);
+    background: color-mix(in srgb, var(--color-link) 12%, transparent);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.event-detail-mood-option.is-selected {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--color-link) 55%, transparent);
+    background: color-mix(in srgb, var(--color-link) 28%, transparent);
+}
+
+.event-detail-mood-option:hover:not(.is-selected) {
+    transform: translateY(-1px);
+}
+
+.event-detail-mood-emoji {
+    font-size: 1.5rem;
+}
+
+.event-detail-mood-option-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.event-detail-mood-option-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.event-detail-mood-option-helper {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+.event-detail-mood-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.event-detail-mood-notes textarea {
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--color-link) 25%, transparent);
+    padding: 10px 12px;
+    resize: none;
+    min-height: 96px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    color: var(--color-text-primary);
+    background: color-mix(in srgb, var(--color-link) 10%, transparent);
+}
+
+.event-detail-mood-notes textarea:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-link) 55%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-link) 18%, transparent);
+}
+
+.event-detail-mood-charcount {
+    align-self: flex-end;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.event-detail-mood-selected-hint {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.event-detail-mood-error {
+    padding: 10px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    color: color-mix(in srgb, var(--color-danger) 82%, var(--color-text-primary) 18%);
+    font-size: 0.82rem;
+}
+
+.event-detail-mood-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.event-detail-mood-save {
+    flex: 1 1 40%;
+    border: none;
+    background: #1447e6;
+    color: #f8fafc;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 10px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.event-detail-mood-save:hover:not(:disabled),
+.event-detail-mood-save:focus-visible {
+    outline: none;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(20, 71, 230, 0.22);
+}
+
+.event-detail-mood-save:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.event-detail-mood-cancel,
+.event-detail-mood-clear {
+    flex: 1 1 28%;
+    border: none;
+    background: color-mix(in srgb, var(--color-link) 10%, transparent);
+    color: color-mix(in srgb, var(--color-text-secondary) 80%, var(--color-text-primary) 20%);
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 10px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.event-detail-mood-cancel:hover:not(:disabled),
+.event-detail-mood-clear:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background: color-mix(in srgb, var(--color-link) 18%, transparent);
+}
+
+.event-detail-mood-cancel:disabled,
+.event-detail-mood-clear:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.event-detail-mood-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (max-width: 480px) {
+    .event-detail-body {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .event-detail-mood-reminder {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .event-detail-mood-reminder-button {
+        margin: 8px 0 0;
+        width: 100%;
+        text-align: center;
+    }
+
+    .event-detail-mood-options {
+        flex-direction: column;
+    }
+
+    .event-detail-mood-option {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+
+    .event-detail-mood-actions {
+        flex-direction: column;
+    }
+
+    .event-detail-mood-save,
+    .event-detail-mood-cancel,
+    .event-detail-mood-clear {
+        width: 100%;
+    }
+}
+
+.event-detail-mood-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--color-link) 40%, transparent);
+    background: color-mix(in srgb, var(--color-link) 12%, transparent);
+}
+
+.event-detail-mood-chip-texts {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.event-detail-mood-chip-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.event-detail-mood-chip-helper {
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+}
+
+.event-detail-mood-notes-text {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--color-text-primary);
+    white-space: pre-wrap;
+}
+
+.event-detail-mood-empty {
+    margin: 0;
+    font-size: 0.85rem;
+    color: color-mix(in srgb, var(--color-text-secondary) 70%, var(--color-text-primary) 30%);
 }
 
 .event-detail-description {
@@ -220,6 +544,7 @@
 @media (min-width: 768px) {
     .event-detail-modal {
         max-width: 480px;
+        max-height: min(700px, calc(100vh - 64px));
     }
 
     .event-detail-title {

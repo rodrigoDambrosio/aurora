@@ -1,8 +1,11 @@
 using Aurora.Api.Extensions;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -21,6 +24,7 @@ public class EventsController : ControllerBase
     private readonly IAIValidationService _aiValidationService;
     private readonly IEventCategoryRepository _eventCategoryRepository;
     private readonly IUserService _userService;
+    private readonly IValidator<UpdateEventMoodDto> _updateEventMoodValidator;
     private readonly ILogger<EventsController> _logger;
 
     public EventsController(
@@ -28,12 +32,14 @@ public class EventsController : ControllerBase
         IAIValidationService aiValidationService,
         IEventCategoryRepository eventCategoryRepository,
         IUserService userService,
+        IValidator<UpdateEventMoodDto> updateEventMoodValidator,
         ILogger<EventsController> logger)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
         _aiValidationService = aiValidationService ?? throw new ArgumentNullException(nameof(aiValidationService));
         _eventCategoryRepository = eventCategoryRepository ?? throw new ArgumentNullException(nameof(eventCategoryRepository));
         _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+        _updateEventMoodValidator = updateEventMoodValidator ?? throw new ArgumentNullException(nameof(updateEventMoodValidator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -616,6 +622,86 @@ public class EventsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error eliminando evento con ID: {EventId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Error interno",
+                Detail = "Ocurrió un error procesando la solicitud",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// Actualiza el estado de ánimo de un evento completado
+    /// </summary>
+    /// <param name="id">ID del evento</param>
+    /// <param name="moodDto">Datos del estado de ánimo</param>
+    /// <returns>Evento actualizado con el estado de ánimo</returns>
+    /// <response code="200">Estado de ánimo actualizado exitosamente</response>
+    /// <response code="400">Datos de entrada inválidos</response>
+    /// <response code="404">Evento no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpPatch("{id:guid}/mood")]
+    [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<EventDto>> UpdateEventMood(Guid id, [FromBody] UpdateEventMoodDto moodDto)
+    {
+        try
+        {
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            _logger.LogInformation(
+                "Actualizando estado de ánimo del evento {EventId} para usuario {UserId}: Rating={Rating}",
+                id, userId, moodDto.MoodRating);
+
+            ValidationResult validationResult = await _updateEventMoodValidator.ValidateAsync(moodDto);
+            if (!validationResult.IsValid)
+            {
+                var combinedMessage = string.Join(" ", validationResult.Errors.Select(e => e.ErrorMessage).Distinct());
+                _logger.LogWarning("Datos inválidos para estado de ánimo: {Errors}", combinedMessage);
+
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Datos inválidos",
+                    Detail = combinedMessage,
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            var updatedEvent = await _eventService.UpdateEventMoodAsync(id, userId, moodDto);
+
+            _logger.LogInformation("Estado de ánimo actualizado exitosamente para evento {EventId}", id);
+
+            return Ok(updatedEvent);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Evento no encontrado o sin permisos: {Message}", ex.Message);
+            return NotFound(new ProblemDetails
+            {
+                Title = "Evento no encontrado",
+                Detail = ex.Message,
+                Status = StatusCodes.Status404NotFound
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Datos inválidos para actualizar estado de ánimo: {Message}", ex.Message);
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Datos inválidos",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error actualizando estado de ánimo del evento {EventId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
             {
                 Title = "Error interno",
