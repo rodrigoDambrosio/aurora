@@ -9,6 +9,7 @@ import './MainDashboard.css';
 import MonthlyMoodTracker from './MonthlyMoodTracker';
 import Navigation from './Navigation';
 import SettingsScreen from './Settings/SettingsScreen';
+import WellnessDashboard from './WellnessDashboard';
 
 const MainDashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('calendar-week');
@@ -142,16 +143,11 @@ const MainDashboard: React.FC = () => {
   const showCalendarContainer = activeView === 'calendar-week' || activeView === 'calendar-month';
   const calendarView = activeView === 'calendar-month' ? 'calendar-month' : 'calendar-week';
   const showMonthlyMood = activeView === 'mood-month';
+  const showWellness = activeView === 'wellness';
+  const showPlaceholder = !showCalendarContainer && !showMonthlyMood && !showWellness;
 
   const renderPlaceholderContent = () => {
     switch (activeView) {
-      case 'wellness':
-        return (
-          <div className="placeholder-view">
-            <h2>Dashboard de Bienestar</h2>
-            <p>Esta vista estará disponible pronto</p>
-          </div>
-        );
       case 'assistant':
         return (
           <div className="placeholder-view">
@@ -219,7 +215,13 @@ const MainDashboard: React.FC = () => {
           </section>
         )}
 
-        {!showCalendarContainer && !showMonthlyMood && renderPlaceholderContent()}
+        {showWellness && (
+          <section className="wellness-view-panel" aria-label="Dashboard de bienestar">
+            <WellnessDashboard />
+          </section>
+        )}
+
+        {showPlaceholder && renderPlaceholderContent()}
       </main>
 
       {/* NLP Input */}

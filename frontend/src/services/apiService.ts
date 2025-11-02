@@ -251,6 +251,61 @@ export interface UpsertDailyMoodRequestDto {
   notes?: string | null;
 }
 
+// ===== WELLNESS ANALYTICS DTOs =====
+
+export interface MoodDaySnapshotDto {
+  date: string;
+  moodRating: number;
+  notes?: string | null;
+}
+
+export interface MoodTrendPointDto {
+  date: string;
+  averageMood: number | null;
+  entries: number;
+}
+
+export interface MoodDistributionSliceDto {
+  moodRating: number;
+  count: number;
+  percentage: number;
+}
+
+export interface MoodStreaksDto {
+  currentPositive: number;
+  longestPositive: number;
+  currentNegative: number;
+  longestNegative: number;
+}
+
+export interface CategoryMoodImpactDto {
+  categoryId: string;
+  categoryName: string;
+  categoryColor?: string | null;
+  averageMood: number;
+  eventCount: number;
+  positiveCount: number;
+  negativeCount: number;
+}
+
+export interface WellnessSummaryDto {
+  year: number;
+  month: number;
+  averageMood: number;
+  bestDay?: MoodDaySnapshotDto | null;
+  worstDay?: MoodDaySnapshotDto | null;
+  moodTrend: MoodTrendPointDto[];
+  moodDistribution: MoodDistributionSliceDto[];
+  streaks: MoodStreaksDto;
+  categoryImpacts: CategoryMoodImpactDto[];
+  totalTrackedDays: number;
+  positiveDays: number;
+  neutralDays: number;
+  negativeDays: number;
+  trackingCoverage: number;
+  hasEventMoodData: boolean;
+}
+
 // Legacy interfaces for backward compatibility
 export interface TestDataItem {
   id: number;
@@ -677,5 +732,14 @@ export const apiService = {
       method: 'PUT',
       body: JSON.stringify(payload)
     });
+  },
+
+  // ===== WELLNESS ANALYTICS ENDPOINTS =====
+
+  async getWellnessSummary(year: number, month: number): Promise<WellnessSummaryDto> {
+    const params = new URLSearchParams();
+    params.append('year', year.toString());
+    params.append('month', month.toString());
+    return this.fetchApi<WellnessSummaryDto>(`/wellness/summary?${params.toString()}`);
   }
 };
