@@ -60,9 +60,10 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 // AI Validation Service with HttpClient
+// Timeout extendido a 120 segundos para generación de planes multi-día (PLAN-138)
 builder.Services.AddHttpClient<IAIValidationService, GeminiAIValidationService>(client =>
 {
-    client.Timeout = TimeSpan.FromSeconds(30);
+    client.Timeout = TimeSpan.FromSeconds(120);
 });
 
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();

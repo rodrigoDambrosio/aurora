@@ -1,9 +1,10 @@
-import { MessageSquare, Send, Sparkles, Star, X } from 'lucide-react';
+import { MessageSquare, Send, Sparkles, Star, Target, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { type FormEvent, useState } from 'react';
 import type { AIValidationResult, CreateEventDto, EventPriority } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './FloatingNLPInput.css';
+import { GeneratePlanModal } from './GeneratePlanModal';
 
 interface FloatingNLPInputProps {
   onEventCreated: () => void;
@@ -39,6 +40,7 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [categories, setCategories] = useState<Array<{ id: string; name: string; color: string }>>([]);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
 
   const examples = [
     "reunión con cliente mañana a las 3pm",
@@ -242,12 +244,25 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
                 </div>
                 <span className="nlp-title">Crear con IA</span>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="nlp-close-button"
-              >
-                <X size={16} />
-              </button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsPlanModalOpen(true);
+                  }}
+                  className="nlp-plan-button"
+                  title="Generar plan multi-día"
+                >
+                  <Target size={16} />
+                  <span>Plan</span>
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="nlp-close-button"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             {/* Error State */}
@@ -514,6 +529,16 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Generate Plan Modal */}
+      <GeneratePlanModal
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        onPlanCreated={() => {
+          setIsPlanModalOpen(false);
+          onEventCreated();
+        }}
+      />
     </>
   );
 }

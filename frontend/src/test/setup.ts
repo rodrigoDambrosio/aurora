@@ -29,6 +29,10 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock IntersectionObserver
 globalThis.IntersectionObserver = class IntersectionObserver {
+  readonly root: Element | null = null
+  readonly rootMargin: string = ''
+  readonly thresholds: ReadonlyArray<number> = []
+
   constructor() { }
   observe() {
     return null
@@ -39,4 +43,7 @@ globalThis.IntersectionObserver = class IntersectionObserver {
   unobserve() {
     return null
   }
-}
+  takeRecords(): IntersectionObserverEntry[] {
+    return []
+  }
+} as unknown as typeof IntersectionObserver

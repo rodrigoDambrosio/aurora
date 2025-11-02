@@ -126,6 +126,28 @@ export interface ParseNaturalLanguageResponseDto {
   errorMessage?: string;
 }
 
+export interface GeneratePlanRequestDto {
+  goal: string;
+  timezoneOffsetMinutes: number;
+  startDate?: string;
+  durationWeeks?: number;
+  sessionsPerWeek?: number;
+  sessionDurationMinutes?: number;
+  preferredTimeOfDay?: string;
+  categoryId?: string;
+}
+
+export interface GeneratePlanResponseDto {
+  planTitle: string;
+  planDescription: string;
+  durationWeeks: number;
+  totalSessions: number;
+  events: CreateEventDto[];
+  additionalTips?: string;
+  hasPotentialConflicts: boolean;
+  conflictWarnings: string[];
+}
+
 export interface RegisterUserRequestDto {
   name: string;
   email: string;
@@ -511,6 +533,32 @@ export const apiService = {
     };
 
     return this.fetchApi<ParseNaturalLanguageResponseDto>('/events/from-text', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  },
+
+  /**
+   * Generate a multi-day plan from a high-level goal using AI
+   */
+  async generatePlan(goal: string, options?: {
+    startDate?: string;
+    durationWeeks?: number;
+    sessionsPerWeek?: number;
+    sessionDurationMinutes?: number;
+    preferredTimeOfDay?: string;
+    categoryId?: string;
+  }): Promise<GeneratePlanResponseDto> {
+    // Obtener el offset de zona horaria del navegador en minutos
+    const timezoneOffsetMinutes = -new Date().getTimezoneOffset();
+
+    const request: GeneratePlanRequestDto = {
+      goal,
+      timezoneOffsetMinutes,
+      ...options
+    };
+
+    return this.fetchApi<GeneratePlanResponseDto>('/events/generate-plan', {
       method: 'POST',
       body: JSON.stringify(request)
     });

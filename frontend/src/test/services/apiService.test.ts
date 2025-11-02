@@ -74,7 +74,7 @@ describe('ApiService', () => {
         endDate: '2025-09-30T11:00:00.000Z',
         isAllDay: false,
         eventCategoryId: '1',
-        priority: 2,
+        priority: 2 as const,
         timezoneOffsetMinutes: 0
       }
 
@@ -104,7 +104,7 @@ describe('ApiService', () => {
         endDate: '2025-09-30T05:00:00.000Z',
         isAllDay: false,
         eventCategoryId: '1',
-        priority: 2,
+        priority: 2 as const,
         timezoneOffsetMinutes: 0
       }
 
@@ -155,7 +155,7 @@ describe('ApiService', () => {
         endDate: '2025-09-30T11:00:00.000Z',
         isAllDay: false,
         eventCategoryId: '1',
-        priority: 3,
+        priority: 3 as const,
         timezoneOffsetMinutes: 0
       }
 
@@ -184,7 +184,7 @@ describe('ApiService', () => {
         endDate: '2025-09-30T11:00:00.000Z',
         isAllDay: false,
         eventCategoryId: '1',
-        priority: 2,
+        priority: 2 as const,
         timezoneOffsetMinutes: 0
       }
 
