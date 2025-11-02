@@ -53,6 +53,21 @@
     min-width: 0;
 }
 
+.mood-view-panel {
+    height: 100%;
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: var(--color-surface);
+}
+
+.mood-view-panel>* {
+    flex: 1;
+    min-height: 0;
+}
+
 /* Placeholder views for other sections */
 .placeholder-view {
     display: flex;
@@ -133,6 +148,11 @@
         right: 16px;
         width: 48px;
         height: 48px;
+    }
+
+    .mood-view-panel {
+        padding: 16px;
+        gap: 16px;
     }
 }
 

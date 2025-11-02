@@ -55,4 +55,9 @@ public class User : BaseEntity
     /// Sesiones de autenticación activas del usuario
     /// </summary>
     public virtual ICollection<UserSession> Sessions { get; set; } = new List<UserSession>();
+
+    /// <summary>
+    /// Registros de estado de ánimo del usuario
+    /// </summary>
+    public virtual ICollection<DailyMoodEntry> DailyMoodEntries { get; set; } = new List<DailyMoodEntry>();
 }

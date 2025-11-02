@@ -228,6 +228,29 @@ export interface UpdateUserPreferencesDto {
   notificationsEnabled?: boolean;
 }
 
+export interface DailyMoodEntryDto {
+  id: string;
+  entryDate: string;
+  moodRating: number;
+  notes?: string | null;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MonthlyMoodResponseDto {
+  year: number;
+  month: number;
+  entries: DailyMoodEntryDto[];
+  userId?: string;
+}
+
+export interface UpsertDailyMoodRequestDto {
+  entryDate: string;
+  moodRating: number;
+  notes?: string | null;
+}
+
 // Legacy interfaces for backward compatibility
 export interface TestDataItem {
   id: number;
@@ -582,6 +605,39 @@ export const apiService = {
     return this.fetchApi<GeneratePlanResponseDto>('/events/generate-plan', {
       method: 'POST',
       body: JSON.stringify(request)
+    });
+  },
+
+  // ===== MOOD TRACKING ENDPOINTS =====
+
+  /**
+   * Get daily mood entries for a specific month
+   */
+  async getMonthlyMoodEntries(year: number, month: number): Promise<MonthlyMoodResponseDto> {
+    const params = new URLSearchParams();
+    params.append('year', year.toString());
+    params.append('month', month.toString());
+    return this.fetchApi<MonthlyMoodResponseDto>(`/moods/monthly?${params.toString()}`);
+  },
+
+  /**
+   * Create or update a daily mood entry
+   */
+  async upsertDailyMood(payload: UpsertDailyMoodRequestDto): Promise<DailyMoodEntryDto> {
+    return this.fetchApi<DailyMoodEntryDto>('/moods', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  /**
+   * Delete a daily mood entry for a specific date
+   */
+  async deleteDailyMood(entryDateUtcIso: string): Promise<void> {
+    const params = new URLSearchParams();
+    params.append('date', entryDateUtcIso);
+    return this.fetchApi<void>(`/moods?${params.toString()}`, {
+      method: 'DELETE'
     });
   },
 
