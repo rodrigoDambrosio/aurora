@@ -1,0 +1,396 @@
+.recommendation-assistant {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 24px;
+    gap: 16px;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    overflow-y: auto;
+}
+
+.assistant-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.assistant-header h2 {
+    margin-bottom: 4px;
+    font-size: 1.35rem;
+}
+
+.assistant-header p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+}
+
+.refresh-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--gradient-primary-start), var(--gradient-primary-end));
+    color: var(--color-surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.refresh-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start), var(--gradient-primary-hover-end));
+}
+
+.assistant-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: var(--color-surface-alt);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+}
+
+.filters-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.filters-summary {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.filters-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.apply-button,
+.clear-button {
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+}
+
+.apply-button:hover:not(:disabled),
+.clear-button:hover:not(:disabled) {
+    background: var(--color-hover);
+}
+
+.apply-button {
+    background: linear-gradient(135deg, var(--gradient-primary-start), var(--gradient-primary-end));
+    color: var(--color-surface);
+    border: none;
+}
+
+.apply-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start), var(--gradient-primary-hover-end));
+}
+
+.recommendations-loading,
+.recommendations-grid,
+.recommendations-empty,
+.recommendations-error {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.recommendation-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 18px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-soft);
+}
+
+.recommendation-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.recommendation-card-title {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.recommendation-card-title h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.recommendation-subtitle {
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.recommendation-badge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--gradient-primary-start);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.recommendation-reason {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+}
+
+.recommendation-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 0;
+}
+
+.recommendation-meta div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.recommendation-meta dt {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+}
+
+.recommendation-meta dd {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--color-text-primary);
+}
+
+.recommendation-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-button {
+    flex: 1;
+    min-width: 120px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    font-size: 0.95rem;
+}
+
+.action-button.is-positive {
+    background: linear-gradient(135deg, var(--gradient-primary-start), var(--gradient-primary-end));
+    color: var(--color-surface);
+}
+
+.action-button.is-positive:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start), var(--gradient-primary-hover-end));
+}
+
+.action-button.is-negative {
+    background: var(--color-surface-alt);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+
+.action-button.is-negative:hover:not(:disabled) {
+    background: var(--color-hover);
+}
+
+.recommendation-feedback-error {
+    margin: 0;
+    color: var(--color-danger);
+    font-size: 0.85rem;
+}
+
+.recommendations-error,
+.recommendations-empty {
+    border: 1px dashed var(--color-border);
+    border-radius: 16px;
+    padding: 24px;
+    align-items: center;
+    text-align: center;
+    background: var(--color-surface-alt);
+}
+
+.recommendations-error p,
+.recommendations-empty p {
+    margin-bottom: 12px;
+}
+
+.recommendations-error button,
+.recommendations-empty button {
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--gradient-primary-start), var(--gradient-primary-end));
+    color: var(--color-surface);
+}
+
+.recommendations-error button:hover,
+.recommendations-empty button:hover {
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start), var(--gradient-primary-hover-end));
+}
+
+.recommendation-skeleton {
+    padding: 16px;
+    border-radius: 16px;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+}
+
+.skeleton {
+    width: 100%;
+    height: 140px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, var(--color-hover), var(--color-surface-alt), var(--color-hover));
+    background-size: 200% 100%;
+}
+
+.shimmer {
+    animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.assistant-summary {
+    margin-top: 12px;
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-alt);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.assistant-summary-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.assistant-summary-header h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.assistant-summary-header button {
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+}
+
+.assistant-summary-header button:hover {
+    background: var(--color-hover);
+}
+
+.assistant-summary-error {
+    color: var(--color-danger);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.assistant-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.assistant-summary-grid div {
+    background: var(--color-surface);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px solid var(--color-border);
+}
+
+.assistant-summary-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+}
+
+.assistant-summary-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+@media (max-width: 768px) {
+    .recommendation-assistant {
+        padding: 16px;
+    }
+
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .assistant-filters {
+        padding: 14px;
+    }
+
+    .assistant-header {
+        align-items: flex-start;
+    }
+}

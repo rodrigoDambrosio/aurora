@@ -5,6 +5,7 @@ import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
 import EventDetailModal from './EventDetailModal';
 import { EventFormModal } from './EventFormModal';
 import { FloatingNLPInput } from './FloatingNLPInput';
+import RecommendationAssistant from './Assistant/RecommendationAssistant';
 import './MainDashboard.css';
 import MonthlyMoodTracker from './MonthlyMoodTracker';
 import Navigation from './Navigation';
@@ -144,17 +145,11 @@ const MainDashboard: React.FC = () => {
   const calendarView = activeView === 'calendar-month' ? 'calendar-month' : 'calendar-week';
   const showMonthlyMood = activeView === 'mood-month';
   const showWellness = activeView === 'wellness';
-  const showPlaceholder = !showCalendarContainer && !showMonthlyMood && !showWellness;
+  const showAssistant = activeView === 'assistant';
+  const showPlaceholder = !showCalendarContainer && !showMonthlyMood && !showWellness && !showAssistant;
 
   const renderPlaceholderContent = () => {
     switch (activeView) {
-      case 'assistant':
-        return (
-          <div className="placeholder-view">
-            <h2>Asistente IA</h2>
-            <p>Esta vista estará disponible pronto</p>
-          </div>
-        );
       case 'settings':
         return <SettingsScreen />;
       default:
@@ -218,6 +213,12 @@ const MainDashboard: React.FC = () => {
         {showWellness && (
           <section className="wellness-view-panel" aria-label="Dashboard de bienestar">
             <WellnessDashboard />
+          </section>
+        )}
+
+        {showAssistant && (
+          <section className="assistant-view-panel" aria-label="Asistente de recomendaciones">
+            <RecommendationAssistant />
           </section>
         )}
 

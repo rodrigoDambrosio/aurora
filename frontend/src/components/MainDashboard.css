@@ -74,6 +74,12 @@
     background: var(--color-surface);
 }
 
+.assistant-view-panel {
+    height: 100%;
+    overflow-y: auto;
+    background: var(--color-surface);
+}
+
 /* Placeholder views for other sections */
 .placeholder-view {
     display: flex;

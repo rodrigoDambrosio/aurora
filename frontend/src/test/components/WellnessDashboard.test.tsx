@@ -6,11 +6,13 @@ import { apiService } from '../../services/apiService';
 
 vi.mock('../../services/apiService', () => ({
   apiService: {
-    getWellnessSummary: vi.fn()
+    getWellnessSummary: vi.fn(),
+    getRecommendationFeedbackSummary: vi.fn()
   }
 }));
 
 const getSummaryMock = vi.mocked(apiService.getWellnessSummary);
+const getFeedbackSummaryMock = vi.mocked(apiService.getRecommendationFeedbackSummary);
 
 const buildSummary = () => ({
   year: 2025,
@@ -66,7 +68,17 @@ const buildSummary = () => ({
 describe('WellnessDashboard', () => {
   beforeEach(() => {
     getSummaryMock.mockReset();
+    getFeedbackSummaryMock.mockReset();
     getSummaryMock.mockResolvedValue(buildSummary());
+    getFeedbackSummaryMock.mockResolvedValue({
+      totalFeedback: 6,
+      acceptedCount: 4,
+      rejectedCount: 2,
+      acceptanceRate: 66.7,
+      averageMoodAfter: 4.2,
+      periodStartUtc: '2025-10-01T00:00:00Z',
+      periodEndUtc: '2025-10-31T00:00:00Z'
+    });
   });
 
   afterEach(() => {
@@ -85,12 +97,24 @@ describe('WellnessDashboard', () => {
     expect(screen.getByText('29%')).toBeInTheDocument();
     expect(screen.getByText('Entrenamiento')).toBeInTheDocument();
     expect(screen.getByText('2 eventos con registro')).toBeInTheDocument();
+    expect(apiService.getRecommendationFeedbackSummary).toHaveBeenCalled();
+    expect(screen.getByText(/66\.7%/)).toBeInTheDocument();
   });
 
   it('handles API errors and allows retry', async () => {
     getSummaryMock
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValueOnce(buildSummary());
+
+    getFeedbackSummaryMock.mockResolvedValue({
+      totalFeedback: 0,
+      acceptedCount: 0,
+      rejectedCount: 0,
+      acceptanceRate: 0,
+      averageMoodAfter: null,
+      periodStartUtc: '2025-10-01T00:00:00Z',
+      periodEndUtc: '2025-10-31T00:00:00Z'
+    });
 
     render(<WellnessDashboard />);
 
@@ -114,16 +138,16 @@ describe('WellnessDashboard', () => {
       expect(apiService.getWellnessSummary).toHaveBeenCalled();
     });
 
-    const initialCall = apiService.getWellnessSummary.mock.calls.at(-1);
+  const initialCall = getSummaryMock.mock.calls.at(-1);
     expect(initialCall).toBeDefined();
 
     await user.click(screen.getByLabelText('Mes siguiente'));
 
     await waitFor(() => {
-      expect(apiService.getWellnessSummary.mock.calls.length).toBeGreaterThanOrEqual(2);
+  expect(getSummaryMock.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
 
-    const latestCall = apiService.getWellnessSummary.mock.calls.at(-1);
+  const latestCall = getSummaryMock.mock.calls.at(-1);
     expect(latestCall).toBeDefined();
 
     if (initialCall && latestCall) {

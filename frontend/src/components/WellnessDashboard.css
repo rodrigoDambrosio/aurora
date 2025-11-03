@@ -254,6 +254,30 @@
     color: var(--color-text-muted);
 }
 
+.metric-card.ai-metric {
+    background: linear-gradient(145deg, rgba(14, 165, 233, 0.08), rgba(99, 102, 241, 0.12));
+    border-color: rgba(59, 130, 246, 0.25);
+}
+
+.metric-empty {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.metric-insights {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.metric-period {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
 .coverage-progress {
     height: 8px;
     border-radius: 999px;

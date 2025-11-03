@@ -37,6 +37,9 @@ public static class DbInitializer
         // Asegurar que la tabla DailyMoodEntries exista
         await EnsureDailyMoodEntriesTableAsync(context);
 
+    // Asegurar que la tabla RecommendationFeedback exista
+    await EnsureRecommendationFeedbackTableAsync(context);
+
         // Si ya hay usuarios, no hacer nada
         if (await context.Users.AnyAsync())
         {
@@ -279,6 +282,63 @@ CREATE TABLE DailyMoodEntries (
 
                 using var indexCommand = connection.CreateCommand();
                 indexCommand.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS IX_DailyMoodEntries_UserId_EntryDate ON DailyMoodEntries(UserId, EntryDate);";
+                await indexCommand.ExecuteNonQueryAsync();
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Garantiza que la tabla RecommendationFeedback exista para compatibilidad con bases antiguas.
+    /// </summary>
+    private static async Task EnsureRecommendationFeedbackTableAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var checkCommand = connection.CreateCommand();
+            checkCommand.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='RecommendationFeedback';";
+
+            var exists = false;
+            await using (var reader = await checkCommand.ExecuteReaderAsync())
+            {
+                exists = await reader.ReadAsync();
+            }
+
+            if (!exists)
+            {
+                using var createCommand = connection.CreateCommand();
+                createCommand.CommandText = @"
+CREATE TABLE RecommendationFeedback (
+    Id TEXT NOT NULL PRIMARY KEY,
+    RecommendationId TEXT NOT NULL,
+    Accepted INTEGER NOT NULL,
+    Notes TEXT,
+    MoodAfter INTEGER,
+    SubmittedAtUtc TEXT NOT NULL,
+    UserId TEXT NOT NULL,
+    CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+    UpdatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+    IsActive INTEGER NOT NULL DEFAULT 1
+);";
+                await createCommand.ExecuteNonQueryAsync();
+
+                using var indexCommand = connection.CreateCommand();
+                indexCommand.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS IX_RecommendationFeedback_UserId_RecommendationId ON RecommendationFeedback(UserId, RecommendationId);";
                 await indexCommand.ExecuteNonQueryAsync();
             }
         }

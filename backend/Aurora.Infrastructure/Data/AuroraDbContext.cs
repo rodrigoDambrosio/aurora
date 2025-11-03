@@ -43,6 +43,11 @@ public class AuroraDbContext : DbContext
     /// </summary>
     public DbSet<DailyMoodEntry> DailyMoodEntries { get; set; }
 
+    /// <summary>
+    /// Feedback sobre recomendaciones personalizadas
+    /// </summary>
+    public DbSet<RecommendationFeedback> RecommendationFeedback { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -54,6 +59,7 @@ public class AuroraDbContext : DbContext
         modelBuilder.ApplyConfiguration(new UserPreferencesConfiguration());
         modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
         modelBuilder.ApplyConfiguration(new DailyMoodEntryConfiguration());
+    modelBuilder.ApplyConfiguration(new RecommendationFeedbackConfiguration());
 
         // Configurar filtros globales para soft delete
         modelBuilder.Entity<User>().HasQueryFilter(e => e.IsActive);
@@ -62,6 +68,7 @@ public class AuroraDbContext : DbContext
         modelBuilder.Entity<UserPreferences>().HasQueryFilter(e => e.IsActive);
         modelBuilder.Entity<UserSession>().HasQueryFilter(e => e.IsActive);
         modelBuilder.Entity<DailyMoodEntry>().HasQueryFilter(e => e.IsActive);
+    modelBuilder.Entity<RecommendationFeedback>().HasQueryFilter(e => e.IsActive);
     }
 
     /// <summary>
