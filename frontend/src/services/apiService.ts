@@ -251,6 +251,48 @@ export interface UpsertDailyMoodRequestDto {
   notes?: string | null;
 }
 
+// ===== RECOMMENDATIONS DTOs =====
+
+export interface RecommendationRequestDto {
+  referenceDate?: string;
+  limit?: number;
+  currentMood?: number;
+  externalContext?: string;
+}
+
+export interface RecommendationDto {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  reason: string;
+  recommendationType: string;
+  suggestedStart: string;
+  suggestedDurationMinutes: number;
+  confidence: number;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  moodImpact?: string | null;
+  summary?: string | null;
+}
+
+export interface RecommendationFeedbackDto {
+  recommendationId: string;
+  accepted: boolean;
+  notes?: string;
+  moodAfter?: number;
+  submittedAtUtc?: string;
+}
+
+export interface RecommendationFeedbackSummaryDto {
+  totalFeedback: number;
+  acceptedCount: number;
+  rejectedCount: number;
+  acceptanceRate: number;
+  averageMoodAfter?: number | null;
+  periodStartUtc: string;
+  periodEndUtc: string;
+}
+
 // ===== WELLNESS ANALYTICS DTOs =====
 
 export interface MoodDaySnapshotDto {
@@ -741,5 +783,49 @@ export const apiService = {
     params.append('year', year.toString());
     params.append('month', month.toString());
     return this.fetchApi<WellnessSummaryDto>(`/wellness/summary?${params.toString()}`);
+  },
+
+  // ===== RECOMMENDATIONS ENDPOINTS =====
+
+  async getRecommendations(params?: RecommendationRequestDto): Promise<RecommendationDto[]> {
+    const searchParams = new URLSearchParams();
+
+    if (params?.referenceDate) {
+      searchParams.append('ReferenceDate', params.referenceDate);
+    }
+
+    if (typeof params?.limit === 'number') {
+      searchParams.append('Limit', params.limit.toString());
+    }
+
+    if (typeof params?.currentMood === 'number') {
+      searchParams.append('CurrentMood', params.currentMood.toString());
+    }
+
+    if (params?.externalContext) {
+      searchParams.append('ExternalContext', params.externalContext);
+    }
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString.length > 0 ? `/recommendations?${queryString}` : '/recommendations';
+
+    return this.fetchApi<RecommendationDto[]>(endpoint);
+  },
+
+  async submitRecommendationFeedback(payload: RecommendationFeedbackDto): Promise<void> {
+    const body = {
+      ...payload,
+      submittedAtUtc: payload.submittedAtUtc ?? new Date().toISOString()
+    };
+
+    await this.fetchApi<void>('/recommendations/feedback', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+  },
+
+  async getRecommendationFeedbackSummary(days = 30): Promise<RecommendationFeedbackSummaryDto> {
+    const clamped = Math.min(Math.max(days, 1), 180);
+    return this.fetchApi<RecommendationFeedbackSummaryDto>(`/recommendations/feedback/summary?days=${clamped}`);
   }
 };

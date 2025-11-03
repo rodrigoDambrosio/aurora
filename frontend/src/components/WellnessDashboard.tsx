@@ -1,4 +1,4 @@
-import { AlertTriangle, BarChart3, Calendar, ChevronLeft, ChevronRight, Flame, PieChart, Sparkles, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BarChart3, Calendar, ChevronLeft, ChevronRight, Flame, PieChart, Sparkles, ThumbsUp, TrendingUp } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatMonthTitle } from '../lib/utils';
 import {
@@ -6,6 +6,7 @@ import {
   type CategoryMoodImpactDto,
   type MoodDaySnapshotDto,
   type MoodDistributionSliceDto,
+  type RecommendationFeedbackSummaryDto,
   type WellnessSummaryDto
 } from '../services/apiService';
 import './WellnessDashboard.css';
@@ -94,6 +95,8 @@ const WellnessDashboard: React.FC = () => {
   const [summary, setSummary] = useState<WellnessSummaryDto>(emptySummary);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackSummary, setFeedbackSummary] = useState<RecommendationFeedbackSummaryDto | null>(null);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   const loadSummary = useCallback(async () => {
     setIsLoading(true);
@@ -105,9 +108,21 @@ const WellnessDashboard: React.FC = () => {
         currentMonth.getMonth() + 1
       );
       setSummary(data);
+
+      try {
+        setFeedbackError(null);
+        const feedback = await apiService.getRecommendationFeedbackSummary(30);
+        setFeedbackSummary(feedback);
+      } catch (feedbackErr) {
+        console.error('Error loading recommendation feedback summary', feedbackErr);
+        setFeedbackSummary(null);
+        setFeedbackError('Sin datos recientes de feedback del asistente.');
+      }
     } catch (err) {
       console.error('Error loading wellness summary', err);
       setError('No pudimos cargar tu dashboard de bienestar. Intentalo nuevamente.');
+      setFeedbackSummary(null);
+      setFeedbackError(null);
     } finally {
       setIsLoading(false);
     }
@@ -183,6 +198,32 @@ const WellnessDashboard: React.FC = () => {
 
   const positiveStreak = summary?.streaks?.longestPositive ?? 0;
   const negativeStreak = summary?.streaks?.longestNegative ?? 0;
+
+  const hasFeedbackData = feedbackSummary?.totalFeedback && feedbackSummary.totalFeedback > 0;
+  const acceptanceRateDisplay = hasFeedbackData
+    ? `${feedbackSummary!.acceptanceRate.toFixed(1)}%`
+    : 'Sin datos';
+  const averageMoodAfterDisplay = hasFeedbackData && feedbackSummary?.averageMoodAfter !== null && feedbackSummary?.averageMoodAfter !== undefined
+    ? `${feedbackSummary.averageMoodAfter.toFixed(1)} / 5`
+    : 'Sin datos';
+  const feedbackCountsLabel = hasFeedbackData
+    ? `${feedbackSummary!.acceptedCount} de ${feedbackSummary!.totalFeedback} sugerencias aceptadas`
+    : 'Dejá feedback en las recomendaciones para ver métricas.';
+
+  const feedbackPeriodLabel = useMemo(() => {
+    if (!feedbackSummary) {
+      return 'Últimos 30 días';
+    }
+
+    const start = new Date(feedbackSummary.periodStartUtc);
+    const end = new Date(feedbackSummary.periodEndUtc);
+    const formatter = new Intl.DateTimeFormat('es-AR', {
+      day: '2-digit',
+      month: 'short'
+    });
+
+    return `Período ${formatter.format(start)} - ${formatter.format(end)}`;
+  }, [feedbackSummary]);
 
   return (
     <div className="wellness-dashboard" aria-live="polite">
@@ -318,6 +359,28 @@ const WellnessDashboard: React.FC = () => {
                   <span>{summary?.negativeDays ?? 0}</span>
                   <small>Calificación ≤ 2</small>
                 </div>
+              </article>
+
+              <article className="metric-card ai-metric">
+                <header>
+                  <ThumbsUp size={16} aria-hidden="true" />
+                  <span>Feedback asistente IA</span>
+                </header>
+                {feedbackError ? (
+                  <p className="metric-empty">{feedbackError}</p>
+                ) : (
+                  <>
+                    <div className="metric-value">
+                      <span>{acceptanceRateDisplay}</span>
+                      <small>Tasa de acierto (últimos 30 días)</small>
+                    </div>
+                    <div className="metric-insights">
+                      <span>{feedbackCountsLabel}</span>
+                      <span>Ánimo posterior: {averageMoodAfterDisplay}</span>
+                      <span className="metric-period">{feedbackPeriodLabel}</span>
+                    </div>
+                  </>
+                )}
               </article>
             </section>
 
