@@ -19,6 +19,40 @@
     transition: all 0.3s ease;
 }
 
+/* Container para sparkles */
+.floating-nlp-button::before,
+.floating-nlp-button::after {
+    content: '✨';
+    position: absolute;
+    font-size: 16px;
+    opacity: 0;
+    pointer-events: none;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+.floating-nlp-button::before {
+    top: -8px;
+    right: -8px;
+    animation-delay: 0s;
+}
+
+.floating-nlp-button::after {
+    bottom: -8px;
+    left: -8px;
+    animation-delay: 1s;
+}
+
+@keyframes sparkle {
+    0%, 100% {
+        opacity: 0;
+        transform: scale(0.5) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1) rotate(180deg);
+    }
+}
+
 .floating-nlp-button:hover {
     transform: translateY(-2px);
     background: linear-gradient(135deg, var(--gradient-primary-hover-start) 0%, var(--gradient-primary-hover-end) 100%);

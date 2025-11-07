@@ -36,7 +36,7 @@ export const DeleteCategoryDialog: React.FC<DeleteCategoryDialogProps> = ({
       setIsDeleting(true);
       setError('');
       await onConfirm(reassignToCategoryId || undefined);
-      onClose();
+      // Don't close here - let parent component handle it after reloading data
     } catch (err: unknown) {
       console.error('Error deleting category:', err);
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la categoría';
@@ -116,8 +116,7 @@ export const DeleteCategoryDialog: React.FC<DeleteCategoryDialogProps> = ({
                   .filter(cat => cat.id !== category.id)
                   .map(cat => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.icon ? `${cat.icon} ` : ''}{cat.name}
-                      {cat.isSystemDefault ? ' (Sistema)' : ''}
+                      {cat.name}{cat.isSystemDefault ? ' (Sistema)' : ''}
                     </option>
                   ))}
               </select>

@@ -440,7 +440,7 @@ public class EventCategoriesController : ControllerBase
     /// Elimina una categoría personalizada, opcionalmente reasignando sus eventos
     /// </summary>
     /// <param name="id">ID de la categoría</param>
-    /// <param name="deleteDto">Configuración de eliminación (ID de categoría para reasignar eventos)</param>
+    /// <param name="reassignToCategoryId">ID de categoría para reasignar eventos (opcional, en query string)</param>
     /// <param name="userId">ID del usuario (opcional, usa usuario autenticado si no se especifica)</param>
     /// <returns>Resultado de la eliminación</returns>
     /// <response code="204">Categoría eliminada exitosamente</response>
@@ -456,7 +456,7 @@ public class EventCategoriesController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteCategory(
         Guid id,
-        [FromBody] DeleteEventCategoryDto? deleteDto = null,
+        [FromQuery] Guid? reassignToCategoryId = null,
         [FromQuery] Guid? userId = null)
     {
         try
@@ -507,7 +507,7 @@ public class EventCategoriesController : ControllerBase
 
             if (eventCount > 0)
             {
-                if (deleteDto?.ReassignToCategoryId == null)
+                if (reassignToCategoryId == null)
                 {
                     _logger.LogWarning("Intento de eliminar categoría con eventos sin especificar reasignación: {CategoryId}", id);
                     return BadRequest(new ProblemDetails
@@ -519,11 +519,11 @@ public class EventCategoriesController : ControllerBase
                 }
 
                 // Verificar que la categoría de destino existe y es accesible
-                var targetCategory = await _eventCategoryRepository.GetByIdAsync(deleteDto.ReassignToCategoryId.Value);
+                var targetCategory = await _eventCategoryRepository.GetByIdAsync(reassignToCategoryId.Value);
                 if (targetCategory == null ||
                     (!targetCategory.IsSystemDefault && targetCategory.UserId != effectiveUserId))
                 {
-                    _logger.LogWarning("Categoría de destino inválida: {TargetCategoryId}", deleteDto.ReassignToCategoryId);
+                    _logger.LogWarning("Categoría de destino inválida: {TargetCategoryId}", reassignToCategoryId);
                     return BadRequest(new ProblemDetails
                     {
                         Title = "Categoría de destino inválida",
@@ -534,8 +534,8 @@ public class EventCategoriesController : ControllerBase
 
                 // Reasignar eventos
                 _logger.LogInformation("Reasignando {EventCount} eventos de categoría {FromId} a {ToId}",
-                    eventCount, id, deleteDto.ReassignToCategoryId.Value);
-                await _eventCategoryRepository.ReassignEventsToAnotherCategoryAsync(id, deleteDto.ReassignToCategoryId.Value);
+                    eventCount, id, reassignToCategoryId.Value);
+                await _eventCategoryRepository.ReassignEventsToAnotherCategoryAsync(id, reassignToCategoryId.Value);
             }
 
             // Eliminar la categoría

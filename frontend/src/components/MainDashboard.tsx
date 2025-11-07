@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useEvents } from '../context/EventsContext';
 import { apiService, type EventCategoryDto, type EventDto, type UpdateEventMoodDto } from '../services/apiService';
 import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
 import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
@@ -14,7 +15,7 @@ import WellnessDashboard from './WellnessDashboard';
 
 const MainDashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('calendar-week');
-  const [refreshToken, setRefreshToken] = useState(0);
+  const { refreshToken, refreshEvents } = useEvents();
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -46,10 +47,6 @@ const MainDashboard: React.FC = () => {
     loadUserPreferences();
   }, []);
 
-  const bumpRefreshToken = () => {
-    setRefreshToken(prev => prev + 1);
-  };
-
   const handleViewChange = (view: string) => {
     setActiveView(view);
     console.log('Changing view to:', view);
@@ -62,7 +59,7 @@ const MainDashboard: React.FC = () => {
 
   const handleEventCreated = () => {
     console.log('Evento creado - refrescando calendario');
-    bumpRefreshToken();
+    refreshEvents();
   };
 
   const handleEventClick = (event: EventDto) => {
@@ -99,7 +96,7 @@ const MainDashboard: React.FC = () => {
   const handleEventUpdated = () => {
     setIsEventFormOpen(false);
     setEventBeingEdited(null);
-    bumpRefreshToken();
+    refreshEvents();
   };
 
   const handleCloseEventForm = () => {
@@ -119,7 +116,7 @@ const MainDashboard: React.FC = () => {
       setDetailError('');
       await apiService.deleteEvent(event.id);
       closeEventDetailModal();
-      bumpRefreshToken();
+      refreshEvents();
     } catch (error) {
       console.error('Error deleting event:', error);
       const message = error instanceof Error ? error.message : 'Error al eliminar el evento';
@@ -133,7 +130,7 @@ const MainDashboard: React.FC = () => {
     try {
       const updatedEvent = await apiService.updateEventMood(eventId, mood);
       setSelectedEvent(updatedEvent);
-      bumpRefreshToken();
+      refreshEvents();
       return updatedEvent;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar el estado de ánimo';

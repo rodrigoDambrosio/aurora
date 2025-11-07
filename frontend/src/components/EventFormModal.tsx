@@ -242,6 +242,18 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       throw new Error('No se pudo interpretar la fecha u hora seleccionada.');
     }
 
+    // Validar que la fecha/hora de fin sea posterior a la de inicio
+    const startDateObj = new Date(startDateTime);
+    const endDateObj = new Date(endDateTime);
+    
+    if (endDateObj <= startDateObj) {
+      if (isAllDay) {
+        throw new Error('La fecha de fin debe ser posterior a la fecha de inicio.');
+      } else {
+        throw new Error('La hora de fin debe ser posterior a la hora de inicio.');
+      }
+    }
+
     return {
       title: title.trim(),
       description: description.trim() || undefined,
