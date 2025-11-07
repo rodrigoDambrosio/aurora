@@ -5,6 +5,7 @@ import AuthScreen from './components/Auth/AuthScreen';
 import MainDashboard from './components/MainDashboard';
 import { NotificationPermissionBanner } from './components/NotificationPermissionBanner';
 import { useTheme } from './context/ThemeContext';
+import { useNotifications } from './hooks/useNotifications';
 import { apiService } from './services/apiService';
 
 /**
@@ -17,11 +18,12 @@ function App() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { setTheme } = useTheme();
 
+  // Inicializar el sistema de notificaciones y obtener el estado de permisos
+  const { permission, requestPermission } = useNotifications();
+
   // Toggle between dashboard view and API test (for development)
   const showApiTest = import.meta.env.DEV && new URLSearchParams(window.location.search).has('test');
-  const shouldShowAuthScreen = useMemo(() => !isAuthenticated && !showApiTest, [isAuthenticated, showApiTest]);
-
-  // Check for existing session on mount
+  const shouldShowAuthScreen = useMemo(() => !isAuthenticated && !showApiTest, [isAuthenticated, showApiTest]);  // Check for existing session on mount
   useEffect(() => {
     const checkExistingSession = () => {
       const token = window.localStorage.getItem('auroraAccessToken');
@@ -98,7 +100,9 @@ function App() {
         <AuthScreen onAuthSuccess={() => setIsAuthenticated(true)} />
       ) : (
         <div className="aurora-app">
-          <NotificationPermissionBanner />
+          {permission === 'default' && !localStorage.getItem('notificationBannerDismissed') && (
+            <NotificationPermissionBanner onPermissionGranted={requestPermission} />
+          )}
           <MainDashboard />
         </div>
       )}
