@@ -558,10 +558,15 @@ export const apiService = {
    * Delete a custom event category, optionally reassigning events to another category
    */
   async deleteEventCategory(id: string, deleteData?: DeleteEventCategoryDto, userId?: string): Promise<void> {
-    const queryParam = userId ? `?userId=${userId}` : '';
-    return this.fetchApi<void>(`/eventcategories/${id}${queryParam}`, {
-      method: 'DELETE',
-      body: deleteData ? JSON.stringify(deleteData) : undefined
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId);
+    if (deleteData?.reassignToCategoryId) params.append('reassignToCategoryId', deleteData.reassignToCategoryId);
+    
+    const queryString = params.toString();
+    const url = `/eventcategories/${id}${queryString ? `?${queryString}` : ''}`;
+    
+    return this.fetchApi<void>(url, {
+      method: 'DELETE'
     });
   },
 

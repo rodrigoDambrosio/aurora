@@ -3,6 +3,7 @@ import './App.css';
 import ApiTest from './components/ApiTest';
 import AuthScreen from './components/Auth/AuthScreen';
 import MainDashboard from './components/MainDashboard';
+import { EventsProvider } from './context/EventsContext';
 import { useTheme } from './context/ThemeContext';
 import { apiService } from './services/apiService';
 
@@ -96,9 +97,11 @@ function App() {
       ) : shouldShowAuthScreen ? (
         <AuthScreen onAuthSuccess={() => setIsAuthenticated(true)} />
       ) : (
-        <div className="aurora-app">
-          <MainDashboard />
-        </div>
+        <EventsProvider>
+          <div className="aurora-app">
+            <MainDashboard />
+          </div>
+        </EventsProvider>
       )}
     </div>
   )

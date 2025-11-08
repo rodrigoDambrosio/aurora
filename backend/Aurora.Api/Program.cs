@@ -147,6 +147,16 @@ if (app.Environment.IsDevelopment())
     {
         var context = scope.ServiceProvider.GetRequiredService<AuroraDbContext>();
         await DbInitializer.InitializeAsync(context);
+        
+        // Update database index to support soft delete with unique constraint
+        var connectionString = context.Database.GetConnectionString();
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            Aurora.Api.UpdateDatabaseIndex.Execute(connectionString);
+            
+            // Clean up duplicate categories
+            Aurora.Api.CleanupDuplicates.Execute(connectionString);
+        }
     }
 }
 
