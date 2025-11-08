@@ -13,6 +13,7 @@ import Navigation from './Navigation';
 import { ScheduleSuggestionsPanel } from './ScheduleSuggestionsPanel';
 import SettingsScreen from './Settings/SettingsScreen';
 import WellnessDashboard from './WellnessDashboard';
+import { ProductivityAnalysisPanel } from './ProductivityAnalysisPanel';
 
 const MainDashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('calendar-week');
@@ -143,8 +144,9 @@ const MainDashboard: React.FC = () => {
   const calendarView = activeView === 'calendar-month' ? 'calendar-month' : 'calendar-week';
   const showMonthlyMood = activeView === 'mood-month';
   const showWellness = activeView === 'wellness';
+  const showProductivity = activeView === 'productivity';
   const showAssistant = activeView === 'assistant';
-  const showPlaceholder = !showCalendarContainer && !showMonthlyMood && !showWellness && !showAssistant;
+  const showPlaceholder = !showCalendarContainer && !showMonthlyMood && !showWellness && !showProductivity && !showAssistant;
 
   const renderPlaceholderContent = () => {
     switch (activeView) {
@@ -219,6 +221,12 @@ const MainDashboard: React.FC = () => {
         {showAssistant && (
           <section className="assistant-view-panel" aria-label="Asistente de recomendaciones">
             <RecommendationAssistant />
+          </section>
+        )}
+
+        {showProductivity && (
+          <section className="productivity-view-panel" aria-label="Análisis de productividad">
+            <ProductivityAnalysisPanel />
           </section>
         )}
 

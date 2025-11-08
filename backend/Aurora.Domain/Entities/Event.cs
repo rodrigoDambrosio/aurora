@@ -144,14 +144,14 @@ public class Event : BaseEntity
     /// <returns>True si el evento pertenece al usuario</returns>
     public bool BelongsToUser(Guid? userId)
     {
-        // En modo desarrollo, si no hay usuario específico, usa el demo
-        if (Constants.DomainConstants.Development.AllowAnonymousAccess)
-        {
-            var targetUserId = userId ?? Constants.DomainConstants.DemoUser.Id;
-            return UserId == targetUserId;
-        }
-
+#if DEBUG
+        // En modo DEBUG, permite acceso sin autenticación usando usuario demo
+        var targetUserId = userId ?? Constants.DomainConstants.DemoUser.Id;
+        return UserId == targetUserId;
+#else
+        // En producción, verifica el ID exacto
         return UserId == userId;
+#endif
     }
 
     /// <summary>
