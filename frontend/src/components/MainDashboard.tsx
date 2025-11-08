@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useEvents } from '../context/EventsContext';
 import { apiService, type EventCategoryDto, type EventDto, type UpdateEventMoodDto } from '../services/apiService';
+import RecommendationAssistant from './Assistant/RecommendationAssistant';
 import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
 import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
 import EventDetailModal from './EventDetailModal';
 import { EventFormModal } from './EventFormModal';
 import { FloatingNLPInput } from './FloatingNLPInput';
-import RecommendationAssistant from './Assistant/RecommendationAssistant';
 import './MainDashboard.css';
 import MonthlyMoodTracker from './MonthlyMoodTracker';
 import Navigation from './Navigation';
+import { ScheduleSuggestionsPanel } from './ScheduleSuggestionsPanel';
 import SettingsScreen from './Settings/SettingsScreen';
 import WellnessDashboard from './WellnessDashboard';
 import { ProductivityAnalysisPanel } from './ProductivityAnalysisPanel';
@@ -149,6 +150,8 @@ const MainDashboard: React.FC = () => {
 
   const renderPlaceholderContent = () => {
     switch (activeView) {
+      case 'suggestions':
+        return <ScheduleSuggestionsPanel onSuggestionAccepted={refreshEvents} />;
       case 'settings':
         return <SettingsScreen />;
       default:
