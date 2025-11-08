@@ -64,4 +64,19 @@ public class ScheduleSuggestionRepository : IScheduleSuggestionRepository
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task DiscardPendingSuggestionsAsync(Guid userId)
+    {
+        var pendingSuggestions = await _context.ScheduleSuggestions
+            .Where(s => s.UserId == userId && s.Status == SuggestionStatus.Pending)
+            .ToListAsync();
+
+        foreach (var suggestion in pendingSuggestions)
+        {
+            suggestion.Status = SuggestionStatus.Rejected;
+            suggestion.RespondedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+    }
 }

@@ -26,6 +26,9 @@ public class ScheduleSuggestionService : IScheduleSuggestionService
 
     public async Task<IEnumerable<ScheduleSuggestionDto>> GenerateSuggestionsAsync(Guid userId)
     {
+        // Descartar todas las sugerencias pendientes anteriores
+        await _suggestionRepository.DiscardPendingSuggestionsAsync(userId);
+
         // Expirar sugerencias antiguas (más de 7 días)
         await _suggestionRepository.ExpireOldSuggestionsAsync(userId, DateTime.UtcNow.AddDays(-7));
 

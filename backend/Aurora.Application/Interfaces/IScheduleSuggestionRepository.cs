@@ -31,4 +31,9 @@ public interface IScheduleSuggestionRepository
     /// Marca sugerencias como expiradas según criterios
     /// </summary>
     Task ExpireOldSuggestionsAsync(Guid userId, DateTime beforeDate);
+
+    /// <summary>
+    /// Descarta todas las sugerencias pendientes de un usuario
+    /// </summary>
+    Task DiscardPendingSuggestionsAsync(Guid userId);
 }

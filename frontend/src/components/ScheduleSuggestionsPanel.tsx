@@ -170,33 +170,75 @@ export const ScheduleSuggestionsPanel: React.FC<ScheduleSuggestionsPanelProps> =
               </div>
 
               <div className="suggestion-body">
-                <p className="suggestion-reason">
-                  <strong>Motivo:</strong> {suggestion.reason}
-                </p>
-
                 {suggestion.eventTitle && (
-                  <p className="suggestion-event">
-                    <strong>Evento:</strong> {suggestion.eventTitle}
-                  </p>
+                  <div className="affected-events-section">
+                    <div className="section-title">
+                      <span className="section-icon">�</span>
+                      <strong>Eventos involucrados</strong>
+                    </div>
+
+                    <div className="affected-event-card">
+                      <div className="event-badge">Principal</div>
+                      <div className="event-name">{suggestion.eventTitle}</div>
+                      {suggestion.suggestedDateTime && (
+                        <div className="event-time-change">
+                          <div className="time-change-label">Se moverá a:</div>
+                          <div className="time-change-value">
+                            📅 {new Date(suggestion.suggestedDateTime).toLocaleString('es-AR', {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
 
-                {suggestion.suggestedDateTime && (
-                  <p className="suggestion-time">
-                    <strong>Hora sugerida:</strong>{' '}
-                    {new Date(suggestion.suggestedDateTime).toLocaleString('es-AR', {
-                      dateStyle: 'short',
-                      timeStyle: 'short',
-                    })}
-                  </p>
+                {!suggestion.eventTitle && suggestion.relatedEventTitles && suggestion.relatedEventTitles.length > 0 && (
+                  <div className="affected-events-section">
+                    <div className="section-title">
+                      <span className="section-icon">📋</span>
+                      <strong>Eventos relacionados ({suggestion.relatedEventTitles.length})</strong>
+                    </div>
+                    <div className="related-events-list">
+                      {suggestion.relatedEventTitles.map((title, index) => (
+                        <div key={index} className="related-event-item">
+                          <span className="event-bullet">•</span>
+                          <span className="event-title">{title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
-                <p className="suggestion-help-text">
-                  💡 <strong>Qué hace cada botón:</strong>
-                  <br />
-                  <span className="help-accept">• Aceptar = Aplica el cambio automáticamente</span>
-                  <br />
-                  <span className="help-reject">• Rechazar = Descarta la sugerencia</span>
-                </p>
+                <div className="suggestion-reason-section">
+                  <div className="reason-label">💡 Motivo:</div>
+                  <div className="reason-text">{suggestion.reason}</div>
+                </div>
+
+                {!suggestion.eventTitle && suggestion.suggestedDateTime && (
+                  <div className="affected-events-section">
+                    <div className="section-title">
+                      <span className="section-icon">➕</span>
+                      <strong>Se creará un evento</strong>
+                    </div>
+
+                    <div className="new-event-card">
+                      <div className="event-badge new">Nuevo</div>
+                      <div className="event-name">{suggestion.description}</div>
+                      <div className="event-time-change create">
+                        <div className="time-change-label">Fecha y hora:</div>
+                        <div className="time-change-value">
+                          📅 {new Date(suggestion.suggestedDateTime).toLocaleString('es-AR', {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="suggestion-actions">

@@ -22,4 +22,9 @@ public class ScheduleSuggestionDto
     public DateTime? RespondedAt { get; set; }
     public int ConfidenceScore { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Lista de títulos de eventos relacionados con esta sugerencia (para mostrar contexto)
+    /// </summary>
+    public List<string>? RelatedEventTitles { get; set; }
 }

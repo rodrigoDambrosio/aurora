@@ -374,6 +374,7 @@ export interface ScheduleSuggestionDto {
   userId: string;
   eventId?: string;
   eventTitle?: string;
+  relatedEventTitles?: string[];
   type: SuggestionType;
   typeDescription: string;
   description: string;
