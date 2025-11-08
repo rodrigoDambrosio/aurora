@@ -293,6 +293,71 @@ export interface RecommendationFeedbackSummaryDto {
   periodEndUtc: string;
 }
 
+// ===== PRODUCTIVITY ANALYSIS DTOs =====
+
+export interface ProductivityAnalysisDto {
+  hourlyProductivity: HourlyProductivityDto[];
+  dailyProductivity: DailyProductivityDto[];
+  goldenHours: GoldenHourDto[];
+  lowEnergyHours: LowEnergyHourDto[];
+  categoryProductivity: CategoryProductivityDto[];
+  recommendations: ProductivityRecommendationDto[];
+  analysisPeriodStart: string;
+  analysisPeriodEnd: string;
+  totalEventsAnalyzed: number;
+  totalMoodRecordsAnalyzed: number;
+}
+
+export interface HourlyProductivityDto {
+  hour: number;
+  averageMood: number;
+  eventsCompleted: number;
+  totalEvents: number;
+  completionRate: number;
+  productivityScore: number;
+}
+
+export interface DailyProductivityDto {
+  dayOfWeek: number;
+  dayName: string;
+  averageMood: number;
+  productivityScore: number;
+  totalEvents: number;
+}
+
+export interface GoldenHourDto {
+  startHour: number;
+  endHour: number;
+  averageProductivityScore: number;
+  description: string;
+  applicableDays?: number[] | null;
+}
+
+export interface LowEnergyHourDto {
+  startHour: number;
+  endHour: number;
+  averageProductivityScore: number;
+  description: string;
+}
+
+export interface CategoryProductivityDto {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  optimalHours: number[];
+  averageProductivityScore: number;
+  bestDayOfWeek: number;
+}
+
+export interface ProductivityRecommendationDto {
+  title: string;
+  description: string;
+  priority: number;
+  type: string;
+  affectedCategories: string[];
+  suggestedHours: number[];
+}
+
 // ===== WELLNESS ANALYTICS DTOs =====
 
 export interface MoodDaySnapshotDto {
@@ -832,5 +897,11 @@ export const apiService = {
   async getRecommendationFeedbackSummary(days = 30): Promise<RecommendationFeedbackSummaryDto> {
     const clamped = Math.min(Math.max(days, 1), 180);
     return this.fetchApi<RecommendationFeedbackSummaryDto>(`/recommendations/feedback/summary?days=${clamped}`);
+  },
+
+  // Productivity Analysis
+  async getProductivityAnalysis(periodDays = 30): Promise<ProductivityAnalysisDto> {
+    const clamped = Math.min(Math.max(periodDays, 1), 365);
+    return this.fetchApi<ProductivityAnalysisDto>(`/user/productivity-analysis?periodDays=${clamped}`);
   }
 };

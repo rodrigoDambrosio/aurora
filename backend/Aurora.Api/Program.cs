@@ -63,6 +63,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDailyMoodService, DailyMoodService>();
 builder.Services.AddScoped<IWellnessInsightsService, WellnessInsightsService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<IProductivityAnalysisService, ProductivityAnalysisService>();
 
 // AI Validation Service with HttpClient
 // Timeout extendido a 120 segundos para generación de planes multi-día (PLAN-138)
