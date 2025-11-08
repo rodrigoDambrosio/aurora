@@ -9,5 +9,6 @@ public interface IReminderService
     Task<ReminderDto> GetReminderByIdAsync(Guid id);
     Task<IEnumerable<ReminderDto>> GetRemindersByEventIdAsync(Guid eventId);
     Task DeleteReminderAsync(Guid id);
+    Task DeleteAllRemindersAsync();
     Task MarkAsSentAsync(Guid id);
 }

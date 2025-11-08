@@ -70,7 +70,7 @@ public class ReminderService : IReminderService
         var allReminders = await _reminderRepository.GetAllAsync();
 
         var pendingReminders = allReminders
-            .Where(r => r.TriggerDateTime <= maxTriggerTime && !r.IsSent)
+            .Where(r => r.IsActive && r.TriggerDateTime <= maxTriggerTime && !r.IsSent)
             .ToList();
 
         var dtos = new List<ReminderDto>();
@@ -100,7 +100,7 @@ public class ReminderService : IReminderService
         var allReminders = await _reminderRepository.GetAllAsync();
 
         var eventReminders = allReminders
-            .Where(r => r.EventId == eventId)
+            .Where(r => r.IsActive && r.EventId == eventId)
             .ToList();
 
         var dtos = new List<ReminderDto>();
@@ -121,6 +121,18 @@ public class ReminderService : IReminderService
         }
 
         await _reminderRepository.DeleteAsync(id);
+        await _reminderRepository.SaveChangesAsync();
+    }
+
+    public async Task DeleteAllRemindersAsync()
+    {
+        var allReminders = await _reminderRepository.GetAllAsync();
+
+        foreach (var reminder in allReminders)
+        {
+            await _reminderRepository.DeleteAsync(reminder.Id);
+        }
+
         await _reminderRepository.SaveChangesAsync();
     }
 

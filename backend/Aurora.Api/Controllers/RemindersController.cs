@@ -107,6 +107,18 @@ public class RemindersController : ControllerBase
     }
 
     /// <summary>
+    /// Elimina todos los recordatorios del sistema
+    /// </summary>
+    [HttpDelete("all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteAllReminders()
+    {
+        await _reminderService.DeleteAllRemindersAsync();
+        _logger.LogInformation("Todos los recordatorios han sido eliminados");
+        return NoContent();
+    }
+
+    /// <summary>
     /// Marca un recordatorio como enviado
     /// </summary>
     [HttpPut("{id}/mark-sent")]
