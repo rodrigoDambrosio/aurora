@@ -1230,4 +1230,112 @@ public class GeminiAIValidationService : IAIValidationService
             throw new InvalidOperationException("No se pudo interpretar el plan generado por la IA", ex);
         }
     }
+
+    public async Task<IEnumerable<ScheduleSuggestionDto>?> GenerateScheduleSuggestionsAsync(
+        Guid userId,
+        IEnumerable<EventDto> events)
+    {
+        try
+        {
+            _logger.LogInformation("Generando sugerencias con IA para {EventCount} eventos", events.Count());
+
+            var prompt = BuildScheduleSuggestionsPrompt(events);
+
+            var geminiRequest = new GeminiRequest
+            {
+                Contents = new List<GeminiContent>
+                {
+                    new GeminiContent
+                    {
+                        Parts = new List<GeminiPart>
+                        {
+                            new GeminiPart { Text = prompt }
+                        }
+                    }
+                }
+            };
+
+            var jsonRequest = JsonSerializer.Serialize(geminiRequest, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            var url = $"{_baseUrl}?key={_apiKey}";
+            var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error en API Gemini: {StatusCode} - {Error}", response.StatusCode, errorContent);
+                return null; // Fallback a algoritmo manual
+            }
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(jsonResponse, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            var aiText = geminiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+            if (string.IsNullOrWhiteSpace(aiText))
+            {
+                _logger.LogWarning("Respuesta vacía de Gemini");
+                return null;
+            }
+
+            _logger.LogDebug("Respuesta IA: {Response}", aiText);
+
+            // Parsear JSON de sugerencias
+            var jsonMatch = System.Text.RegularExpressions.Regex.Match(aiText, @"\[[\s\S]*\]");
+            if (!jsonMatch.Success)
+            {
+                _logger.LogWarning("No se encontró JSON en respuesta de IA");
+                return null;
+            }
+
+            var suggestions = JsonSerializer.Deserialize<List<ScheduleSuggestionDto>>(jsonMatch.Value, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true
+            });
+
+            _logger.LogInformation("IA generó {Count} sugerencias", suggestions?.Count ?? 0);
+            return suggestions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando sugerencias con IA");
+            return null; // Fallback a algoritmo manual
+        }
+    }
+
+    private string BuildScheduleSuggestionsPrompt(IEnumerable<EventDto> events)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Analiza este calendario y genera sugerencias de optimización en JSON.");
+        sb.AppendLine();
+        sb.AppendLine("EVENTOS:");
+
+        foreach (var evt in events.OrderBy(e => e.StartDate))
+        {
+            sb.AppendLine($"- {evt.Title} | {evt.StartDate:yyyy-MM-dd HH:mm} - {evt.EndDate:HH:mm} | Cat: {evt.EventCategory?.Name ?? "Sin categoría"}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("DETECTA: conflictos, sobrecarga, falta de descansos, mala distribución.");
+        sb.AppendLine();
+        sb.AppendLine("RESPONDE SOLO con array JSON:");
+        sb.AppendLine("[{");
+        sb.AppendLine("  \"eventId\": \"guid-del-evento-afectado o null\",");
+        sb.AppendLine("  \"type\": 1-6 (1=MoveEvent,2=ResolveConflict,3=OptimizeDistribution,4=PatternAlert,5=SuggestBreak,6=GeneralReorganization),");
+        sb.AppendLine("  \"description\": \"Texto corto\",");
+        sb.AppendLine("  \"reason\": \"Explicación\",");
+        sb.AppendLine("  \"priority\": 1-5,");
+        sb.AppendLine("  \"suggestedDateTime\": \"2025-11-08T15:00:00Z o null\",");
+        sb.AppendLine("  \"confidenceScore\": 70-100");
+        sb.AppendLine("}]");
+
+        return sb.ToString();
+    }
 }

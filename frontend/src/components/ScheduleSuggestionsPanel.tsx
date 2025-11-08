@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { apiService, SuggestionStatus, SuggestionType } from '../services/apiService';
 import type { ScheduleSuggestionDto } from '../services/apiService';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
+import { apiService, SuggestionStatus, SuggestionType } from '../services/apiService';
 import './ScheduleSuggestionsPanel.css';
+import { Button } from './ui/button';
+import { Card } from './ui/card';
 
 interface ScheduleSuggestionsPanelProps {
   onSuggestionAccepted?: () => void;
@@ -15,6 +15,7 @@ export const ScheduleSuggestionsPanel: React.FC<ScheduleSuggestionsPanelProps> =
   const [generating, setGenerating] = useState(false);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadSuggestions();
@@ -52,18 +53,30 @@ export const ScheduleSuggestionsPanel: React.FC<ScheduleSuggestionsPanelProps> =
     try {
       setRespondingTo(suggestionId);
       setError(null);
+      setSuccessMessage(null);
+
       await apiService.respondToSuggestion(suggestionId, { status });
-      
+
+      // Mostrar mensaje de éxito
+      if (status === SuggestionStatus.Accepted) {
+        setSuccessMessage('✓ Sugerencia aplicada con éxito. El evento ha sido actualizado.');
+      } else {
+        setSuccessMessage('✓ Sugerencia descartada.');
+      }
+
       // Actualizar la lista de sugerencias
       await loadSuggestions();
-      
+
       // Si aceptó la sugerencia, notificar al padre para refrescar el calendario
       if (status === SuggestionStatus.Accepted && onSuggestionAccepted) {
         onSuggestionAccepted();
       }
+
+      // Ocultar mensaje después de 5 segundos
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
-      setError('Error al responder a la sugerencia');
-      console.error(err);
+      console.error('❌ Error al responder a la sugerencia:', err);
+      setError('Error al responder a la sugerencia: ' + (err instanceof Error ? err.message : 'Error desconocido'));
     } finally {
       setRespondingTo(null);
     }
@@ -114,10 +127,18 @@ export const ScheduleSuggestionsPanel: React.FC<ScheduleSuggestionsPanelProps> =
           onClick={handleGenerate}
           disabled={generating}
           variant="outline"
+          className="generate-button"
         >
+          <span className="button-icon">{generating ? '⏳' : '✨'}</span>
           {generating ? 'Generando...' : 'Generar Nuevas Sugerencias'}
         </Button>
       </div>
+
+      {successMessage && (
+        <div className="suggestions-success">
+          {successMessage}
+        </div>
+      )}
 
       {error && (
         <div className="suggestions-error">
@@ -168,6 +189,14 @@ export const ScheduleSuggestionsPanel: React.FC<ScheduleSuggestionsPanelProps> =
                     })}
                   </p>
                 )}
+
+                <p className="suggestion-help-text">
+                  💡 <strong>Qué hace cada botón:</strong>
+                  <br />
+                  <span className="help-accept">• Aceptar = Aplica el cambio automáticamente</span>
+                  <br />
+                  <span className="help-reject">• Rechazar = Descarta la sugerencia</span>
+                </p>
               </div>
 
               <div className="suggestion-actions">
@@ -176,24 +205,28 @@ export const ScheduleSuggestionsPanel: React.FC<ScheduleSuggestionsPanelProps> =
                   disabled={respondingTo === suggestion.id}
                   variant="default"
                   size="sm"
+                  className="action-accept"
+                  title="Aplicar esta sugerencia: el evento se moverá automáticamente a la nueva fecha/hora"
                 >
-                  ✓ Aceptar
-                </Button>
-                <Button
-                  onClick={() => handleRespond(suggestion.id, SuggestionStatus.Postponed)}
-                  disabled={respondingTo === suggestion.id}
-                  variant="outline"
-                  size="sm"
-                >
-                  ⏸ Posponer
+                  {respondingTo === suggestion.id ? (
+                    <>
+                      <span className="button-spinner">⏳</span> Aplicando...
+                    </>
+                  ) : (
+                    <>
+                      <span className="button-icon">✓</span> Aceptar
+                    </>
+                  )}
                 </Button>
                 <Button
                   onClick={() => handleRespond(suggestion.id, SuggestionStatus.Rejected)}
                   disabled={respondingTo === suggestion.id}
                   variant="ghost"
                   size="sm"
+                  className="action-reject"
+                  title="Descartar esta sugerencia: no se aplicará y desaparecerá de la lista"
                 >
-                  ✗ Rechazar
+                  <span className="button-icon">✗</span> Rechazar
                 </Button>
               </div>
             </Card>
