@@ -25,6 +25,9 @@ public static class DbInitializer
         // Asegurar que la columna Priority exista incluso si la base ya se creó antes del cambio
         await EnsurePriorityColumnAsync(context);
 
+        // Asegurar que las columnas MoodRating y MoodNotes existan en la tabla Events
+        await EnsureEventMoodColumnsAsync(context);
+
         // Asegurar que la columna Timezone exista en la tabla Users
         await EnsureTimezoneColumnAsync(context);
 
@@ -37,8 +40,11 @@ public static class DbInitializer
         // Asegurar que la tabla DailyMoodEntries exista
         await EnsureDailyMoodEntriesTableAsync(context);
 
-    // Asegurar que la tabla RecommendationFeedback exista
-    await EnsureRecommendationFeedbackTableAsync(context);
+        // Asegurar que la tabla RecommendationFeedback exista
+        await EnsureRecommendationFeedbackTableAsync(context);
+
+        // Asegurar que la tabla ScheduleSuggestions exista
+        await EnsureScheduleSuggestionsTableAsync(context);
 
         // Si ya hay usuarios, no hacer nada
         if (await context.Users.AnyAsync())
@@ -412,6 +418,64 @@ CREATE TABLE RecommendationFeedback (
     }
 
     /// <summary>
+    /// Garantiza que las columnas MoodRating y MoodNotes existan en la tabla Events.
+    /// </summary>
+    private static async Task EnsureEventMoodColumnsAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var pragmaCommand = connection.CreateCommand();
+            pragmaCommand.CommandText = "PRAGMA table_info('Events');";
+
+            var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            await using (var reader = await pragmaCommand.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    var columnName = reader["name"]?.ToString();
+                    if (columnName != null)
+                    {
+                        existingColumns.Add(columnName);
+                    }
+                }
+            }
+
+            // Agregar MoodRating si no existe
+            if (!existingColumns.Contains("MoodRating"))
+            {
+                using var alterCommand = connection.CreateCommand();
+                alterCommand.CommandText = "ALTER TABLE Events ADD COLUMN MoodRating INTEGER;";
+                await alterCommand.ExecuteNonQueryAsync();
+            }
+
+            // Agregar MoodNotes si no existe
+            if (!existingColumns.Contains("MoodNotes"))
+            {
+                using var alterCommand = connection.CreateCommand();
+                alterCommand.CommandText = "ALTER TABLE Events ADD COLUMN MoodNotes TEXT;";
+                await alterCommand.ExecuteNonQueryAsync();
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    /// <summary>
     /// Garantiza que la columna Timezone exista en la tabla Users incluso para bases creadas antes del cambio.
     /// </summary>
     private static async Task EnsureTimezoneColumnAsync(AuroraDbContext context)
@@ -513,6 +577,69 @@ CREATE TABLE RecommendationFeedback (
                     alterCommand.CommandText = $"ALTER TABLE UserPreferences ADD COLUMN {column.Key} {column.Value};";
                     await alterCommand.ExecuteNonQueryAsync();
                 }
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Garantiza que la tabla ScheduleSuggestions exista incluso para bases creadas antes de introducir la entidad.
+    /// </summary>
+    private static async Task EnsureScheduleSuggestionsTableAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var checkCommand = connection.CreateCommand();
+            checkCommand.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='ScheduleSuggestions';";
+
+            var exists = false;
+            await using (var reader = await checkCommand.ExecuteReaderAsync())
+            {
+                exists = await reader.ReadAsync();
+            }
+
+            if (!exists)
+            {
+                using var createCommand = connection.CreateCommand();
+                createCommand.CommandText = @"
+CREATE TABLE ScheduleSuggestions (
+    Id TEXT NOT NULL PRIMARY KEY,
+    UserId TEXT NOT NULL,
+    EventId TEXT,
+    Type INTEGER NOT NULL,
+    Description TEXT NOT NULL,
+    Reason TEXT NOT NULL,
+    Priority INTEGER NOT NULL DEFAULT 3,
+    SuggestedDateTime TEXT,
+    Status INTEGER NOT NULL DEFAULT 1,
+    RespondedAt TEXT,
+    ConfidenceScore INTEGER NOT NULL DEFAULT 70,
+    Metadata TEXT,
+    CreatedAt TEXT NOT NULL,
+    UpdatedAt TEXT NOT NULL,
+    IsActive INTEGER NOT NULL,
+    FOREIGN KEY (EventId) REFERENCES Events(Id) ON DELETE SET NULL
+);";
+                await createCommand.ExecuteNonQueryAsync();
+
+                using var indexCommand = connection.CreateCommand();
+                indexCommand.CommandText = "CREATE INDEX IF NOT EXISTS IX_ScheduleSuggestions_UserId ON ScheduleSuggestions(UserId);";
+                await indexCommand.ExecuteNonQueryAsync();
             }
         }
         finally

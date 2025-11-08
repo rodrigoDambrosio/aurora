@@ -348,6 +348,51 @@ export interface WellnessSummaryDto {
   hasEventMoodData: boolean;
 }
 
+export const SuggestionType = {
+  MoveEvent: 1,
+  ResolveConflict: 2,
+  OptimizeDistribution: 3,
+  PatternAlert: 4,
+  SuggestBreak: 5,
+  GeneralReorganization: 6,
+} as const;
+
+export type SuggestionType = typeof SuggestionType[keyof typeof SuggestionType];
+
+export const SuggestionStatus = {
+  Pending: 1,
+  Accepted: 2,
+  Rejected: 3,
+  Postponed: 4,
+  Expired: 5,
+} as const;
+
+export type SuggestionStatus = typeof SuggestionStatus[keyof typeof SuggestionStatus];
+
+export interface ScheduleSuggestionDto {
+  id: string;
+  userId: string;
+  eventId?: string;
+  eventTitle?: string;
+  relatedEventTitles?: string[];
+  type: SuggestionType;
+  typeDescription: string;
+  description: string;
+  reason: string;
+  priority: number;
+  suggestedDateTime?: string;
+  status: SuggestionStatus;
+  statusDescription: string;
+  respondedAt?: string;
+  confidenceScore: number;
+  createdAt: string;
+}
+
+export interface RespondToSuggestionDto {
+  status: SuggestionStatus;
+  userComment?: string;
+}
+
 // Legacy interfaces for backward compatibility
 export interface TestDataItem {
   id: number;
@@ -561,10 +606,10 @@ export const apiService = {
     const params = new URLSearchParams();
     if (userId) params.append('userId', userId);
     if (deleteData?.reassignToCategoryId) params.append('reassignToCategoryId', deleteData.reassignToCategoryId);
-    
+
     const queryString = params.toString();
     const url = `/eventcategories/${id}${queryString ? `?${queryString}` : ''}`;
-    
+
     return this.fetchApi<void>(url, {
       method: 'DELETE'
     });
@@ -832,5 +877,33 @@ export const apiService = {
   async getRecommendationFeedbackSummary(days = 30): Promise<RecommendationFeedbackSummaryDto> {
     const clamped = Math.min(Math.max(days, 1), 180);
     return this.fetchApi<RecommendationFeedbackSummaryDto>(`/recommendations/feedback/summary?days=${clamped}`);
+  },
+
+  // ===== SCHEDULE SUGGESTIONS ENDPOINTS =====
+
+  /**
+   * Get pending schedule suggestions for current user
+   */
+  async getScheduleSuggestions(): Promise<ScheduleSuggestionDto[]> {
+    return this.fetchApi<ScheduleSuggestionDto[]>('/schedule-suggestions');
+  },
+
+  /**
+   * Generate new schedule suggestions by analyzing calendar
+   */
+  async generateScheduleSuggestions(): Promise<ScheduleSuggestionDto[]> {
+    return this.fetchApi<ScheduleSuggestionDto[]>('/schedule-suggestions/generate', {
+      method: 'POST'
+    });
+  },
+
+  /**
+   * Respond to a schedule suggestion (accept/reject/postpone)
+   */
+  async respondToSuggestion(id: string, response: RespondToSuggestionDto): Promise<ScheduleSuggestionDto> {
+    return this.fetchApi<ScheduleSuggestionDto>(`/schedule-suggestions/${id}/respond`, {
+      method: 'POST',
+      body: JSON.stringify(response)
+    });
   }
 };

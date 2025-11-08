@@ -53,4 +53,14 @@ public interface IAIValidationService
         IEnumerable<EventCategoryDto> availableCategories,
         IEnumerable<EventDto>? existingEvents = null,
         UserPreferencesDto? userPreferences = null);
+
+    /// <summary>
+    /// Analiza el calendario del usuario y genera sugerencias inteligentes de reorganización usando IA
+    /// </summary>
+    /// <param name="userId">ID del usuario</param>
+    /// <param name="events">Eventos del usuario para analizar</param>
+    /// <returns>Lista de sugerencias generadas por IA, o null si falla</returns>
+    Task<IEnumerable<ScheduleSuggestionDto>?> GenerateScheduleSuggestionsAsync(
+        Guid userId,
+        IEnumerable<EventDto> events);
 }

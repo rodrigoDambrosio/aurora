@@ -1,10 +1,10 @@
-import { Calendar, Heart, LogOut, MessageCircle, Moon, Settings, Smile, Sparkles, Sun } from 'lucide-react';
+import { Calendar, Heart, Lightbulb, LogOut, MessageCircle, Moon, Settings, Smile, Sparkles, Sun } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { apiService } from '../services/apiService';
 import './Navigation.css';
 
-type View = 'calendar-week' | 'calendar-month' | 'mood-month' | 'wellness' | 'assistant' | 'settings';
+type View = 'calendar-week' | 'calendar-month' | 'mood-month' | 'wellness' | 'assistant' | 'suggestions' | 'settings';
 
 interface NavigationProps {
   activeView?: string;
@@ -29,6 +29,12 @@ const navigationItems = [
     label: 'Humor mensual',
     icon: Smile,
     description: 'Seguimiento diario'
+  },
+  {
+    id: 'suggestions' as View,
+    label: 'Sugerencias',
+    icon: Lightbulb,
+    description: 'Reorganización inteligente'
   },
   {
     id: 'wellness' as View,

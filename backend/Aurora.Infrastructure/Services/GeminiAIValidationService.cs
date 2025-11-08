@@ -1230,4 +1230,145 @@ public class GeminiAIValidationService : IAIValidationService
             throw new InvalidOperationException("No se pudo interpretar el plan generado por la IA", ex);
         }
     }
+
+    public async Task<IEnumerable<ScheduleSuggestionDto>?> GenerateScheduleSuggestionsAsync(
+        Guid userId,
+        IEnumerable<EventDto> events)
+    {
+        try
+        {
+            _logger.LogInformation("Generando sugerencias con IA para {EventCount} eventos", events.Count());
+
+            var prompt = BuildScheduleSuggestionsPrompt(events);
+
+            var geminiRequest = new GeminiRequest
+            {
+                Contents = new List<GeminiContent>
+                {
+                    new GeminiContent
+                    {
+                        Parts = new List<GeminiPart>
+                        {
+                            new GeminiPart { Text = prompt }
+                        }
+                    }
+                }
+            };
+
+            var jsonRequest = JsonSerializer.Serialize(geminiRequest, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            var url = $"{_baseUrl}?key={_apiKey}";
+            var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error en API Gemini: {StatusCode} - {Error}", response.StatusCode, errorContent);
+                return null; // Fallback a algoritmo manual
+            }
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(jsonResponse, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            var aiText = geminiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+            if (string.IsNullOrWhiteSpace(aiText))
+            {
+                _logger.LogWarning("Respuesta vacía de Gemini");
+                return null;
+            }
+
+            _logger.LogDebug("Respuesta IA: {Response}", aiText);
+
+            // Parsear JSON de sugerencias
+            var jsonMatch = System.Text.RegularExpressions.Regex.Match(aiText, @"\[[\s\S]*\]");
+            if (!jsonMatch.Success)
+            {
+                _logger.LogWarning("No se encontró JSON en respuesta de IA");
+                return null;
+            }
+
+            var suggestions = JsonSerializer.Deserialize<List<ScheduleSuggestionDto>>(jsonMatch.Value, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true
+            });
+
+            _logger.LogInformation("IA generó {Count} sugerencias", suggestions?.Count ?? 0);
+            return suggestions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando sugerencias con IA");
+            return null; // Fallback a algoritmo manual
+        }
+    }
+
+    private string BuildScheduleSuggestionsPrompt(IEnumerable<EventDto> events)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Analiza este calendario y genera sugerencias de optimización en JSON.");
+        sb.AppendLine();
+        sb.AppendLine("EVENTOS:");
+
+        foreach (var evt in events.OrderBy(e => e.StartDate))
+        {
+            sb.AppendLine($"- [{evt.Id}] {evt.Title} | {evt.StartDate:yyyy-MM-dd HH:mm} - {evt.EndDate:HH:mm} | Cat: {evt.EventCategory?.Name ?? "Sin categoría"}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("DETECTA: conflictos, sobrecarga, falta descansos, mala distribución, eventos duplicados/similares.");
+        sb.AppendLine("Para eventos similares: sugiere unificarlos o agruparlos.");
+        sb.AppendLine();
+        sb.AppendLine("RESPONDE SOLO con array JSON:");
+        sb.AppendLine("[{");
+        sb.AppendLine("  \"eventId\": \"guid-del-evento o null\",");
+        sb.AppendLine("  \"type\": 1-6 (1=MoveEvent,2=ResolveConflict,3=OptimizeDistribution,4=PatternAlert,5=SuggestBreak,6=GeneralReorganization),");
+        sb.AppendLine("  \"description\": \"Texto corto y ACCIONABLE (ej: 'Mover Guitarra a las 10:00', 'Crear descanso de 30min')\",");
+        sb.AppendLine("  \"reason\": \"Explicación detallada del POR QUÉ\",");
+        sb.AppendLine("  \"priority\": 1-5,");
+        sb.AppendLine("  \"suggestedDateTime\": \"2025-11-08T15:00:00Z (OBLIGATORIO para type=5 SuggestBreak)\",");
+        sb.AppendLine("  \"confidenceScore\": 70-100,");
+        sb.AppendLine("  \"relatedEventTitles\": [\"Título evento 1\", \"Título evento 2\"]");
+        sb.AppendLine("}]");
+        sb.AppendLine();
+        sb.AppendLine("REGLAS OBLIGATORIAS PARA TODOS LOS TIPOS:");
+        sb.AppendLine();
+        sb.AppendLine("type=1 (MoveEvent):");
+        sb.AppendLine("  - eventId: ID del evento a mover");
+        sb.AppendLine("  - suggestedDateTime: nueva fecha/hora EXACTA");
+        sb.AppendLine("  - description: 'Mover [Nombre] a [hora específica]'");
+        sb.AppendLine();
+        sb.AppendLine("type=2 (ResolveConflict):");
+        sb.AppendLine("  - eventId: ID del evento en conflicto");
+        sb.AppendLine("  - relatedEventTitles: títulos de TODOS los eventos en conflicto");
+        sb.AppendLine("  - suggestedDateTime: nueva hora propuesta para resolver");
+        sb.AppendLine();
+        sb.AppendLine("type=3 (OptimizeDistribution):");
+        sb.AppendLine("  - relatedEventTitles: títulos de TODOS los eventos a reorganizar (mínimo 2)");
+        sb.AppendLine("  - description: acción específica (ej: 'Agrupar Salud en lunes y miércoles')");
+        sb.AppendLine();
+        sb.AppendLine("type=4 (PatternAlert):");
+        sb.AppendLine("  - relatedEventTitles: títulos de TODOS los eventos que forman el patrón (mínimo 2)");
+        sb.AppendLine("  - description: patrón detectado + acción sugerida");
+        sb.AppendLine("  - OBLIGATORIO: listar eventos específicos involucrados");
+        sb.AppendLine();
+        sb.AppendLine("type=5 (SuggestBreak):");
+        sb.AppendLine("  - suggestedDateTime: fecha/hora EXACTA del descanso propuesto");
+        sb.AppendLine("  - relatedEventTitles: eventos entre los que va el descanso");
+        sb.AppendLine("  - description: 'Crear descanso de [duración] entre [evento1] y [evento2]'");
+        sb.AppendLine();
+        sb.AppendLine("type=6 (GeneralReorganization):");
+        sb.AppendLine("  - relatedEventTitles: eventos afectados por la reorganización");
+        sb.AppendLine();
+        sb.AppendLine("CRÍTICO: SIEMPRE incluir relatedEventTitles cuando hay 2+ eventos involucrados. El usuario debe ver qué eventos exactos se afectan.");
+
+        return sb.ToString();
+    }
 }
