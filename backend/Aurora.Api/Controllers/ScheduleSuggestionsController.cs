@@ -57,7 +57,7 @@ public class ScheduleSuggestionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ScheduleSuggestionDto>> RespondToSuggestion(
-        Guid id, 
+        Guid id,
         [FromBody] RespondToSuggestionDto response)
     {
         try
