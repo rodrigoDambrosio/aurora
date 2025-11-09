@@ -160,7 +160,7 @@
 
 .nlp-input {
     width: 100%;
-    padding: 12px 40px 12px 12px;
+    padding: 12px 84px 12px 12px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
     font-size: 14px;
@@ -209,6 +209,82 @@
 .nlp-submit-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.nlp-voice-button {
+    position: absolute;
+    right: 40px;
+    top: 4px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 4px;
+    background: var(--color-surface-alt);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.nlp-voice-button:hover:not(:disabled) {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+}
+
+.nlp-voice-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.nlp-voice-button.is-active {
+    background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
+    color: white;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gradient-primary-end) 18%, transparent);
+}
+
+.nlp-voice-feedback {
+    min-height: 20px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nlp-voice-preview {
+    color: var(--color-text-secondary);
+    font-style: italic;
+}
+
+.nlp-voice-error {
+    color: var(--color-danger);
+}
+
+.nlp-voice-unsupported {
+    color: var(--color-text-muted);
+}
+
+.nlp-voice-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-danger);
+    animation: nlp-voice-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes nlp-voice-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+    50% {
+        transform: scale(1.4);
+        opacity: 1;
+    }
 }
 
 /* Examples */
