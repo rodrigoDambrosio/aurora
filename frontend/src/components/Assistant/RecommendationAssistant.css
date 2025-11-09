@@ -131,6 +131,21 @@
     gap: 16px;
 }
 
+.recommendations-prompt {
+    border: 1px dashed var(--color-border);
+    border-radius: 16px;
+    padding: 24px;
+    background: var(--color-surface-alt);
+    text-align: center;
+    color: var(--color-text-secondary);
+}
+
+.recommendations-source {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
 .recommendation-card {
     display: flex;
     flex-direction: column;
@@ -147,6 +162,12 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 12px;
+}
+
+.recommendation-card-badges {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .recommendation-card-title {
@@ -174,6 +195,11 @@
     font-size: 0.75rem;
     font-weight: 600;
     white-space: nowrap;
+}
+
+.recommendation-badge.is-ai {
+    background: rgba(234, 179, 8, 0.16);
+    color: #b45309;
 }
 
 .recommendation-reason {
@@ -280,6 +306,159 @@
     background: linear-gradient(135deg, var(--gradient-primary-hover-start), var(--gradient-primary-hover-end));
 }
 
+.assistant-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-alt);
+}
+
+.assistant-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.assistant-chat-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.assistant-chat-status {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.assistant-chat-thread {
+    max-height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.assistant-chat-bubble {
+    padding: 12px 14px;
+    border-radius: 14px;
+    max-width: 90%;
+    line-height: 1.45;
+    font-size: 0.95rem;
+    box-shadow: var(--shadow-soft);
+}
+
+.assistant-chat-bubble-user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--gradient-primary-start), var(--gradient-primary-end));
+    color: var(--color-surface);
+    border-bottom-right-radius: 4px;
+}
+
+.assistant-chat-bubble-assistant {
+    align-self: flex-start;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-bottom-left-radius: 4px;
+    color: var(--color-text-primary);
+}
+
+.assistant-chat-error {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
+    font-size: 0.85rem;
+}
+
+.assistant-chat-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.assistant-chat-form textarea {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    padding: 12px;
+    resize: vertical;
+    font-size: 0.95rem;
+    min-height: 80px;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+}
+
+.assistant-chat-form textarea:focus {
+    outline: none;
+    border-color: var(--gradient-primary-end);
+    box-shadow: 0 0 0 3px var(--color-outline);
+}
+
+.assistant-chat-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.assistant-chat-prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.assistant-chat-prompts button {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.assistant-chat-prompts button:hover:not(:disabled) {
+    background: var(--color-surface-alt);
+    color: var(--color-text-primary);
+}
+
+.assistant-chat-prompts button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.assistant-chat-send {
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--gradient-primary-start), var(--gradient-primary-end));
+    color: var(--color-surface);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.assistant-chat-send:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--gradient-primary-hover-start), var(--gradient-primary-hover-end));
+}
+
+.assistant-chat-send:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .recommendation-skeleton {
     padding: 16px;
     border-radius: 16px;
@@ -380,6 +559,10 @@
 @media (max-width: 768px) {
     .recommendation-assistant {
         padding: 16px;
+    }
+
+    .assistant-chat-thread {
+        max-height: 220px;
     }
 
     .recommendations-grid {

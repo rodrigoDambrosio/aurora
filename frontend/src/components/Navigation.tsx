@@ -1,6 +1,6 @@
 import { Calendar, Heart, Lightbulb, LogOut, MessageCircle, Moon, Settings, Smile, Sparkles, Sun, TrendingUp } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { apiService } from '../services/apiService';
 import './Navigation.css';
 

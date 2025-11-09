@@ -1,6 +1,6 @@
 import { AlertCircle, Edit2, Plus, Tag, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { useEvents } from '../../context/EventsContext';
+import { useEvents } from '../../context/useEvents';
 import { apiService, type CreateEventCategoryDto, type EventCategoryDto, type UpdateEventCategoryDto } from '../../services/apiService';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';

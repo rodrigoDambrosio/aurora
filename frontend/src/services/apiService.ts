@@ -293,6 +293,30 @@ export interface RecommendationFeedbackSummaryDto {
   periodEndUtc: string;
 }
 
+export type RecommendationConversationRole = 'user' | 'assistant';
+
+export interface RecommendationConversationMessageDto {
+  role: RecommendationConversationRole;
+  content: string;
+}
+
+export interface RecommendationAssistantRequestDto {
+  conversation: RecommendationConversationMessageDto[];
+  currentMood?: number;
+  externalContext?: string;
+  fallbackRecommendations?: RecommendationDto[];
+}
+
+export interface RecommendationAssistantChatRequestDto {
+  conversation: RecommendationConversationMessageDto[];
+  currentMood?: number;
+  externalContext?: string;
+}
+
+export interface RecommendationAssistantChatResponseDto {
+  message: string;
+}
+
 // ===== PRODUCTIVITY ANALYSIS DTOs =====
 
 export interface ProductivityAnalysisDto {
@@ -975,6 +999,20 @@ export const apiService = {
     const endpoint = queryString.length > 0 ? `/recommendations?${queryString}` : '/recommendations';
 
     return this.fetchApi<RecommendationDto[]>(endpoint);
+  },
+
+  async generateConversationalRecommendations(payload: RecommendationAssistantRequestDto): Promise<RecommendationDto[]> {
+    return this.fetchApi<RecommendationDto[]>('/recommendations/assistant', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  async generateAssistantReply(payload: RecommendationAssistantChatRequestDto): Promise<RecommendationAssistantChatResponseDto> {
+    return this.fetchApi<RecommendationAssistantChatResponseDto>('/recommendations/assistant/chat', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   },
 
   async submitRecommendationFeedback(payload: RecommendationFeedbackDto): Promise<void> {

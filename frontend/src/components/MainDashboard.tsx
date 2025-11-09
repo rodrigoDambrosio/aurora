@@ -1,6 +1,6 @@
 import { Heart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { useEvents } from '../context/EventsContext';
+import { useEvents } from '../context/useEvents';
 import type { SelfCareFeedbackDto } from '../services/apiService';
 import { apiService, SelfCareFeedbackAction, type EventCategoryDto, type EventDto, type SelfCareRecommendationDto, type UpdateEventMoodDto } from '../services/apiService';
 import RecommendationAssistant from './Assistant/RecommendationAssistant';

@@ -1,42 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-
-type Theme = 'light' | 'dark';
-
-interface ThemeContextValue {
-  theme: Theme;
-  toggleTheme: () => void;
-  setTheme: (theme: Theme) => void;
-}
-
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
-
-const STORAGE_KEY = 'aurora-theme-preference';
-
-function detectPreferredTheme(): Theme {
-  if (typeof window === 'undefined') {
-    return 'light';
-  }
-
-  const storedTheme = window.localStorage.getItem(STORAGE_KEY);
-  if (storedTheme === 'light' || storedTheme === 'dark') {
-    return storedTheme;
-  }
-
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
-  }
-
-  return 'light';
-}
-
-function applyTheme(theme: Theme) {
-  if (typeof document === 'undefined') {
-    return;
-  }
-
-  document.documentElement.setAttribute('data-theme', theme);
-  document.documentElement.classList.toggle('theme-dark', theme === 'dark');
-}
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { applyTheme, detectPreferredTheme, THEME_STORAGE_KEY, type Theme } from './themeUtils';
+import { ThemeContext, type ThemeContextValue } from './themeContextInternal';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => detectPreferredTheme());
@@ -44,7 +8,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     applyTheme(theme);
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORAGE_KEY, theme);
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     }
   }, [theme]);
 
@@ -55,7 +19,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (event: MediaQueryListEvent) => {
-      const storedTheme = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
+  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
       if (storedTheme === 'light' || storedTheme === 'dark') {
         return;
       }
@@ -79,10 +43,3 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-}

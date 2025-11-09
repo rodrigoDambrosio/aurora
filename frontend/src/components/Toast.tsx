@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 interface ToastProps {
   message: string;
@@ -73,46 +73,6 @@ const Toast: React.FC<ToastProps> = ({ message, type, duration = 5000, onClose }
       </div>
     </>
   );
-};
-
-// Hook para manejar toasts
-export const useToast = () => {
-  const [toasts, setToasts] = useState<Array<{
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'info' | 'warning';
-  }>>([]);
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
-    const id = Date.now().toString();
-    setToasts(prev => [...prev, { id, message, type }]);
-  };
-
-  const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  };
-
-  const ToastContainer: React.FC = () => (
-    <>
-      {toasts.map(toast => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-        />
-      ))}
-    </>
-  );
-
-  return {
-    showToast,
-    showSuccess: (message: string) => showToast(message, 'success'),
-    showError: (message: string) => showToast(message, 'error'),
-    showWarning: (message: string) => showToast(message, 'warning'),
-    showInfo: (message: string) => showToast(message, 'info'),
-    ToastContainer,
-  };
 };
 
 export default Toast;

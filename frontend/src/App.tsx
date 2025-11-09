@@ -4,7 +4,7 @@ import ApiTest from './components/ApiTest';
 import AuthScreen from './components/Auth/AuthScreen';
 import MainDashboard from './components/MainDashboard';
 import { EventsProvider } from './context/EventsContext';
-import { useTheme } from './context/ThemeContext';
+import { useTheme } from './context/useTheme';
 import { apiService } from './services/apiService';
 
 /**
