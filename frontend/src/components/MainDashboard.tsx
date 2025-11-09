@@ -1,6 +1,8 @@
+import { Heart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useEvents } from '../context/EventsContext';
-import { apiService, type EventCategoryDto, type EventDto, type UpdateEventMoodDto } from '../services/apiService';
+import type { SelfCareFeedbackDto } from '../services/apiService';
+import { apiService, SelfCareFeedbackAction, type EventCategoryDto, type EventDto, type SelfCareRecommendationDto, type UpdateEventMoodDto } from '../services/apiService';
 import RecommendationAssistant from './Assistant/RecommendationAssistant';
 import AuroraMonthlyCalendar from './AuroraMonthlyCalendar';
 import AuroraWeeklyCalendar from './AuroraWeeklyCalendar';
@@ -10,10 +12,18 @@ import { FloatingNLPInput } from './FloatingNLPInput';
 import './MainDashboard.css';
 import MonthlyMoodTracker from './MonthlyMoodTracker';
 import Navigation from './Navigation';
+import { ProductivityAnalysisPanel } from './ProductivityAnalysisPanel';
 import { ScheduleSuggestionsPanel } from './ScheduleSuggestionsPanel';
+import SelfCareModal from './SelfCareModal';
+import SelfCareTimer from './SelfCareTimer';
 import SettingsScreen from './Settings/SettingsScreen';
 import WellnessDashboard from './WellnessDashboard';
-import { ProductivityAnalysisPanel } from './ProductivityAnalysisPanel';
+
+type SelfCareEventPrefill = {
+  title?: string;
+  description?: string;
+  durationMinutes?: number;
+};
 
 const MainDashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('calendar-week');
@@ -30,6 +40,11 @@ const MainDashboard: React.FC = () => {
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<number>(1); // Default to Monday (1)
+
+  // Self-care states
+  const [isSelfCareModalOpen, setIsSelfCareModalOpen] = useState(false);
+  const [selfCareTimer, setSelfCareTimer] = useState<SelfCareRecommendationDto | null>(null);
+  const [selfCarePrefill, setSelfCarePrefill] = useState<SelfCareEventPrefill | null>(null);
 
   // Load user preferences on component mount
   useEffect(() => {
@@ -75,6 +90,7 @@ const MainDashboard: React.FC = () => {
     setSelectedDate(date);
     setEventFormMode('create');
     setEventBeingEdited(null);
+    setSelfCarePrefill(null);
     setIsEventFormOpen(true);
   };
 
@@ -93,11 +109,13 @@ const MainDashboard: React.FC = () => {
     setIsEventFormOpen(true);
     setIsDetailModalOpen(false);
     setSelectedDate(undefined);
+    setSelfCarePrefill(null);
   };
 
   const handleEventUpdated = () => {
     setIsEventFormOpen(false);
     setEventBeingEdited(null);
+    setSelfCarePrefill(null);
     refreshEvents();
   };
 
@@ -105,6 +123,7 @@ const MainDashboard: React.FC = () => {
     setIsEventFormOpen(false);
     setEventBeingEdited(null);
     setSelectedDate(undefined);
+    setSelfCarePrefill(null);
   };
 
   const handleDeleteEvent = async (event: EventDto) => {
@@ -139,6 +158,70 @@ const MainDashboard: React.FC = () => {
       throw new Error(message);
     }
   };
+
+  // Self-care handlers
+  const handleScheduleActivity = (recommendation: SelfCareRecommendationDto) => {
+    const suggestedStart = recommendation.suggestedDateTime
+      ? new Date(recommendation.suggestedDateTime)
+      : new Date();
+    const startDate = Number.isNaN(suggestedStart.getTime()) ? new Date() : suggestedStart;
+
+    const descriptionPieces = [recommendation.description?.trim()];
+    if (recommendation.personalizedReason) {
+      descriptionPieces.push(`Motivo sugerido: ${recommendation.personalizedReason.trim()}`);
+    }
+
+    setSelfCarePrefill({
+      title: recommendation.title,
+      description: descriptionPieces.filter(Boolean).join('\n\n'),
+      durationMinutes: recommendation.durationMinutes
+    });
+
+    setSelectedDate(startDate);
+    setEventFormMode('create');
+    setEventBeingEdited(null);
+    setIsEventFormOpen(true);
+  };
+
+  const handleStartTimer = (recommendation: SelfCareRecommendationDto) => {
+    setSelfCareTimer(recommendation);
+  };
+
+  const handleTimerComplete = async (moodAfter: number) => {
+    if (selfCareTimer) {
+      const feedback: SelfCareFeedbackDto = {
+        recommendationId: selfCareTimer.id,
+        action: SelfCareFeedbackAction.CompletedNow,
+        moodAfter: moodAfter > 0 ? moodAfter : undefined,
+        timestamp: new Date().toISOString()
+      };
+
+      try {
+        await apiService.registerSelfCareFeedback(feedback);
+      } catch (error) {
+        console.error('Error registering feedback:', error);
+      }
+    }
+
+    setSelfCareTimer(null);
+  };
+
+  const handleTimerCancel = () => {
+    setSelfCareTimer(null);
+  };
+
+  // Keyboard shortcut for self-care (Alt+C)
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.altKey && event.key.toLowerCase() === 'c') {
+        event.preventDefault();
+        setIsSelfCareModalOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   const showCalendarContainer = activeView === 'calendar-week' || activeView === 'calendar-month';
   const calendarView = activeView === 'calendar-month' ? 'calendar-month' : 'calendar-week';
@@ -245,6 +328,7 @@ const MainDashboard: React.FC = () => {
         initialDate={selectedDate}
         mode={eventFormMode}
         eventToEdit={eventBeingEdited}
+        prefillData={selfCarePrefill ?? undefined}
       />
 
       {/* Event Detail Modal */}
@@ -258,6 +342,39 @@ const MainDashboard: React.FC = () => {
         isDeleting={isDeletingEvent}
         errorMessage={detailError}
       />
+
+      {/* Self-Care Modal */}
+      <SelfCareModal
+        isOpen={isSelfCareModalOpen}
+        onClose={() => setIsSelfCareModalOpen(false)}
+        onScheduleActivity={handleScheduleActivity}
+        onStartTimer={handleStartTimer}
+      />
+
+      {/* Self-Care Timer */}
+      {selfCareTimer && (
+        <SelfCareTimer
+          recommendation={selfCareTimer}
+          onComplete={handleTimerComplete}
+          onCancel={handleTimerCancel}
+        />
+      )}
+
+      {/* Self-Care FAB */}
+      <button
+        onClick={() => setIsSelfCareModalOpen(true)}
+        className="fixed bottom-28 right-4 sm:bottom-[4.5rem] sm:right-4 w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-40 group flex items-center justify-center border-0"
+        style={{
+          background: 'linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%)'
+        }}
+        title="Autocuidado (Alt+C)"
+        aria-label="Abrir sugerencias de autocuidado"
+      >
+        <Heart className="h-5 w-5 text-white" fill="currentColor" />
+        <span className="absolute -top-1 -right-1 bg-white text-purple-700 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+          5
+        </span>
+      </button>
     </div>
   );
 };

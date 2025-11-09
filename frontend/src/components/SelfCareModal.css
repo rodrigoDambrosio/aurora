@@ -1,0 +1,246 @@
+/* Self-Care Modal Animations */
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Header styling to mirror event modal while keeping title centered */
+.self-care-modal-header {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.75rem;
+}
+
+.self-care-modal-header-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 32rem;
+}
+
+.self-care-modal-title {
+    margin: 0;
+    font-weight: 700;
+    font-size: clamp(1.75rem, 2vw + 1rem, 2.2rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--color-text-primary);
+}
+
+.self-care-modal-subtitle {
+    margin: 0;
+    font-size: 0.96rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+}
+
+.self-care-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.self-care-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0.55rem 1.4rem;
+    border: 1px solid color-mix(in srgb, var(--gradient-primary-end) 35%, transparent);
+    background: color-mix(in srgb, var(--gradient-primary-start) 12%, transparent);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--gradient-primary-end);
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+[data-theme='dark'] .self-care-refresh-btn {
+    background: color-mix(in srgb, var(--gradient-primary-start) 22%, transparent);
+    color: var(--color-text-primary);
+    border-color: color-mix(in srgb, var(--gradient-primary-end) 45%, transparent);
+}
+
+.self-care-refresh-btn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--gradient-primary-start) 28%, transparent);
+    box-shadow: 0 12px 24px rgba(99, 102, 241, 0.18);
+    transform: translateY(-1px);
+}
+
+.self-care-refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.self-care-modal-close-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: color-mix(in srgb, var(--color-border) 18%, transparent);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.self-care-modal-close-btn:hover {
+    color: var(--color-text-primary);
+    background: color-mix(in srgb, var(--color-border) 35%, transparent);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+    transform: translateY(-1px);
+}
+
+@media (min-width: 640px) {
+    .self-care-modal-header {
+        align-items: center;
+    }
+
+    .self-care-modal-actions {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 639px) {
+    .self-care-modal-close-btn {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* Scrollbar personalizado para el contenedor de recomendaciones */
+.self-care-scrollable::-webkit-scrollbar {
+    width: 8px;
+}
+
+.self-care-scrollable::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.self-care-scrollable::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 4px;
+}
+
+.self-care-scrollable::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.7);
+}
+
+/* Firefox scrollbar */
+.self-care-scrollable {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.self-care-success-message {
+    animation: slideDown 0.3s ease-out;
+}
+
+.self-care-recommendation-card {
+    animation: fadeIn 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+.self-care-recommendation-card:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.self-care-recommendation-card:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.self-care-recommendation-card:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.self-care-recommendation-card:nth-child(4) {
+    animation-delay: 0.2s;
+}
+
+.self-care-recommendation-card:nth-child(5) {
+    animation-delay: 0.25s;
+}
+
+.self-care-recommendation-card:nth-child(6) {
+    animation-delay: 0.3s;
+}
+
+/* Visual refinements */
+.self-care-card {
+    background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(6px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme='dark'] .self-care-card {
+    background: color-mix(in srgb, var(--color-surface-alt) 92%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+    box-shadow: 0 20px 50px rgba(3, 7, 18, 0.45);
+}
+
+.self-care-card:hover {
+    box-shadow: 0 18px 40px rgba(99, 102, 241, 0.18);
+}
+
+.self-care-card-reason {
+    background: color-mix(in srgb, var(--gradient-primary-start) 6%, var(--color-surface-alt) 94%);
+    border: 1px solid color-mix(in srgb, var(--gradient-primary-end) 15%, var(--color-border) 85%);
+}
+
+[data-theme='dark'] .self-care-card-reason {
+    background: color-mix(in srgb, var(--gradient-primary-start) 12%, var(--color-surface-alt) 88%);
+    border-color: color-mix(in srgb, var(--gradient-primary-end) 30%, var(--color-border) 70%);
+}
+
+.self-care-card-meta {
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+}
+
+[data-theme='dark'] .self-care-card-meta {
+    border-top-color: color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+
+.self-care-badge {
+    border-width: 1px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    border-radius: 9999px;
+    padding: 0.25rem 0.65rem;
+}
+
+.self-care-ai-badge {
+    border-width: 0;
+    letter-spacing: 0.18em;
+    border-radius: 9999px;
+    padding: 0.25rem 0.65rem;
+}

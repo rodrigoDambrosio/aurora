@@ -63,4 +63,12 @@ public interface IAIValidationService
     Task<IEnumerable<ScheduleSuggestionDto>?> GenerateScheduleSuggestionsAsync(
         Guid userId,
         IEnumerable<EventDto> events);
+
+    /// <summary>
+    /// Genera una respuesta de texto usando IA para propósitos generales
+    /// </summary>
+    /// <param name="prompt">Prompt o pregunta para la IA</param>
+    /// <param name="context">Contexto adicional opcional</param>
+    /// <returns>Respuesta de texto generada por la IA</returns>
+    Task<string> GenerateTextAsync(string prompt, string? context = null);
 }
