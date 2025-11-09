@@ -1,6 +1,6 @@
 import { Bell, BellOff, Clock, Globe, MessageSquare, Moon, Save, Settings, Sun, Tag, User } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../context/useTheme';
 import { apiService, type UpdateUserPreferencesDto, type UpdateUserProfileDto, type UserPreferencesDto, type UserProfileDto } from '../../services/apiService';
 import { TimeInput } from '../TimeInput';
 import { Button } from '../ui/button';

@@ -1,43 +1,46 @@
 import { useCallback, useState } from 'react';
 
-interface ApiState<T> {
-  data: T | null;
+interface ApiState<TData> {
+  data: TData | null;
   loading: boolean;
   error: string | null;
 }
 
-interface UseApiReturn<T> {
-  data: T | null;
+interface UseApiReturn<TData, TArgs extends unknown[]> {
+  data: TData | null;
   loading: boolean;
   error: string | null;
-  execute: (...args: any[]) => Promise<void>;
+  execute: (...args: TArgs) => Promise<void>;
   reset: () => void;
 }
 
 /**
  * Custom hook for API calls with loading, error, and success states
  */
-export function useApi<T>(
-  apiFunction: (...args: any[]) => Promise<T>
-): UseApiReturn<T> {
-  const [state, setState] = useState<ApiState<T>>({
+export function useApi<TData, TArgs extends unknown[]>(
+  apiFunction: (...args: TArgs) => Promise<TData>
+): UseApiReturn<TData, TArgs> {
+  const [state, setState] = useState<ApiState<TData>>({
     data: null,
     loading: false,
     error: null,
   });
 
-  const execute = useCallback(async (...args: any[]) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+  const execute = useCallback(
+    async (...args: TArgs) => {
+      setState(prev => ({ ...prev, loading: true, error: null }));
 
-    try {
-      const result = await apiFunction(...args);
-      setState({ data: result, loading: false, error: null });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      setState({ data: null, loading: false, error: errorMessage });
-      console.error('API Error:', err);
-    }
-  }, [apiFunction]);
+      try {
+        const result = await apiFunction(...args);
+        setState({ data: result, loading: false, error: null });
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        setState({ data: null, loading: false, error: errorMessage });
+        console.error('API Error:', err);
+      }
+    },
+    [apiFunction],
+  );
 
   const reset = useCallback(() => {
     setState({ data: null, loading: false, error: null });

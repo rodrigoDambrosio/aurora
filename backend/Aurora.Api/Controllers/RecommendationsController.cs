@@ -21,13 +21,16 @@ namespace Aurora.Api.Controllers;
 public class RecommendationsController : ControllerBase
 {
     private readonly IRecommendationService _recommendationService;
+    private readonly IRecommendationAssistantService _assistantService;
     private readonly ILogger<RecommendationsController> _logger;
 
     public RecommendationsController(
         IRecommendationService recommendationService,
+        IRecommendationAssistantService assistantService,
         ILogger<RecommendationsController> logger)
     {
         _recommendationService = recommendationService ?? throw new ArgumentNullException(nameof(recommendationService));
+        _assistantService = assistantService ?? throw new ArgumentNullException(nameof(assistantService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -76,6 +79,130 @@ public class RecommendationsController : ControllerBase
             {
                 Title = "Error interno",
                 Detail = "No pudimos generar recomendaciones en este momento.",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// Genera recomendaciones personalizadas usando IA a partir de la conversación actual.
+    /// </summary>
+    [HttpPost("assistant")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<RecommendationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<IReadOnlyCollection<RecommendationDto>>> GenerateAssistantRecommendations(
+        [FromBody] RecommendationAssistantRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Title = "Usuario no autenticado",
+                Detail = "No se pudo determinar el usuario asociado a la solicitud.",
+                Status = StatusCodes.Status401Unauthorized
+            });
+        }
+
+        try
+        {
+            var generated = await _assistantService.GenerateConversationalRecommendationsAsync(
+                userId.Value,
+                request,
+                cancellationToken);
+
+            return Ok(generated);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Solicitud inválida para recomendaciones conversacionales");
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Solicitud inválida",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "No se pudieron generar recomendaciones con IA");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
+            {
+                Title = "IA no disponible",
+                Detail = ex.Message,
+                Status = StatusCodes.Status503ServiceUnavailable
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado generando recomendaciones con IA");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Error interno",
+                Detail = "No pudimos generar recomendaciones en este momento.",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// Genera la próxima respuesta del asistente de forma conversacional usando IA.
+    /// </summary>
+    [HttpPost("assistant/chat")]
+    [ProducesResponseType(typeof(RecommendationAssistantChatResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<RecommendationAssistantChatResponseDto>> GenerateAssistantReply(
+        [FromBody] RecommendationAssistantChatRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Title = "Usuario no autenticado",
+                Detail = "No se pudo determinar el usuario asociado a la solicitud.",
+                Status = StatusCodes.Status401Unauthorized
+            });
+        }
+
+        try
+        {
+            var reply = await _assistantService.GenerateAssistantReplyAsync(userId.Value, request, cancellationToken);
+            return Ok(new RecommendationAssistantChatResponseDto { Message = reply });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Solicitud inválida para respuesta conversacional del asistente");
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Solicitud inválida",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "No se pudo generar una respuesta conversacional con IA");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
+            {
+                Title = "IA no disponible",
+                Detail = ex.Message,
+                Status = StatusCodes.Status503ServiceUnavailable
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado generando la respuesta del asistente");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Error interno",
+                Detail = "No pudimos generar la respuesta del asistente en este momento.",
                 Status = StatusCodes.Status500InternalServerError
             });
         }
