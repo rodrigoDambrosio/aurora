@@ -4,26 +4,33 @@ import ApiTest from './components/ApiTest';
 import AuthScreen from './components/Auth/AuthScreen';
 import MainDashboard from './components/MainDashboard';
 import { NotificationPermissionBanner } from './components/NotificationPermissionBanner';
+import { NotificationProvider, useNotifications as useInAppNotifications } from './context/NotificationContext';
 import { useTheme } from './context/ThemeContext';
 import { useNotifications } from './hooks/useNotifications';
 import { apiService } from './services/apiService';
 
+// Variable global para mantener la referencia a la función openEventById
+let globalOpenEventById: ((eventId: string) => Promise<void>) | null = null;
+
 /**
- * Main Application Component
- * 
- * Aurora Personal Planner - Mobile-First Weekly Calendar
+ * Componente interno que maneja las notificaciones dentro del contexto
  */
-function App() {
+function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { setTheme } = useTheme();
 
-  // Inicializar el sistema de notificaciones y obtener el estado de permisos
-  const { permission, requestPermission } = useNotifications();
+  // Usar el contexto de notificaciones in-app
+  const { showNotification } = useInAppNotifications();
+
+  // Inicializar el sistema de notificaciones con callback para mostrar notificaciones in-app
+  const { permission, requestPermission } = useNotifications(showNotification);
 
   // Toggle between dashboard view and API test (for development)
   const showApiTest = import.meta.env.DEV && new URLSearchParams(window.location.search).has('test');
-  const shouldShowAuthScreen = useMemo(() => !isAuthenticated && !showApiTest, [isAuthenticated, showApiTest]);  // Check for existing session on mount
+  const shouldShowAuthScreen = useMemo(() => !isAuthenticated && !showApiTest, [isAuthenticated, showApiTest]);
+
+  // Check for existing session on mount
   useEffect(() => {
     const checkExistingSession = () => {
       const token = window.localStorage.getItem('auroraAccessToken');
@@ -103,11 +110,43 @@ function App() {
           {permission === 'default' && !localStorage.getItem('notificationBannerDismissed') && (
             <NotificationPermissionBanner onPermissionGranted={requestPermission} />
           )}
-          <MainDashboard />
+          <MainDashboard onViewEvent={(openEventFn) => {
+            globalOpenEventById = openEventFn;
+          }} />
         </div>
       )}
     </div>
-  )
+  );
+}
+
+/**
+ * Main Application Component
+ * 
+ * Aurora Personal Planner - Mobile-First Weekly Calendar
+ */
+function App() {
+  const handleViewEvent = async (eventId: string) => {
+    console.log('App.handleViewEvent called');
+    console.log('eventId:', eventId);
+    console.log('typeof eventId:', typeof eventId);
+    console.log('globalOpenEventById function:', globalOpenEventById);
+
+    if (globalOpenEventById) {
+      try {
+        await globalOpenEventById(eventId);
+      } catch (error) {
+        console.error('Error al abrir evento:', error);
+      }
+    } else {
+      console.log('globalOpenEventById no disponible aún, evento ID:', eventId);
+    }
+  };
+
+  return (
+    <NotificationProvider onViewEvent={handleViewEvent}>
+      <AppContent />
+    </NotificationProvider>
+  );
 }
 
 export default App

@@ -1,8 +1,11 @@
-import { AlertTriangle, Calendar, FileText, MapPin, Sparkles, Star, X } from 'lucide-react';
+import { AlertTriangle, Bell, Calendar, FileText, MapPin, Plus, Sparkles, Star, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AIValidationResult, CreateEventDto, EventCategoryDto, EventDto, EventPriority } from '../services/apiService';
 import { apiService } from '../services/apiService';
+import type { CreateReminderDto } from '../types/reminder.types';
+import { ReminderType } from '../types/reminder.types';
 import './EventFormModal.css';
+import { ReminderPickerModal } from './ReminderPickerModal';
 import { ReminderSection } from './ReminderSection';
 import { TimeInput } from './TimeInput';
 
@@ -45,6 +48,10 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<EventPriority>(2);
 
+  // Recordatorios para eventos nuevos
+  const [pendingReminders, setPendingReminders] = useState<CreateReminderDto[]>([]);
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+
   const isCreateMode = mode === 'create';
 
   const priorityOptions = useMemo(
@@ -85,6 +92,28 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
     const time = endOfDay ? '23:59:59' : '00:00:00';
     const local = new Date(`${datePart}T${time}`);
     return Number.isNaN(local.getTime()) ? '' : local.toISOString();
+  };
+
+  // Funciones para manejar recordatorios pendientes
+  const handleAddPendingReminder = async (data: CreateReminderDto) => {
+    setPendingReminders(prev => [...prev, data]);
+  };
+
+  const handleRemovePendingReminder = (index: number) => {
+    setPendingReminders(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const getReminderTypeLabel = (reminder: CreateReminderDto): string => {
+    switch (reminder.reminderType) {
+      case ReminderType.Minutes15:
+        return '15 minutos antes';
+      case ReminderType.Minutes30:
+        return '30 minutos antes';
+      case ReminderType.OneDayBefore:
+        return `1 día antes a las ${reminder.customTimeHours?.toString().padStart(2, '0')}:${reminder.customTimeMinutes?.toString().padStart(2, '0')}`;
+      default:
+        return 'Personalizado';
+    }
   };
 
   // Cargar preferencias de usuario
@@ -195,6 +224,8 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setValidationResult(null);
       setValidationError('');
       setIsValidating(false);
+      setPendingReminders([]);
+      setIsReminderModalOpen(false);
     }
   }, [isOpen]);
 
@@ -268,8 +299,20 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       console.log('Creating event:', eventDto);
 
       if (isCreateMode) {
-        await apiService.createEvent(eventDto);
+        const newEvent = await apiService.createEvent(eventDto);
         console.log('Event created successfully');
+
+        // Crear recordatorios pendientes si hay alguno
+        if (pendingReminders.length > 0) {
+          for (const reminderData of pendingReminders) {
+            try {
+              await apiService.createReminder({ ...reminderData, eventId: newEvent.id });
+            } catch (reminderError) {
+              console.error('Error creating reminder:', reminderError);
+            }
+          }
+        }
+
         onEventCreated?.();
       } else if (eventToEdit) {
         await apiService.updateEvent(eventToEdit.id, eventDto);
@@ -574,12 +617,70 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
           </div>
 
-          {/* Reminders Section - solo visible en modo edición cuando el evento existe */}
-          {mode === 'edit' && eventToEdit && (
-            <ReminderSection
-              eventId={eventToEdit.id}
-              eventStartDate={eventToEdit.startDate}
-            />
+          {/* Reminders Section */}
+          {isCreateMode ? (
+            <div className="event-reminders-section">
+              <div className="event-reminders-header">
+                <label className="event-reminders-label">
+                  <Bell className="w-5 h-5 text-gray-400" />
+                  Recordatorios
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsReminderModalOpen(true)}
+                  className="event-reminders-add-button"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar recordatorio
+                </button>
+              </div>
+
+              <div className="event-reminders-list">
+                {pendingReminders.length > 0 ? (
+                  pendingReminders.map((reminder, index) => (
+                    <div key={index} className="event-reminder-card">
+                      <div className="event-reminder-content">
+                        <svg
+                          className="event-reminder-icon"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span className="event-reminder-text">
+                          {getReminderTypeLabel(reminder)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePendingReminder(index)}
+                        className="event-reminder-delete"
+                        aria-label="Eliminar recordatorio"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="event-reminders-empty">
+                    No hay recordatorios configurados
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            eventToEdit && (
+              <ReminderSection
+                eventId={eventToEdit.id}
+                eventStartDate={eventToEdit.startDate}
+              />
+            )
           )}
 
           {validationError && (
@@ -627,8 +728,18 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                   : 'Actualizar Evento'}
             </button>
           </div>
-        </form>
-      </div>
+        </form >
+
+        {/* Modal de selección de recordatorio - solo para modo creación */}
+        {isCreateMode && (
+          <ReminderPickerModal
+            eventId="temp-event-id" // ID temporal para modo creación
+            isOpen={isReminderModalOpen}
+            onClose={() => setIsReminderModalOpen(false)}
+            onSave={handleAddPendingReminder}
+          />
+        )}
+      </div >
     </>
   );
 };

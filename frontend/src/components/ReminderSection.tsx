@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useReminders } from '../hooks/useReminders';
 import type { CreateReminderDto, ReminderDto } from '../types/reminder.types';
 import { ReminderType } from '../types/reminder.types';
+import './EventFormModal.css'; // Importar estilos de Aurora
 import { ReminderPickerModal } from './ReminderPickerModal';
 
 interface ReminderSectionProps {
@@ -47,67 +48,82 @@ export function ReminderSection({ eventId, eventStartDate }: ReminderSectionProp
 
   if (!eventId) {
     return (
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-          <Bell className="w-4 h-4" />
-          Recordatorios
-        </label>
-        <p className="text-sm text-gray-500">
+      <div className="event-reminders-section">
+        <div className="event-reminders-header">
+          <label className="event-reminders-label">
+            <Bell className="w-5 h-5 text-gray-400" />
+            Recordatorios
+          </label>
+        </div>
+        <div className="event-reminders-empty">
           Guarda el evento primero para agregar recordatorios
-        </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-        <Bell className="w-4 h-4" />
-        Recordatorios
-      </label>
+    <div className="event-reminders-section">
+      <div className="event-reminders-header">
+        <label className="event-reminders-label">
+          <Bell className="w-5 h-5 text-gray-400" />
+          Recordatorios
+        </label>
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          disabled={isLoading}
+          className="event-reminders-add-button"
+        >
+          <Plus className="w-4 h-4" />
+          Agregar recordatorio
+        </button>
+      </div>
 
       {/* Lista de recordatorios */}
-      {reminders.length > 0 && (
-        <div className="space-y-2">
-          {reminders.map((reminder) => (
-            <div
-              key={reminder.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-            >
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-primary-600" />
-                <span className="text-sm text-gray-900">
+      <div className="event-reminders-list">
+        {reminders.length > 0 ? (
+          reminders.map((reminder) => (
+            <div key={reminder.id} className="event-reminder-card">
+              <div className="event-reminder-content">
+                <svg
+                  className="event-reminder-icon"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span className="event-reminder-text">
                   {getReminderTypeLabel(reminder)}
                 </span>
                 {reminder.isSent && (
-                  <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
+                  <span className="event-reminder-status">
                     Enviado
                   </span>
                 )}
               </div>
-
               <button
+                type="button"
                 onClick={() => handleDeleteReminder(reminder.id)}
-                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                className="event-reminder-delete"
                 aria-label="Eliminar recordatorio"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Botón para agregar recordatorio */}
-      <button
-        type="button"
-        onClick={() => setIsModalOpen(true)}
-        disabled={isLoading}
-        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors disabled:opacity-50"
-      >
-        <Plus className="w-4 h-4" />
-        Agregar recordatorio
-      </button>
+          ))
+        ) : (
+          <div className="event-reminders-empty">
+            No hay recordatorios configurados
+          </div>
+        )}
+      </div>
 
       {/* Modal de selección de recordatorio */}
       {eventId && (

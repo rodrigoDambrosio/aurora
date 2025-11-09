@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiService } from '../services/apiService';
 import { notificationService } from '../services/notificationService';
+import type { ReminderDto } from '../types/reminder.types';
 
 interface UseNotificationsReturn {
   permission: NotificationPermission;
@@ -13,36 +14,25 @@ interface UseNotificationsReturn {
 const POLLING_INTERVAL = 60000; // 60 segundos
 
 /**
- * Hook para gestionar notificaciones del navegador con polling de recordatorios pendientes
+ * Hook para gestionar notificaciones in-app con polling de recordatorios pendientes
  */
-export function useNotifications(): UseNotificationsReturn {
-  const [permission, setPermission] = useState<NotificationPermission>(
-    notificationService.getPermissionStatus()
-  );
+export function useNotifications(showInAppNotification?: (reminder: ReminderDto) => void): UseNotificationsReturn {
+  const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isPolling, setIsPolling] = useState(false);
   const pollingIntervalRef = useRef<number | null>(null);
   const processedRemindersRef = useRef<Set<string>>(new Set());
 
-  /**
-   * Solicita permisos de notificaciones al usuario
-   */
-  const requestPermission = useCallback(async () => {
-    const newPermission = await notificationService.requestPermission();
-    setPermission(newPermission);
-
-    if (newPermission === 'granted') {
-      startPolling();
+  // Configurar el callback en el servicio de notificaciones
+  useEffect(() => {
+    if (showInAppNotification) {
+      notificationService.setInAppNotificationCallback(showInAppNotification);
     }
-  }, []);
+  }, [showInAppNotification]);
 
   /**
    * Verifica y procesa recordatorios pendientes
    */
   const checkPendingReminders = useCallback(async () => {
-    if (permission !== 'granted') {
-      return;
-    }
-
     try {
       const pendingReminders = await apiService.getPendingReminders();
 
@@ -52,8 +42,8 @@ export function useNotifications(): UseNotificationsReturn {
           continue;
         }
 
-        // Mostrar la notificación
-        notificationService.showNotification(reminder);
+        // Mostrar la notificación in-app usando el servicio
+        notificationService.showInAppNotification(reminder);
 
         // Marcar como enviado en el backend
         try {
@@ -66,13 +56,13 @@ export function useNotifications(): UseNotificationsReturn {
     } catch (error) {
       console.error('Error al verificar recordatorios pendientes:', error);
     }
-  }, [permission]);
+  }, [showInAppNotification]);
 
   /**
    * Inicia el polling de recordatorios pendientes
    */
   const startPolling = useCallback(() => {
-    if (permission !== 'granted' || isPolling) {
+    if (isPolling) {
       return;
     }
 
@@ -85,9 +75,7 @@ export function useNotifications(): UseNotificationsReturn {
     pollingIntervalRef.current = window.setInterval(() => {
       checkPendingReminders();
     }, POLLING_INTERVAL);
-
-    console.log('Polling de recordatorios iniciado');
-  }, [permission, isPolling, checkPendingReminders]);
+  }, [isPolling, checkPendingReminders]);
 
   /**
    * Detiene el polling de recordatorios pendientes
@@ -97,20 +85,32 @@ export function useNotifications(): UseNotificationsReturn {
       window.clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
       setIsPolling(false);
-      console.log('Polling de recordatorios detenido');
     }
   }, []);
 
-  // Iniciar polling automáticamente si hay permisos concedidos
+  /**
+   * Solicita permisos de notificaciones (mantiene compatibilidad, pero ya no es necesario para in-app)
+   */
+  const requestPermission = useCallback(async () => {
+    // Para notificaciones in-app no necesitamos permisos del navegador
+    // Pero mantenemos la función para compatibilidad
+    setPermission('granted');
+
+    if (!isPolling) {
+      startPolling();
+    }
+  }, [isPolling, startPolling]);
+
+  // Iniciar polling automáticamente (sin depender de permisos del navegador)
   useEffect(() => {
-    if (permission === 'granted' && !isPolling) {
+    if (!isPolling) {
       startPolling();
     }
 
     return () => {
       stopPolling();
     };
-  }, [permission]);
+  }, [startPolling, stopPolling, isPolling]);
 
   // Limpiar al desmontar
   useEffect(() => {

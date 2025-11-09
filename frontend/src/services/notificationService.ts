@@ -4,6 +4,25 @@ import type { ReminderDto } from '../types/reminder.types';
  * Servicio para gestionar las notificaciones del navegador
  */
 class NotificationService {
+  private inAppNotificationCallback?: (reminder: ReminderDto) => void;
+
+  /**
+   * Configura el callback para notificaciones internas
+   */
+  setInAppNotificationCallback(callback: (reminder: ReminderDto) => void): void {
+    this.inAppNotificationCallback = callback;
+  }
+
+  /**
+   * Muestra una notificación interna en la web
+   */
+  showInAppNotification(reminder: ReminderDto): void {
+    if (this.inAppNotificationCallback) {
+      this.inAppNotificationCallback(reminder);
+    } else {
+      console.warn('No se ha configurado el callback para notificaciones internas');
+    }
+  }
   /**
    * Verifica si las notificaciones están soportadas por el navegador
    */
