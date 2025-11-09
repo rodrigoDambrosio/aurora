@@ -2,7 +2,7 @@
 .main-dashboard {
     display: flex;
     min-height: 100vh;
-    width: 100vw;
+    width: 100%;
     background: var(--color-surface);
     font-family: 'Arial', sans-serif;
     overflow: hidden;
@@ -145,7 +145,8 @@
     .main-dashboard {
         flex-direction: column;
         height: 100vh;
-        overflow: hidden;
+        overflow: visible;
+        width: 100%;
     }
 
     .dashboard-content {
@@ -153,6 +154,8 @@
         height: auto;
         min-height: 0;
         overflow: auto;
+        padding-bottom: 24px;
+        width: 100%;
     }
 
     .dashboard-fab {

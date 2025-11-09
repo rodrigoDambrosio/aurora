@@ -1,5 +1,5 @@
-import { Calendar, Heart, Lightbulb, LogOut, MessageCircle, Moon, Settings, Smile, Sparkles, Sun, TrendingUp } from 'lucide-react';
-import React, { useState } from 'react';
+import { Calendar, Heart, Lightbulb, LogOut, Menu, MessageCircle, Moon, Settings, Smile, Sparkles, Sun, TrendingUp, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../context/useTheme';
 import { apiService } from '../services/apiService';
 import './Navigation.css';
@@ -69,11 +69,50 @@ const Navigation: React.FC<NavigationProps> = ({
   const { theme, setTheme } = useTheme();
   const [isTogglingTheme, setIsTogglingTheme] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const toggleMenu = () => setIsMenuOpen((prev) => !prev);
+  const closeMenu = () => setIsMenuOpen(false);
 
   const handleViewClick = (view: string) => {
     if (onViewChange) {
       onViewChange(view);
     }
+    closeMenu();
   };
 
   const handleThemeToggle = async () => {
@@ -112,6 +151,8 @@ const Navigation: React.FC<NavigationProps> = ({
       // Call backend to revoke session
       await apiService.logoutUser();
 
+  closeMenu();
+
       // Clear local storage
       localStorage.removeItem('auroraAccessToken');
       localStorage.removeItem('auroraAccessTokenExpiry');
@@ -130,65 +171,95 @@ const Navigation: React.FC<NavigationProps> = ({
   };
 
   return (
-    <div className="navigation">
-      <div className="navigation-header">
-        <div className="navigation-logo">
-          <div className="w-10 h-10 bg-primary-gradient rounded-lg flex items-center justify-center relative">
-            <Calendar className="w-6 h-6 text-primary-foreground" />
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-yellow-400 to-orange-500 sparkle-badge rounded-full flex items-center justify-center">
-              <Sparkles className="w-2.5 h-2.5 text-white" />
+    <>
+      {isMenuOpen && <div className="navigation-backdrop" onClick={closeMenu} aria-hidden="true"></div>}
+      <div className={`navigation ${isMenuOpen ? 'menu-open' : ''}`}>
+        <div className="navigation-header">
+          <div className="navigation-logo">
+            <div className="w-10 h-10 bg-primary-gradient rounded-lg flex items-center justify-center relative">
+              <Calendar className="w-6 h-6 text-primary-foreground" />
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-yellow-400 to-orange-500 sparkle-badge rounded-full flex items-center justify-center">
+                <Sparkles className="w-2.5 h-2.5 text-white" />
+              </div>
+            </div>
+            <div className="logo-text">
+              <h2>Aurora</h2>
+              <p>Planificador IA</p>
             </div>
           </div>
-          <div className="logo-text">
-            <h2>Aurora</h2>
-            <p>Planificador IA</p>
+
+          <button
+            type="button"
+            className="hamburger-button"
+            onClick={toggleMenu}
+            aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-expanded={isMenuOpen}
+          >
+            {isMenuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+          </button>
+        </div>
+
+        <div className={`navigation-panel ${isMenuOpen ? 'is-open' : ''}`}>
+          <div className="navigation-panel-header">
+            <div className="panel-title">
+              <span className="panel-title-main">Aurora</span>
+              <span className="panel-title-sub">Planificador IA</span>
+            </div>
+            <button
+              type="button"
+              className="panel-close-button"
+              onClick={closeMenu}
+              aria-label="Cerrar menú"
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
+
+          <nav className="navigation-menu">
+            {navigationItems.map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  className={`nav-button ${activeView === item.id ? 'active' : ''}`}
+                  onClick={() => handleViewClick(item.id)}
+                >
+                  <IconComponent size={16} />
+                  <div className="nav-text">
+                    <span className="nav-title">{item.label}</span>
+                    <span className="nav-subtitle">{item.description}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="navigation-footer">
+            <button
+              className="dark-mode-toggle"
+              onClick={handleThemeToggle}
+              disabled={isTogglingTheme}
+            >
+              {theme === 'dark' ? (
+                <Sun size={16} aria-hidden="true" />
+              ) : (
+                <Moon size={16} aria-hidden="true" />
+              )}
+              <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}</span>
+            </button>
+
+            <button
+              className="logout-button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              <LogOut size={16} aria-hidden="true" />
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         </div>
       </div>
-
-      <nav className="navigation-menu">
-        {navigationItems.map((item) => {
-          const IconComponent = item.icon;
-          return (
-            <button
-              key={item.id}
-              className={`nav-button ${activeView === item.id ? 'active' : ''}`}
-              onClick={() => handleViewClick(item.id)}
-            >
-              <IconComponent size={16} />
-              <div className="nav-text">
-                <span className="nav-title">{item.label}</span>
-                <span className="nav-subtitle">{item.description}</span>
-              </div>
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="navigation-footer">
-        <button
-          className="dark-mode-toggle"
-          onClick={handleThemeToggle}
-          disabled={isTogglingTheme}
-        >
-          {theme === 'dark' ? (
-            <Sun size={16} aria-hidden="true" />
-          ) : (
-            <Moon size={16} aria-hidden="true" />
-          )}
-          <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}</span>
-        </button>
-
-        <button
-          className="logout-button"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-        >
-          <LogOut size={16} aria-hidden="true" />
-          <span>Cerrar Sesión</span>
-        </button>
-      </div>
-    </div>
+    </>
   );
 };
 

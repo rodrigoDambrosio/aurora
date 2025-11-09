@@ -7,6 +7,9 @@
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    box-shadow: inset -1px 0 0 rgba(15, 23, 42, 0.04);
+    position: relative;
+    z-index: 30;
 }
 
 /* Header */
@@ -15,6 +18,10 @@
     height: 88.667px;
     border-bottom: 0.667px solid var(--color-border);
     box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
 }
 
 .navigation-logo {
@@ -211,6 +218,50 @@
     padding: 0;
 }
 
+.navigation-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    background: inherit;
+}
+
+.navigation-panel-header {
+    display: none;
+}
+
+.hamburger-button {
+    display: none;
+    background: transparent;
+    padding: 10px;
+    border-radius: 10px;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.hamburger-button:focus-visible {
+    outline: 2px solid var(--gradient-primary-end);
+    outline-offset: 2px;
+}
+
+.hamburger-button:hover {
+    background: var(--color-surface-alt);
+    transform: translateY(-1px);
+}
+
+.panel-close-button {
+    display: none;
+}
+
+.navigation-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: 50;
+}
+
 /* Menu */
 .navigation-menu {
     padding: 16px;
@@ -234,6 +285,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
+    box-shadow: 0 0 0 rgba(15, 23, 42, 0);
 }
 
 .nav-button svg {
@@ -248,6 +300,8 @@
 .nav-button.active {
     background: linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%);
     color: white;
+    border: 1px solid transparent;
+    box-shadow: 0 10px 20px rgba(124, 58, 237, 0.18);
 }
 
 .nav-button.active svg {
@@ -356,38 +410,239 @@
 /* Responsive */
 @media (max-width: 768px) {
     .navigation {
-        width: 64px;
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+        position: sticky;
+        top: 0;
+        z-index: 70;
+        backdrop-filter: blur(12px);
+        background: color-mix(in srgb, var(--color-surface) 88%, transparent 12%);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+        padding: 0;
     }
 
     .navigation-header {
-        padding: 24px 12px 0.667px 12px;
+        padding: 16px 20px;
+        height: auto;
+        border-bottom: none;
     }
 
     .logo-text {
         display: none;
     }
 
-    .nav-button {
-        padding: 12px;
+    .hamburger-button {
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
     }
 
+    .navigation-panel {
+        position: fixed;
+        inset: 0;
+        height: 100vh;
+        width: 100%;
+        background: var(--color-surface);
+        padding: 64px 24px 28px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        box-shadow: -6px 0 28px rgba(15, 23, 42, 0.24);
+        overflow-y: auto;
+        z-index: 60;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .navigation-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+    }
+
+    .panel-title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .panel-title-main {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+
+    .panel-title-sub {
+        font-size: 0.8125rem;
+        color: var(--color-text-muted);
+    }
+
+    .panel-close-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-alt);
+        color: var(--color-text-primary);
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.12);
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .panel-close-button:hover {
+        background: var(--color-surface);
+        border-color: var(--color-border-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 16px 28px rgba(15, 23, 42, 0.16);
+    }
+
+    .panel-close-button:focus-visible {
+        outline: 2px solid var(--gradient-primary-end);
+        outline-offset: 2px;
+    }
+
+    .navigation-panel.is-open {
+        transform: translateX(0);
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .navigation-menu {
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow: visible;
+        flex: 1;
+    }
+
+    .nav-button {
+        min-width: 0;
+        height: auto;
+        padding: 16px 16px 16px 54px;
+        justify-content: flex-start;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-alt);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        border-radius: 12px;
+    }
+
     .nav-button svg {
-        position: static;
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        color: var(--color-text-secondary);
     }
 
     .nav-text {
-        display: none;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        width: 100%;
     }
 
-    .navigation .dark-mode-toggle span,
-    .navigation .logout-button span {
-        display: none !important;
+    .nav-title {
+        font-size: 16px;
+        line-height: 22px;
+        font-weight: 600;
+    }
+
+    .nav-subtitle {
+        display: block;
+        font-size: 13px;
+        line-height: 18px;
+        opacity: 0.8;
+    }
+
+    .nav-button:hover:not(.active) {
+        background: var(--color-surface);
+        transform: translateY(-2px);
+        box-shadow: 0 16px 28px rgba(15, 23, 42, 0.16);
+    }
+
+    .navigation-footer {
+        padding: 0;
+        border-top: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 4px;
     }
 
     .navigation .dark-mode-toggle,
     .navigation .logout-button {
-        justify-content: center !important;
-        padding: 8px !important;
+        justify-content: flex-start !important;
+        padding: 0 18px !important;
+        height: 54px !important;
+        border-radius: 12px !important;
+        background: var(--color-surface-alt) !important;
+        border: 1px solid var(--color-border) !important;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12) !important;
+        gap: 12px !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+    }
+
+    .navigation .dark-mode-toggle span,
+    .navigation .logout-button span {
+        display: inline !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+    }
+
+    .navigation.menu-open .navigation-header {
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    }
+}
+
+@media (max-width: 480px) {
+    .navigation-panel {
+        padding: 60px 20px 24px;
+    }
+
+    .panel-close-button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .nav-button {
+        padding: 14px 14px 14px 50px;
+        gap: 4px;
+        border-radius: 10px;
+        min-height: 58px;
+    }
+
+    .nav-title {
+        font-size: 15px;
+        line-height: 20px;
+    }
+
+    .nav-subtitle {
+        font-size: 12px;
+        line-height: 16px;
+    }
+
+    .navigation .dark-mode-toggle,
+    .navigation .logout-button {
+        height: 50px !important;
+        font-size: 15px !important;
     }
 }
