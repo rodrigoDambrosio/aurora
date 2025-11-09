@@ -358,6 +358,56 @@ export interface ProductivityRecommendationDto {
   suggestedHours: number[];
 }
 
+// ===== SELF-CARE RECOMMENDATIONS DTOs =====
+
+export const SelfCareType = {
+  Physical: 1,
+  Mental: 2,
+  Social: 3,
+  Creative: 4,
+  Rest: 5
+} as const;
+
+export type SelfCareType = typeof SelfCareType[keyof typeof SelfCareType];
+
+export const SelfCareFeedbackAction = {
+  Scheduled: 0,
+  CompletedNow: 1,
+  Dismissed: 2,
+  Ignored: 3
+} as const;
+
+export type SelfCareFeedbackAction = typeof SelfCareFeedbackAction[keyof typeof SelfCareFeedbackAction];
+
+export interface SelfCareRequestDto {
+  context?: string;
+  currentMood?: number;
+  count: number;
+}
+
+export interface SelfCareRecommendationDto {
+  id: string;
+  type: SelfCareType;
+  typeDescription: string;
+  title: string;
+  description: string;
+  durationMinutes: number;
+  personalizedReason: string;
+  confidenceScore: number;
+  icon: string;
+  suggestedDateTime?: string | null;
+  historicalMoodImpact?: number | null;
+  completionRate?: number | null;
+}
+
+export interface SelfCareFeedbackDto {
+  recommendationId: string;
+  action: SelfCareFeedbackAction;
+  moodAfter?: number | null;
+  notes?: string | null;
+  timestamp: string;
+}
+
 // ===== WELLNESS ANALYTICS DTOs =====
 
 export interface MoodDaySnapshotDto {
@@ -976,5 +1026,35 @@ export const apiService = {
   async getProductivityAnalysis(periodDays = 30): Promise<ProductivityAnalysisDto> {
     const clamped = Math.min(Math.max(periodDays, 1), 365);
     return this.fetchApi<ProductivityAnalysisDto>(`/user/productivity-analysis?periodDays=${clamped}`);
+  },
+
+  // ===== SELF-CARE RECOMMENDATIONS ENDPOINTS =====
+
+  /**
+   * Get personalized self-care recommendations
+   */
+  async getSelfCareRecommendations(request: SelfCareRequestDto): Promise<SelfCareRecommendationDto[]> {
+    return this.fetchApi<SelfCareRecommendationDto[]>('/recommendations/self-care', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  },
+
+  /**
+   * Register feedback for a self-care recommendation
+   */
+  async registerSelfCareFeedback(feedback: SelfCareFeedbackDto): Promise<void> {
+    await this.fetchApi<void>('/recommendations/self-care/feedback', {
+      method: 'POST',
+      body: JSON.stringify(feedback)
+    });
+  },
+
+  /**
+   * Get generic self-care recommendations (offline fallback)
+   */
+  async getGenericSelfCare(count = 5): Promise<SelfCareRecommendationDto[]> {
+    const clamped = Math.min(Math.max(count, 1), 10);
+    return this.fetchApi<SelfCareRecommendationDto[]>(`/recommendations/self-care/generic?count=${clamped}`);
   }
 };

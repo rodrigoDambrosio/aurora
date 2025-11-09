@@ -1371,4 +1371,73 @@ public class GeminiAIValidationService : IAIValidationService
 
         return sb.ToString();
     }
+
+    public async Task<string> GenerateTextAsync(string prompt, string? context = null)
+    {
+        try
+        {
+            _logger.LogInformation("Generando texto con IA");
+
+            var fullPrompt = string.IsNullOrEmpty(context)
+                ? prompt
+                : $"{context}\n\n{prompt}";
+
+            // Construir request a Gemini
+            var geminiRequest = new GeminiRequest
+            {
+                Contents = new List<GeminiContent>
+                {
+                    new GeminiContent
+                    {
+                        Parts = new List<GeminiPart>
+                        {
+                            new GeminiPart { Text = fullPrompt }
+                        }
+                    }
+                }
+            };
+
+            var jsonRequest = JsonSerializer.Serialize(geminiRequest, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            var url = $"{_baseUrl}?key={_apiKey}";
+            var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+
+            // Timeout de 10 segundos para self-care suggestions
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await _httpClient.PostAsync(url, httpContent, cts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error en la API de Gemini: {StatusCode} - {Error}", response.StatusCode, errorContent);
+                return "";
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug("Respuesta de Gemini: {Response}", responseContent);
+
+            var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(responseContent, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            var text = geminiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text ?? "";
+            _logger.LogInformation("Texto generado exitosamente: {Length} caracteres", text.Length);
+            return text;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Timeout generando texto con IA (10s)");
+            return "";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando texto con IA");
+            return "";
+        }
+    }
 }
+
