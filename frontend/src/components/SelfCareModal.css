@@ -22,6 +22,33 @@
     }
 }
 
+/* Modal background and container fixes for light theme */
+.self-care-modal-backdrop {
+    background: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(4px);
+}
+
+.self-care-modal-container {
+    background: rgb(255 255 255) !important;
+    border-color: rgb(226 232 240) !important;
+}
+
+[data-theme='dark'] .self-care-modal-container {
+    background: rgb(30 41 59) !important;
+    border-color: rgba(71, 85, 105, 0.8) !important;
+}
+
+.self-care-modal-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    flex: 1;
+    gap: 0.75rem;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
 /* Header styling to mirror event modal while keeping title centered */
 .self-care-modal-header {
     position: relative;
@@ -30,6 +57,26 @@
     align-items: center;
     text-align: center;
     gap: 1.75rem;
+    background: rgb(255 255 255) !important;
+    border-bottom-color: rgb(226 232 240) !important;
+    border-radius: 18px;
+}
+
+[data-theme='dark'] .self-care-modal-header {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border-bottom-color: rgba(71, 85, 105, 0.7) !important;
+    border-radius: 18px;
+}
+
+.self-care-modal-content {
+    background: rgb(248 250 252);
+    border-radius: 16px;
+    min-height: 0;
+    flex: 1;
+}
+
+[data-theme='dark'] .self-care-modal-content {
+    background: rgba(15, 23, 42, 0.6);
 }
 
 .self-care-modal-header-content {
@@ -46,14 +93,22 @@
     font-size: clamp(1.75rem, 2vw + 1rem, 2.2rem);
     line-height: 1.2;
     letter-spacing: -0.01em;
-    color: var(--color-text-primary);
+    color: rgb(15 23 42);
+}
+
+[data-theme='dark'] .self-care-modal-title {
+    color: rgb(248 250 252);
 }
 
 .self-care-modal-subtitle {
     margin: 0;
     font-size: 0.96rem;
     line-height: 1.6;
-    color: var(--color-text-secondary);
+    color: rgb(71 85 105);
+}
+
+[data-theme='dark'] .self-care-modal-subtitle {
+    color: rgb(148 163 184);
 }
 
 .self-care-modal-actions {
@@ -70,24 +125,28 @@
     gap: 0.5rem;
     border-radius: 9999px;
     padding: 0.55rem 1.4rem;
-    border: 1px solid color-mix(in srgb, var(--gradient-primary-end) 35%, transparent);
-    background: color-mix(in srgb, var(--gradient-primary-start) 12%, transparent);
+    border: 1px solid rgb(199 210 254);
+    background: rgb(238 242 255);
     font-weight: 600;
     font-size: 0.9rem;
-    color: var(--gradient-primary-end);
+    color: rgb(79 70 229);
     transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 [data-theme='dark'] .self-care-refresh-btn {
-    background: color-mix(in srgb, var(--gradient-primary-start) 22%, transparent);
-    color: var(--color-text-primary);
-    border-color: color-mix(in srgb, var(--gradient-primary-end) 45%, transparent);
+    background: rgba(99, 102, 241, 0.15);
+    color: rgb(248 250 252);
+    border-color: rgba(129, 140, 248, 0.4);
 }
 
 .self-care-refresh-btn:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--gradient-primary-start) 28%, transparent);
+    background: rgb(224 231 255);
     box-shadow: 0 12px 24px rgba(99, 102, 241, 0.18);
     transform: translateY(-1px);
+}
+
+[data-theme='dark'] .self-care-refresh-btn:hover:not(:disabled) {
+    background: rgba(99, 102, 241, 0.25);
 }
 
 .self-care-refresh-btn:disabled {
@@ -99,20 +158,30 @@
     width: 40px;
     height: 40px;
     border: none;
-    background: color-mix(in srgb, var(--color-border) 18%, transparent);
+    background: rgb(248 250 252);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-muted);
+    color: rgb(100 116 139);
     transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+[data-theme='dark'] .self-care-modal-close-btn {
+    background: rgba(71, 85, 105, 0.2);
+    color: rgb(148 163 184);
+}
+
 .self-care-modal-close-btn:hover {
-    color: var(--color-text-primary);
-    background: color-mix(in srgb, var(--color-border) 35%, transparent);
+    color: rgb(15 23 42);
+    background: rgb(241 245 249);
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
     transform: translateY(-1px);
+}
+
+[data-theme='dark'] .self-care-modal-close-btn:hover {
+    color: rgb(248 250 252);
+    background: rgba(71, 85, 105, 0.35);
 }
 
 @media (min-width: 640px) {
@@ -137,6 +206,17 @@
 }
 
 /* Scrollbar personalizado para el contenedor de recomendaciones */
+.self-care-scrollable {
+    padding-inline: 0.35rem;
+    box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+    .self-care-scrollable {
+        padding-inline: 0.5rem;
+    }
+}
+
 .self-care-scrollable::-webkit-scrollbar {
     width: 8px;
 }
@@ -195,16 +275,16 @@
 
 /* Visual refinements */
 .self-care-card {
-    background: color-mix(in srgb, var(--color-surface) 96%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
-    box-shadow: var(--shadow-soft);
+    background: rgb(255 255 255);
+    border: 1px solid rgb(226 232 240);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     backdrop-filter: blur(6px);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 [data-theme='dark'] .self-care-card {
-    background: color-mix(in srgb, var(--color-surface-alt) 92%, transparent);
-    border-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(71, 85, 105, 0.6);
     box-shadow: 0 20px 50px rgba(3, 7, 18, 0.45);
 }
 
@@ -213,21 +293,21 @@
 }
 
 .self-care-card-reason {
-    background: color-mix(in srgb, var(--gradient-primary-start) 6%, var(--color-surface-alt) 94%);
-    border: 1px solid color-mix(in srgb, var(--gradient-primary-end) 15%, var(--color-border) 85%);
+    background: rgb(248 250 252);
+    border: 1px solid rgb(203 213 225);
 }
 
 [data-theme='dark'] .self-care-card-reason {
-    background: color-mix(in srgb, var(--gradient-primary-start) 12%, var(--color-surface-alt) 88%);
-    border-color: color-mix(in srgb, var(--gradient-primary-end) 30%, var(--color-border) 70%);
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(71, 85, 105, 0.8);
 }
 
 .self-care-card-meta {
-    border-top: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+    border-top: 1px solid rgb(226 232 240);
 }
 
 [data-theme='dark'] .self-care-card-meta {
-    border-top-color: color-mix(in srgb, var(--color-border) 60%, transparent);
+    border-top-color: rgba(71, 85, 105, 0.6);
 }
 
 .self-care-badge {
@@ -236,6 +316,79 @@
     letter-spacing: 0.12em;
     border-radius: 9999px;
     padding: 0.25rem 0.65rem;
+}
+
+/* Badge color improvements for light theme */
+.self-care-badge-mental {
+    background: rgb(224 242 254) !important;
+    color: rgb(3 105 161) !important;
+    border-color: rgb(125 211 252) !important;
+}
+
+[data-theme='dark'] .self-care-badge-mental {
+    background: rgba(14, 165, 233, 0.15) !important;
+    color: rgb(186 230 253) !important;
+    border-color: rgba(56, 189, 248, 0.6) !important;
+}
+
+.self-care-badge-creative {
+    background: rgb(253 244 255) !important;
+    color: rgb(162 28 175) !important;
+    border-color: rgb(244 114 182) !important;
+}
+
+[data-theme='dark'] .self-care-badge-creative {
+    background: rgba(217, 70, 239, 0.15) !important;
+    color: rgb(251 207 232) !important;
+    border-color: rgba(244, 114, 182, 0.6) !important;
+}
+
+.self-care-badge-rest {
+    background: rgb(255 251 235) !important;
+    color: rgb(180 83 9) !important;
+    border-color: rgb(252 211 77) !important;
+}
+
+[data-theme='dark'] .self-care-badge-rest {
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: rgb(254 243 199) !important;
+    border-color: rgba(252, 211, 77, 0.6) !important;
+}
+
+.self-care-badge-physical {
+    background: rgb(236 253 245) !important;
+    color: rgb(4 120 87) !important;
+    border-color: rgb(110 231 183) !important;
+}
+
+[data-theme='dark'] .self-care-badge-physical {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: rgb(209 250 229) !important;
+    border-color: rgba(110, 231, 183, 0.6) !important;
+}
+
+.self-care-badge-productive {
+    background: rgb(238 242 255) !important;
+    color: rgb(67 56 202) !important;
+    border-color: rgb(165 180 252) !important;
+}
+
+[data-theme='dark'] .self-care-badge-productive {
+    background: rgba(99, 102, 241, 0.15) !important;
+    color: rgb(221 214 254) !important;
+    border-color: rgba(165, 180, 252, 0.6) !important;
+}
+
+.self-care-badge-default {
+    background: rgb(248 250 252) !important;
+    color: rgb(51 65 85) !important;
+    border-color: rgb(203 213 225) !important;
+}
+
+[data-theme='dark'] .self-care-badge-default {
+    background: rgba(100, 116, 139, 0.15) !important;
+    color: rgb(203 213 225) !important;
+    border-color: rgba(100, 116, 139, 0.5) !important;
 }
 
 .self-care-ai-badge {
