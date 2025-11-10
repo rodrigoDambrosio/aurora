@@ -1,12 +1,5 @@
-import {
-  Calendar,
-  EyeOff,
-  Loader2,
-  Play,
-  RefreshCw,
-  X
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Loader2, Play, Wand2, X } from 'lucide-react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import type {
   SelfCareFeedbackDto,
   SelfCareRecommendationDto,
@@ -14,7 +7,6 @@ import type {
 } from '../services/apiService';
 import { apiService, SelfCareFeedbackAction } from '../services/apiService';
 import './SelfCareModal.css';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 
@@ -43,26 +35,36 @@ export default function SelfCareModal({
     const normalized = typeDescription?.toLowerCase() ?? '';
 
     if (normalized.includes('mental') || normalized.includes('mente')) {
-      return 'self-care-badge !bg-sky-500/15 !text-sky-700 !border-sky-300 dark:!bg-sky-500/15 dark:!text-sky-100 dark:!border-sky-400/60';
+      return 'self-care-type-chip self-care-type-chip--mental';
     }
 
     if (normalized.includes('creativ') || normalized.includes('arte')) {
-      return 'self-care-badge !bg-fuchsia-500/15 !text-fuchsia-700 !border-fuchsia-300 dark:!bg-fuchsia-500/15 dark:!text-fuchsia-100 dark:!border-fuchsia-400/60';
+      return 'self-care-type-chip self-care-type-chip--creative';
     }
 
     if (normalized.includes('descans') || normalized.includes('relaj')) {
-      return 'self-care-badge !bg-amber-500/15 !text-amber-700 !border-amber-300 dark:!bg-amber-500/15 dark:!text-amber-100 dark:!border-amber-400/60';
+      return 'self-care-type-chip self-care-type-chip--rest';
     }
 
     if (normalized.includes('fis') || normalized.includes('energ')) {
-      return 'self-care-badge !bg-emerald-500/15 !text-emerald-700 !border-emerald-300 dark:!bg-emerald-500/15 dark:!text-emerald-100 dark:!border-emerald-400/60';
+      return 'self-care-type-chip self-care-type-chip--physical';
     }
 
     if (normalized.includes('product') || normalized.includes('focus')) {
-      return 'self-care-badge !bg-indigo-500/15 !text-indigo-700 !border-indigo-300 dark:!bg-indigo-500/15 dark:!text-indigo-100 dark:!border-indigo-400/60';
+      return 'self-care-type-chip self-care-type-chip--productive';
     }
 
-    return 'self-care-badge !bg-slate-500/15 !text-slate-700 !border-slate-300 dark:!bg-slate-500/15 dark:!text-slate-100 dark:!border-slate-500/50';
+    return 'self-care-type-chip self-care-type-chip--default';
+  };
+
+  const normalizeConfidence = (value?: number | null) => {
+    return Math.min(100, Math.max(0, value ?? 0));
+  };
+
+  const formatDuration = (minutes?: number | null) => {
+    if (!minutes || minutes <= 0) return 'Flexible';
+    if (minutes === 1) return '1 min';
+    return `${minutes} min`;
   };
 
   // Cargar recomendaciones solo la primera vez que se abre el modal
@@ -164,187 +166,175 @@ export default function SelfCareModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center self-care-modal-backdrop"
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-800 w-full sm:max-w-[820px] rounded-[24px] sm:rounded-[32px] border border-gray-200/80 dark:border-gray-700/80 shadow-[0_25px_60px_rgba(15,23,42,0.18)] flex flex-col h-[86vh] sm:h-auto sm:max-h-[86vh] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        className="self-care-modal-container"
+        onClick={(event) => event.stopPropagation()}
       >
-        {/* Header */}
-        <div className="self-care-modal-header relative flex-shrink-0 bg-white/95 dark:bg-gray-900/80 border-b border-gray-200/70 dark:border-gray-700/70 px-8 sm:px-12 py-8 sm:py-10 backdrop-blur">
-          <div className="self-care-modal-header-content">
-            <h2 className="self-care-modal-title">Autocuidado</h2>
-            <p className="self-care-modal-subtitle">Sugerencias personalizadas para tu bienestar</p>
-          </div>
-          <div className="self-care-modal-actions">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={loading}
-              className="self-care-refresh-btn"
-              aria-label="Actualizar sugerencias"
-              title="Actualizar sugerencias"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Más ideas</span>
-            </button>
-            <button
-              onClick={onClose}
-              type="button"
-              className="self-care-modal-close-btn"
-              aria-label="Cerrar"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <div className="self-care-modal-surface">
+          <button
+            type="button"
+            onClick={onClose}
+            className="self-care-modal-close-btn"
+            aria-label="Cerrar"
+          >
+            <X className="h-4 w-4" />
+          </button>
 
-        {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto px-10 sm:px-14 py-12 self-care-scrollable">
-          <div className="flex flex-col gap-4 pt-4 pb-14">
-            {/* Success message */}
-            {refreshSuccess && !loading && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center gap-2 animate-[slideDown_0.3s_ease-out]">
-                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                  ✨ Sugerencias actualizadas
-                </p>
-              </div>
-            )}
-
-            {loading && (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary-600 mb-2" />
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Personalizando sugerencias...
-                </p>
-              </div>
-            )}
-
-            {error && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  {error}
-                </p>
-              </div>
-            )}
-
-            {!loading && recommendations.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600 dark:text-gray-400">
-                  No hay sugerencias disponibles en este momento.
-                </p>
-                <button
-                  onClick={loadRecommendations}
-                  className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  Intentar de nuevo
-                </button>
-              </div>
-            )}
-
-            {!loading && recommendations.length > 0 && (
-              <div className="h-2" aria-hidden="true" />
-            )}
-
-            {!loading && recommendations.map((rec) => (
-              <Card
-                key={rec.id}
-                className="self-care-recommendation-card self-care-card shadow-md transition-all hover:shadow-lg"
+          <header className="self-care-modal-header">
+            <div className="self-care-header-left">
+              <span className="self-care-plan-label">
+                <span className="self-care-plan-indicator" aria-hidden="true" />
+                Plan de bienestar
+              </span>
+              <h2 className="self-care-modal-title">Autocuidado</h2>
+              <p className="self-care-modal-subtitle">
+                Sugerencias personalizadas basadas en tus patrones y necesidades actuales
+              </p>
+            </div>
+            <div className="self-care-header-right">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="self-care-refresh-btn"
               >
-                <div className="space-y-5 p-6">
-                  {/* Header de la tarjeta */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="text-4xl flex-shrink-0">{rec.icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2 flex-wrap mb-3">
-                          <h3 className="font-semibold text-lg leading-tight text-foreground">
-                            {rec.title}
-                          </h3>
-                          <Badge
-                            variant="outline"
-                            className={`${getTypeBadgeClass(rec.typeDescription)} px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] leading-none`}
-                          >
-                            {rec.typeDescription}
-                          </Badge>
-                          {rec.id.startsWith('ai-') && (
-                            <Badge className="self-care-ai-badge px-5 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-sm uppercase tracking-[0.35em] text-[0.7rem] font-semibold leading-none">
-                              ✨ IA
-                            </Badge>
+                <Wand2 className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>{loading ? 'Generando...' : 'Más ideas'}</span>
+              </button>
+            </div>
+          </header>
+
+          <main className="self-care-modal-body self-care-scrollable" aria-live="polite">
+            <div className="self-care-content">
+              {refreshSuccess && !loading && (
+                <div className="self-care-banner self-care-banner--success">
+                  <span className="self-care-banner-icon" aria-hidden="true">✨</span>
+                  <p>Sugerencias actualizadas</p>
+                </div>
+              )}
+
+              {error && (
+                <div className="self-care-banner self-care-banner--warning">
+                  <span className="self-care-banner-icon" aria-hidden="true">⚠️</span>
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {loading && (
+                <div className="self-care-loading">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <p>Personalizando sugerencias...</p>
+                </div>
+              )}
+
+              {!loading && recommendations.length === 0 && (
+                <div className="self-care-empty-state">
+                  <div className="self-care-empty-emoji" aria-hidden="true">🌿</div>
+                  <h3>Sin sugerencias por ahora</h3>
+                  <p>Actualizá la lista para descubrir nuevas ideas.</p>
+                  <Button type="button" variant="ghost" onClick={loadRecommendations}>
+                    Intentar de nuevo
+                  </Button>
+                </div>
+              )}
+
+              {!loading && recommendations.map((rec) => {
+                const confidence = normalizeConfidence(rec.confidenceScore);
+                const progressStyle = {
+                  '--progress': `${confidence}`
+                } as CSSProperties;
+
+                return (
+                  <Card key={rec.id} className="self-care-card">
+                    <div className="self-care-card-shell">
+                      <header className="self-care-card-top">
+                        <div className="self-care-card-summary">
+                          <div className="self-care-card-icon" aria-hidden="true">
+                            {rec.icon}
+                          </div>
+                          <div className="self-care-card-heading">
+                            <div className="self-care-card-title-row">
+                              <h3 className="self-care-card-title">{rec.title}</h3>
+                              {rec.typeDescription && (
+                                <span className={getTypeBadgeClass(rec.typeDescription)}>
+                                  {rec.typeDescription}
+                                </span>
+                              )}
+                            </div>
+                            <p className="self-care-card-description">{rec.description}</p>
+                          </div>
+                        </div>
+                        <div className="self-care-progress" aria-hidden="true">
+                          <div className="self-care-progress-circle" style={progressStyle}>
+                            <span className="self-care-progress-value">{confidence}%</span>
+                          </div>
+                          <span className="self-care-progress-label">Confianza</span>
+                        </div>
+                      </header>
+
+                      {rec.personalizedReason && (
+                        <div className="self-care-card-reason">
+                          <span className="self-care-card-reason-icon" aria-hidden="true">💡</span>
+                          <p>{rec.personalizedReason}</p>
+                        </div>
+                      )}
+
+                      <footer className="self-care-card-bottom">
+                        <div className="self-care-card-meta">
+                          <span className="self-care-meta-item">
+                            <span className="self-care-meta-icon" aria-hidden="true">⏱️</span>
+                            <span>{formatDuration(rec.durationMinutes)}</span>
+                          </span>
+                          {rec.historicalMoodImpact && (
+                            <span className="self-care-meta-item">
+                              <span aria-hidden="true">😊</span>
+                              <span>Impacto {rec.historicalMoodImpact}/100</span>
+                            </span>
+                          )}
+                          {rec.completionRate && (
+                            <span className="self-care-meta-item">
+                              <span aria-hidden="true">✓</span>
+                              <span>{rec.completionRate}% completado</span>
+                            </span>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {rec.description}
-                        </p>
-                      </div>
+                        <div className="self-care-card-actions">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => handleStartNow(rec)}
+                            className="self-care-action self-care-action--primary"
+                          >
+                            <Play className="h-4 w-4" />
+                            Empezar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => handleSchedule(rec)}
+                            className="self-care-action self-care-action--secondary"
+                          >
+                            Agendar
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => handleDismiss(rec)}
+                            className="self-care-dismiss-btn"
+                            aria-label="Descartar sugerencia"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </footer>
                     </div>
-                    <div className="flex items-center gap-1 text-base font-semibold text-primary">
-                      <span>{rec.confidenceScore}%</span>
-                    </div>
-                  </div>
-
-                  {/* Razón personalizada */}
-                  <div className="self-care-card-reason rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      <span className="font-semibold text-primary">💡 Por qué ahora:</span>{' '}
-                      {rec.personalizedReason}
-                    </p>
-                  </div>
-
-                  {/* Metadata */}
-                  <div className="self-care-card-meta flex flex-wrap items-center gap-4 pt-3 text-sm text-muted-foreground">
-                    <span className="font-medium">⏱️ {rec.durationMinutes} min</span>
-                    {rec.historicalMoodImpact && (
-                      <span>
-                        😊 Impacto: {rec.historicalMoodImpact}/100
-                      </span>
-                    )}
-                    {rec.completionRate && (
-                      <span>
-                        ✓ {rec.completionRate}% completado
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Acciones */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button
-                      onClick={() => handleSchedule(rec)}
-                      className="flex-1 gap-2 h-auto py-3 text-sm sm:text-base shadow-md bg-primary-gradient text-white hover:opacity-90 focus-visible:ring-primary"
-                    >
-                      <Calendar className="h-5 w-5" />
-                      Agendar
-                    </Button>
-                    <Button
-                      onClick={() => handleStartNow(rec)}
-                      className="flex-1 gap-2 h-auto py-3 text-sm sm:text-base bg-emerald-500 text-white hover:bg-emerald-600 focus-visible:ring-emerald-500 shadow-md"
-                    >
-                      <Play className="h-5 w-5" />
-                      Empezar ya
-                    </Button>
-                    <Button
-                      onClick={() => handleDismiss(rec)}
-                      className="flex-1 gap-2 h-auto py-3 text-sm sm:text-base bg-rose-500 text-white hover:bg-rose-600 focus-visible:ring-rose-500 shadow-md"
-                      title="Ignorar"
-                    >
-                      <EyeOff className="h-4 w-4" />
-                      <span className="hidden sm:inline">Ignorar</span>
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-
-            {!loading && recommendations.length > 0 && (
-              <div className="h-6" aria-hidden="true" />
-            )}
-          </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </main>
         </div>
       </div>
     </div>

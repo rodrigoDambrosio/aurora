@@ -1,12 +1,44 @@
 .monthly-mood-tracker {
+    --mm-surface: var(--color-surface);
+    --mm-surface-alt: var(--color-surface-alt);
+    --mm-panel-bg: rgba(99, 102, 241, 0.1);
+    --mm-panel-border: var(--color-border);
+    --mm-border: var(--color-border);
+    --mm-border-strong: var(--color-border-strong);
+    --mm-outline: var(--color-outline);
+    --mm-text-primary: var(--color-text-primary);
+    --mm-text-secondary: var(--color-text-secondary);
+    --mm-text-muted: var(--color-text-muted);
+    --mm-accent: var(--gradient-primary-start);
+    --mm-accent-strong: var(--gradient-primary-end);
+    --mm-accent-soft: rgba(99, 102, 241, 0.16);
+    --mm-accent-soft-strong: rgba(99, 102, 241, 0.22);
+    --mm-cell-bg: var(--color-surface-alt);
+    --mm-cell-hover-bg: rgba(99, 102, 241, 0.12);
+    --mm-control-bg: var(--color-surface-alt);
+    --mm-control-hover: rgba(99, 102, 241, 0.14);
+    --mm-loading-overlay: rgba(15, 23, 42, 0.18);
+    --mm-overlay: rgba(15, 23, 42, 0.25);
+    --mm-editor-surface: var(--color-surface);
+    --mm-shadow: var(--shadow-soft);
+    --mm-editor-shadow: var(--shadow-elevated);
+    --mm-reminder-bg: rgba(16, 185, 129, 0.14);
+    --mm-reminder-border: rgba(16, 185, 129, 0.28);
+    --mm-reminder-text: #047857;
+    --mm-error-bg: rgba(239, 68, 68, 0.12);
+    --mm-error-border: rgba(239, 68, 68, 0.32);
+    --mm-error-text: #b91c1c;
+    --mm-delete-bg: rgba(239, 68, 68, 0.12);
+    --mm-delete-border: rgba(239, 68, 68, 0.28);
+    --mm-delete-text: #b91c1c;
     display: flex;
     flex-direction: column;
     gap: 1rem;
     padding: 1.25rem;
-    background: var(--surface-primary, #0f172a);
+    background: var(--mm-surface);
     border-radius: 1.5rem;
-    border: 1px solid rgba(148, 163, 184, 0.15);
-    box-shadow: 0 18px 55px -25px rgba(15, 23, 42, 0.65);
+    border: 1px solid var(--mm-border);
+    box-shadow: var(--mm-shadow);
     min-height: 100%;
 }
 
@@ -35,7 +67,7 @@
     gap: 0.5rem;
     font-size: 1.125rem;
     font-weight: 600;
-    color: var(--text-primary, #e2e8f0);
+    color: var(--mm-text-primary);
 }
 
 .mood-nav-btn {
@@ -45,14 +77,15 @@
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    background: rgba(15, 23, 42, 0.45);
-    color: var(--text-secondary, #cbd5f5);
+    border: 1px solid var(--mm-border);
+    background: var(--mm-control-bg);
+    color: var(--mm-text-secondary);
     transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .mood-nav-btn:hover {
-    background: rgba(59, 130, 246, 0.12);
+    background: var(--mm-control-hover);
+    color: var(--mm-text-primary);
     transform: translateY(-1px);
 }
 
@@ -63,16 +96,16 @@
 .mood-today-btn {
     padding: 0.45rem 0.9rem;
     border-radius: 999px;
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    background: rgba(59, 130, 246, 0.12);
-    color: #93c5fd;
+    border: 1px solid var(--mm-border-strong);
+    background: var(--mm-accent-soft);
+    color: var(--mm-accent);
     font-weight: 600;
     font-size: 0.85rem;
     transition: background 0.2s ease;
 }
 
 .mood-today-btn:hover {
-    background: rgba(59, 130, 246, 0.2);
+    background: var(--mm-accent-soft-strong);
 }
 
 .mood-intro {
@@ -80,17 +113,17 @@
     grid-template-columns: auto 1fr;
     gap: 0.75rem;
     align-items: start;
-    background: rgba(148, 163, 184, 0.08);
+    background: var(--mm-panel-bg);
     padding: 1rem;
     border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.05);
-    color: var(--text-secondary, #cbd5f5);
+    border: 1px solid var(--mm-panel-border);
+    color: var(--mm-text-secondary);
 }
 
 .mood-intro h3 {
     margin: 0;
     font-size: 1rem;
-    color: var(--text-primary, #e2e8f0);
+    color: var(--mm-text-primary);
 }
 
 .mood-intro p {
@@ -102,9 +135,9 @@
 .mood-error-banner {
     padding: 0.9rem 1rem;
     border-radius: 0.9rem;
-    background: rgba(239, 68, 68, 0.18);
-    border: 1px solid rgba(239, 68, 68, 0.35);
-    color: #fecaca;
+    background: var(--mm-error-bg);
+    border: 1px solid var(--mm-error-border);
+    color: var(--mm-error-text);
     font-size: 0.9rem;
 }
 
@@ -113,7 +146,7 @@
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.5rem;
     padding: 0 0.25rem;
-    color: rgba(148, 163, 184, 0.75);
+    color: var(--mm-text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -138,8 +171,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.7);
-    color: rgba(148, 163, 184, 0.9);
+    background: var(--mm-loading-overlay);
+    color: var(--mm-text-secondary);
     font-weight: 600;
     border-radius: 1rem;
     backdrop-filter: blur(2px);
@@ -152,14 +185,15 @@
     gap: 0.4rem;
     padding: 0.75rem 0.35rem 0.85rem;
     border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.12);
-    background: rgba(15, 23, 42, 0.65);
-    color: var(--text-primary, #e2e8f0);
-    transition: background 0.2s ease, transform 0.2s ease;
+    border: 1px solid var(--mm-border);
+    background: var(--mm-cell-bg);
+    color: var(--mm-text-primary);
+    transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
 .mood-grid-day:hover {
-    background: rgba(59, 130, 246, 0.1);
+    background: var(--mm-cell-hover-bg);
+    border-color: var(--mm-accent);
     transform: translateY(-1px);
 }
 
@@ -172,8 +206,8 @@
 }
 
 .mood-grid-day.is-today {
-    border-color: rgba(59, 130, 246, 0.4);
-    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+    border-color: var(--mm-accent);
+    box-shadow: inset 0 0 0 1px var(--mm-accent-soft-strong);
 }
 
 .mood-day-number {
@@ -210,8 +244,8 @@
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 1px dashed rgba(148, 163, 184, 0.18);
-    color: rgba(148, 163, 184, 0.75);
+    border-top: 1px dashed var(--mm-border);
+    color: var(--mm-text-muted);
     font-size: 0.85rem;
 }
 
@@ -228,7 +262,7 @@
 .mood-editor-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.7);
+    background: var(--mm-overlay);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: flex-end;
@@ -240,10 +274,10 @@
 
 .mood-editor-card {
     width: min(520px, 100%);
-    background: var(--surface-primary, #0b1220);
+    background: var(--mm-editor-surface);
     border-radius: 1.5rem 1.5rem 0.75rem 0.75rem;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    box-shadow: 0 25px 60px -30px rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--mm-border);
+    box-shadow: var(--mm-editor-shadow);
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -264,25 +298,26 @@
     font-size: 1.15rem;
     font-weight: 600;
     text-transform: capitalize;
-    color: var(--text-primary, #e2e8f0);
+    color: var(--mm-text-primary);
 }
 
 .mood-editor-subtitle {
     font-size: 0.9rem;
-    color: rgba(148, 163, 184, 0.75);
+    color: var(--mm-text-muted);
 }
 
 .mood-editor-close {
     background: none;
     border: none;
-    color: rgba(148, 163, 184, 0.75);
+    color: var(--mm-text-muted);
     border-radius: 999px;
     padding: 0.35rem;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
 .mood-editor-close:hover {
-    background: rgba(148, 163, 184, 0.1);
+    background: var(--mm-accent-soft);
+    color: var(--mm-text-primary);
 }
 
 .mood-option-grid {
@@ -297,20 +332,22 @@
     gap: 0.9rem;
     padding: 0.85rem;
     border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--mm-border);
+    background: var(--mm-cell-bg);
     transition: border-color 0.2s ease, background 0.2s ease;
     text-align: left;
+    color: var(--mm-text-primary);
 }
 
 .mood-option-btn:hover {
-    border-color: rgba(59, 130, 246, 0.4);
+    border-color: var(--mm-accent);
+    background: var(--mm-cell-hover-bg);
 }
 
 .mood-option-btn.is-selected {
-    border-color: rgba(59, 130, 246, 0.55);
-    background: rgba(37, 99, 235, 0.35);
-    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.4);
+    border-color: var(--mm-accent);
+    background: var(--mm-accent-soft);
+    box-shadow: inset 0 0 0 1px var(--mm-accent-soft-strong);
 }
 
 .mood-option-emoji {
@@ -325,11 +362,11 @@
 
 .mood-option-label {
     font-weight: 600;
-    color: var(--text-primary, #e2e8f0);
+    color: var(--mm-text-primary);
 }
 
 .mood-option-helper {
-    color: rgba(148, 163, 184, 0.75);
+    color: var(--mm-text-muted);
     font-size: 0.9rem;
 }
 
@@ -338,37 +375,37 @@
     flex-direction: column;
     gap: 0.4rem;
     font-size: 0.9rem;
-    color: var(--text-secondary, #cbd5f5);
+    color: var(--mm-text-secondary);
 }
 
 .mood-notes-field textarea {
     min-height: 100px;
     border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--mm-border);
+    background: var(--mm-cell-bg);
     padding: 0.75rem;
-    color: var(--text-primary, #e2e8f0);
+    color: var(--mm-text-primary);
     resize: vertical;
 }
 
 .mood-notes-field textarea:focus {
     outline: none;
-    border-color: rgba(59, 130, 246, 0.55);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    border-color: var(--mm-accent);
+    box-shadow: 0 0 0 2px var(--mm-outline);
 }
 
 .mood-char-count {
     align-self: flex-end;
     font-size: 0.75rem;
-    color: rgba(148, 163, 184, 0.65);
+    color: var(--mm-text-muted);
 }
 
 .mood-editor-error {
     padding: 0.85rem;
     border-radius: 0.85rem;
-    background: rgba(239, 68, 68, 0.18);
-    border: 1px solid rgba(239, 68, 68, 0.35);
-    color: #fecaca;
+    background: var(--mm-error-bg);
+    border: 1px solid var(--mm-error-border);
+    color: var(--mm-error-text);
     font-size: 0.85rem;
 }
 
@@ -386,11 +423,11 @@
     font-weight: 600;
     font-size: 0.9rem;
     border: 1px solid transparent;
-    transition: background 0.2s ease, transform 0.2s ease;
+    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 
 .mood-save-btn {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(96, 165, 250, 0.9));
+    background: linear-gradient(135deg, var(--mm-accent), var(--mm-accent-strong));
     color: white;
 }
 
@@ -399,15 +436,20 @@
 }
 
 .mood-cancel-btn {
-    background: rgba(15, 23, 42, 0.55);
-    border-color: rgba(148, 163, 184, 0.28);
-    color: rgba(226, 232, 240, 0.85);
+    background: var(--mm-cell-bg);
+    border-color: var(--mm-border);
+    color: var(--mm-text-secondary);
+}
+
+.mood-cancel-btn:hover {
+    background: var(--mm-cell-hover-bg);
+    color: var(--mm-text-primary);
 }
 
 .mood-delete-btn {
-    background: rgba(239, 68, 68, 0.18);
-    border-color: rgba(239, 68, 68, 0.35);
-    color: #fecaca;
+    background: var(--mm-delete-bg);
+    border-color: var(--mm-delete-border);
+    color: var(--mm-delete-text);
 }
 
 .mood-editor-actions button:disabled {
@@ -421,9 +463,9 @@
     gap: 0.6rem;
     padding: 0.9rem;
     border-radius: 1rem;
-    background: rgba(132, 204, 22, 0.15);
-    border: 1px solid rgba(132, 204, 22, 0.3);
-    color: rgba(217, 249, 157, 0.95);
+    background: var(--mm-reminder-bg);
+    border: 1px solid var(--mm-reminder-border);
+    color: var(--mm-reminder-text);
     font-size: 0.85rem;
 }
 
@@ -486,4 +528,39 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         font-size: 0.8rem;
     }
+}
+
+[data-theme='dark'] .monthly-mood-tracker {
+    --mm-surface: #111827;
+    --mm-surface-alt: #1f2937;
+    --mm-panel-bg: rgba(148, 163, 184, 0.08);
+    --mm-panel-border: rgba(148, 163, 184, 0.12);
+    --mm-border: rgba(71, 85, 105, 0.6);
+    --mm-border-strong: rgba(148, 163, 184, 0.45);
+    --mm-outline: rgba(99, 102, 241, 0.35);
+    --mm-text-primary: #e2e8f0;
+    --mm-text-secondary: #cbd5f5;
+    --mm-text-muted: #94a3b8;
+    --mm-accent: #8b5cf6;
+    --mm-accent-strong: #7c3aed;
+    --mm-accent-soft: rgba(99, 102, 241, 0.18);
+    --mm-accent-soft-strong: rgba(99, 102, 241, 0.26);
+    --mm-cell-bg: rgba(15, 23, 42, 0.65);
+    --mm-cell-hover-bg: rgba(59, 130, 246, 0.18);
+    --mm-control-bg: rgba(15, 23, 42, 0.45);
+    --mm-control-hover: rgba(59, 130, 246, 0.16);
+    --mm-loading-overlay: rgba(15, 23, 42, 0.7);
+    --mm-overlay: rgba(15, 23, 42, 0.7);
+    --mm-editor-surface: #0b1220;
+    --mm-shadow: 0 18px 55px -25px rgba(15, 23, 42, 0.65);
+    --mm-editor-shadow: 0 25px 60px -30px rgba(15, 23, 42, 0.8);
+    --mm-reminder-bg: rgba(132, 204, 22, 0.15);
+    --mm-reminder-border: rgba(132, 204, 22, 0.3);
+    --mm-reminder-text: rgba(217, 249, 157, 0.95);
+    --mm-error-bg: rgba(239, 68, 68, 0.18);
+    --mm-error-border: rgba(239, 68, 68, 0.35);
+    --mm-error-text: #fecaca;
+    --mm-delete-bg: rgba(239, 68, 68, 0.18);
+    --mm-delete-border: rgba(239, 68, 68, 0.35);
+    --mm-delete-text: #fecaca;
 }
