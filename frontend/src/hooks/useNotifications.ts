@@ -56,7 +56,7 @@ export function useNotifications(showInAppNotification?: (reminder: ReminderDto)
     } catch (error) {
       console.error('Error al verificar recordatorios pendientes:', error);
     }
-  }, [showInAppNotification]);
+  }, []); // Sin dependencias ya que usa refs y servicios estáticos
 
   /**
    * Inicia el polling de recordatorios pendientes
@@ -95,29 +95,17 @@ export function useNotifications(showInAppNotification?: (reminder: ReminderDto)
     // Para notificaciones in-app no necesitamos permisos del navegador
     // Pero mantenemos la función para compatibilidad
     setPermission('granted');
+  }, []);
 
-    if (!isPolling) {
-      startPolling();
-    }
-  }, [isPolling, startPolling]);
-
-  // Iniciar polling automáticamente (sin depender de permisos del navegador)
+  // Iniciar polling automáticamente al montar el hook
   useEffect(() => {
-    if (!isPolling) {
-      startPolling();
-    }
+    startPolling();
 
+    // Limpiar al desmontar
     return () => {
       stopPolling();
     };
-  }, [startPolling, stopPolling, isPolling]);
-
-  // Limpiar al desmontar
-  useEffect(() => {
-    return () => {
-      stopPolling();
-    };
-  }, [stopPolling]);
+  }, []); // Solo ejecutar una vez al montar
 
   return {
     permission,

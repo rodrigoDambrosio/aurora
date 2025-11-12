@@ -90,9 +90,19 @@ export function useReminders(eventId: string | null): UseRemindersReturn {
     await loadReminders();
   }, [loadReminders]);
 
-  // Cargar recordatorios cuando el eventId cambie
+  // Cargar recordatorios cuando el eventId cambie y establecer polling cada 60 segundos
   useEffect(() => {
     loadReminders();
+
+    // Configurar polling cada 60 segundos
+    const intervalId = setInterval(() => {
+      loadReminders();
+    }, 60000); // 60 segundos
+
+    // Limpiar el interval al desmontar o cuando cambie el eventId
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [loadReminders]);
 
   return {
