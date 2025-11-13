@@ -42,6 +42,20 @@ public class AuroraDbContext : DbContext
     /// Conjunto de recordatorios de eventos
     /// </summary>
     public DbSet<EventReminder> EventReminders { get; set; }
+    /// <summary>
+    /// Conjunto de registros diarios de estado de ánimo
+    /// </summary>
+    public DbSet<DailyMoodEntry> DailyMoodEntries { get; set; }
+
+    /// <summary>
+    /// Feedback sobre recomendaciones personalizadas
+    /// </summary>
+    public DbSet<RecommendationFeedback> RecommendationFeedback { get; set; }
+
+    /// <summary>
+    /// Conjunto de sugerencias de reorganización
+    /// </summary>
+    public DbSet<ScheduleSuggestion> ScheduleSuggestions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +68,8 @@ public class AuroraDbContext : DbContext
         modelBuilder.ApplyConfiguration(new UserPreferencesConfiguration());
         modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
         modelBuilder.ApplyConfiguration(new EventReminderConfiguration());
+        modelBuilder.ApplyConfiguration(new DailyMoodEntryConfiguration());
+        modelBuilder.ApplyConfiguration(new RecommendationFeedbackConfiguration());
 
         // Configurar filtros globales para soft delete
         modelBuilder.Entity<User>().HasQueryFilter(e => e.IsActive);
@@ -61,6 +77,9 @@ public class AuroraDbContext : DbContext
         modelBuilder.Entity<EventCategory>().HasQueryFilter(e => e.IsActive);
         modelBuilder.Entity<UserPreferences>().HasQueryFilter(e => e.IsActive);
         modelBuilder.Entity<UserSession>().HasQueryFilter(e => e.IsActive);
+        modelBuilder.Entity<DailyMoodEntry>().HasQueryFilter(e => e.IsActive);
+        modelBuilder.Entity<RecommendationFeedback>().HasQueryFilter(e => e.IsActive);
+        modelBuilder.Entity<ScheduleSuggestion>().HasQueryFilter(e => e.IsActive);
     }
 
     /// <summary>

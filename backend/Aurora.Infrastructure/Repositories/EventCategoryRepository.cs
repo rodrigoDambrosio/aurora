@@ -24,7 +24,7 @@ public class EventCategoryRepository : Repository<EventCategory>, IEventCategory
         // En nuestro modelo, las categorías "del sistema" son las por defecto
         // que se crean para cada usuario
         return await _dbSet
-            .Where(c => c.IsSystemDefault)
+            .Where(c => c.IsSystemDefault && c.IsActive)
             .OrderBy(c => c.Name)
             .ToListAsync();
     }
@@ -36,7 +36,7 @@ public class EventCategoryRepository : Repository<EventCategory>, IEventCategory
 
     public async Task<bool> UserCanUseCategoryAsync(Guid categoryId, Guid userId)
     {
-        return await _dbSet.AnyAsync(c => c.Id == categoryId && c.UserId == userId);
+        return await _dbSet.AnyAsync(c => c.Id == categoryId && c.UserId == userId && c.IsActive);
     }
 
     public async Task<IEnumerable<EventCategory>> GetCategoriesOrderedAsync(Guid userId)
@@ -47,7 +47,7 @@ public class EventCategoryRepository : Repository<EventCategory>, IEventCategory
     public async Task<IEnumerable<EventCategory>> GetCategoriesByUserIdAsync(Guid userId)
     {
         return await _dbSet
-            .Where(c => c.UserId == userId)
+            .Where(c => c.UserId == userId && c.IsActive)
             .OrderBy(c => c.IsSystemDefault ? 0 : 1) // Categorías por defecto primero
             .ThenBy(c => c.Name)
             .ToListAsync();
@@ -56,7 +56,7 @@ public class EventCategoryRepository : Repository<EventCategory>, IEventCategory
     public async Task<IEnumerable<EventCategory>> GetDefaultCategoriesAsync(Guid userId)
     {
         return await _dbSet
-            .Where(c => c.UserId == userId && c.IsSystemDefault)
+            .Where(c => c.UserId == userId && c.IsSystemDefault && c.IsActive)
             .OrderBy(c => c.Name)
             .ToListAsync();
     }
@@ -64,7 +64,7 @@ public class EventCategoryRepository : Repository<EventCategory>, IEventCategory
     public async Task<IEnumerable<EventCategory>> GetCustomCategoriesAsync(Guid userId)
     {
         return await _dbSet
-            .Where(c => c.UserId == userId && !c.IsSystemDefault)
+            .Where(c => c.UserId == userId && !c.IsSystemDefault && c.IsActive)
             .OrderBy(c => c.Name)
             .ToListAsync();
     }
@@ -73,13 +73,15 @@ public class EventCategoryRepository : Repository<EventCategory>, IEventCategory
     {
         return await _dbSet
             .FirstOrDefaultAsync(c => c.UserId == userId &&
-                                      c.Name.ToLower() == name.ToLower());
+                                      c.Name.ToLower() == name.ToLower() &&
+                                      c.IsActive);
     }
 
     public async Task<bool> CategoryExistsAsync(Guid userId, string name, Guid? excludeCategoryId = null)
     {
         var query = _dbSet.Where(c => c.UserId == userId &&
-                                      c.Name.ToLower() == name.ToLower());
+                                      c.Name.ToLower() == name.ToLower() &&
+                                      c.IsActive);
 
         if (excludeCategoryId.HasValue)
         {
@@ -104,7 +106,7 @@ public class EventCategoryRepository : Repository<EventCategory>, IEventCategory
     public async Task<IEnumerable<EventCategory>> GetCategoriesWithEventCountAsync(Guid userId)
     {
         return await _dbSet
-            .Where(c => c.UserId == userId)
+            .Where(c => c.UserId == userId && c.IsActive)
             .Select(c => new EventCategory
             {
                 Id = c.Id,
@@ -135,7 +137,8 @@ public class EventCategoryRepository : Repository<EventCategory>, IEventCategory
     public async Task<bool> ExistsCategoryWithNameAsync(string name, Guid userId, Guid? excludeCategoryId = null)
     {
         var query = _dbSet.Where(c => c.UserId == userId &&
-                                      c.Name.ToLower() == name.ToLower());
+                                      c.Name.ToLower() == name.ToLower() &&
+                                      c.IsActive);
 
         if (excludeCategoryId.HasValue)
         {

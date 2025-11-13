@@ -53,17 +53,28 @@ builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IEventCategoryRepository, EventCategoryRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
+builder.Services.AddScoped<IDailyMoodRepository, DailyMoodRepository>();
+builder.Services.AddScoped<IRecommendationFeedbackRepository, RecommendationFeedbackRepository>();
+builder.Services.AddScoped<IScheduleSuggestionRepository, ScheduleSuggestionRepository>();
 
 // Application Services
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReminderService, ReminderService>();
+builder.Services.AddScoped<IDailyMoodService, DailyMoodService>();
+builder.Services.AddScoped<IWellnessInsightsService, WellnessInsightsService>();
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<IScheduleSuggestionService, ScheduleSuggestionService>();
+builder.Services.AddScoped<IProductivityAnalysisService, ProductivityAnalysisService>();
+builder.Services.AddScoped<ISelfCareService, SelfCareService>();
+builder.Services.AddScoped<IRecommendationAssistantService, RecommendationAssistantService>();
 
 // AI Validation Service with HttpClient
+// Timeout extendido a 120 segundos para generación de planes multi-día (PLAN-138)
 builder.Services.AddHttpClient<IAIValidationService, GeminiAIValidationService>(client =>
 {
-    client.Timeout = TimeSpan.FromSeconds(30);
+    client.Timeout = TimeSpan.FromSeconds(120);
 });
 
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -142,6 +153,16 @@ if (app.Environment.IsDevelopment())
     {
         var context = scope.ServiceProvider.GetRequiredService<AuroraDbContext>();
         await DbInitializer.InitializeAsync(context);
+
+        // Update database index to support soft delete with unique constraint
+        var connectionString = context.Database.GetConnectionString();
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            Aurora.Api.UpdateDatabaseIndex.Execute(connectionString);
+
+            // Clean up duplicate categories
+            Aurora.Api.CleanupDuplicates.Execute(connectionString);
+        }
     }
 }
 

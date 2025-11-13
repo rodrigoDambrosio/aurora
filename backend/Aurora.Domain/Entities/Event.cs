@@ -72,6 +72,16 @@ public class Event : BaseEntity
     /// </summary>
     public string? RecurrencePattern { get; set; }
 
+    /// <summary>
+    /// Estado de ánimo asociado al evento (1-5, opcional)
+    /// </summary>
+    public int? MoodRating { get; set; }
+
+    /// <summary>
+    /// Notas sobre el estado de ánimo durante el evento (opcional)
+    /// </summary>
+    public string? MoodNotes { get; set; }
+
     // Relaciones
     /// <summary>
     /// ID del usuario propietario del evento
@@ -139,9 +149,14 @@ public class Event : BaseEntity
     /// <returns>True si el evento pertenece al usuario</returns>
     public bool BelongsToUser(Guid? userId)
     {
-        // En modo desarrollo, si no hay usuario específico, usa el demo
+#if DEBUG
+        // En modo DEBUG, permite acceso sin autenticación usando usuario demo
         var targetUserId = userId ?? Constants.DomainConstants.DemoUser.Id;
         return UserId == targetUserId;
+#else
+        // En producción, verifica el ID exacto
+        return UserId == userId;
+#endif
     }
 
     /// <summary>

@@ -34,7 +34,6 @@ const AuroraWeeklyCalendar: React.FC<AuroraWeeklyCalendarProps> = ({
 }) => {
   // Hour grid configuration
   const START_HOUR = 0;
-  const END_HOUR = 24;
   const HOUR_HEIGHT = 80; // pixels per hour
 
   const [currentDate, setCurrentDate] = useState(new Date());

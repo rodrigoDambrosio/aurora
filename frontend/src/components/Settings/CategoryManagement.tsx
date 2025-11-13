@@ -1,5 +1,6 @@
 import { AlertCircle, Edit2, Plus, Tag, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { useEvents } from '../../context/useEvents';
 import { apiService, type CreateEventCategoryDto, type EventCategoryDto, type UpdateEventCategoryDto } from '../../services/apiService';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -14,6 +15,7 @@ export const CategoryManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const { refreshEvents } = useEvents();
 
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -28,14 +30,13 @@ export const CategoryManagement: React.FC = () => {
     loadCategories();
   }, []);
 
-  const loadCategories = async () => {
+    const loadCategories = async () => {
     try {
       setIsLoading(true);
-      setError('');
-      const data = await apiService.getEventCategories();
-      setCategories(data);
-    } catch (err) {
-      console.error('Error loading categories:', err);
+      const userCategories = await apiService.getEventCategories();
+      setCategories(userCategories);
+    } catch (error) {
+      console.error('Error loading categories:', error);
       setError('Error al cargar las categorías');
     } finally {
       setIsLoading(false);
@@ -76,7 +77,7 @@ export const CategoryManagement: React.FC = () => {
     // Get event count for this category
     try {
       const events = await apiService.getEvents();
-      const count = events.filter(e => e.eventCategory.id === category.id).length;
+      const count = events.filter(e => e.eventCategory?.id === category.id).length;
       setEventCountForDelete(count);
       setIsDeleteDialogOpen(true);
     } catch (err) {
@@ -92,9 +93,17 @@ export const CategoryManagement: React.FC = () => {
       const deleteData = reassignToCategoryId ? { reassignToCategoryId } : undefined;
       await apiService.deleteEventCategory(categoryToDelete.id, deleteData);
 
-      setCategories(prev => prev.filter(cat => cat.id !== categoryToDelete.id));
+      // Reload categories from backend to ensure we have the latest state
+      await loadCategories();
+      
+      // Close the delete dialog
+      handleDeleteDialogClose();
+      
       setSuccessMessage('Categoría eliminada correctamente');
       setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Refresh events in calendars when a category is deleted
+      refreshEvents();
     } catch (err: unknown) {
       console.error('Error deleting category:', err);
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la categoría';
@@ -199,8 +208,7 @@ export const CategoryManagement: React.FC = () => {
             <Tag size={48} />
             <p>No tienes categorías personalizadas</p>
             <p className="empty-subtitle">Crea tu primera categoría para organizar mejor tus eventos</p>
-            <Button onClick={handleCreateClick}>
-              <Plus size={16} />
+            <Button onClick={handleCreateClick} className="empty-state-button">
               Crear categoría
             </Button>
           </div>
@@ -213,25 +221,24 @@ export const CategoryManagement: React.FC = () => {
                     <div className="category-color" style={{ backgroundColor: category.color }} />
                     <span>{category.name}</span>
                   </div>
-                  {category.description && (
-                    <p className="category-description">{category.description}</p>
-                  )}
-                </div>
-                <div className="category-actions">
-                  <button
-                    className="action-button edit"
-                    onClick={() => handleEditClick(category)}
-                    title="Editar categoría"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    className="action-button delete"
-                    onClick={() => handleDeleteClick(category)}
-                    title="Eliminar categoría"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="category-actions">
+                    <button
+                      className="action-button edit"
+                      onClick={() => handleEditClick(category)}
+                      title="Editar categoría"
+                    >
+                      <Edit2 size={14} />
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      className="action-button delete"
+                      onClick={() => handleDeleteClick(category)}
+                      title="Eliminar categoría"
+                    >
+                      <Trash2 size={14} />
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

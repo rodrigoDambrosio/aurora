@@ -206,6 +206,91 @@ public class GeminiAIValidationService : IAIValidationService
         }
     }
 
+    public async Task<GeneratePlanResponseDto> GeneratePlanAsync(
+        GeneratePlanRequestDto request,
+        Guid userId,
+        IEnumerable<EventCategoryDto> availableCategories,
+        IEnumerable<EventDto>? existingEvents = null,
+        UserPreferencesDto? userPreferences = null)
+    {
+        try
+        {
+            _logger.LogInformation("Generando plan multi-día para objetivo: {Goal}", request.Goal);
+
+            var categoryList = availableCategories.ToList();
+
+            // Construir el prompt especializado para generación de planes
+            var prompt = BuildPlanGenerationPrompt(request, categoryList, existingEvents, userPreferences);
+
+            // Crear la solicitud a Gemini
+            var geminiRequest = new GeminiRequest
+            {
+                Contents = new List<GeminiContent>
+                {
+                    new GeminiContent
+                    {
+                        Parts = new List<GeminiPart>
+                        {
+                            new GeminiPart { Text = prompt }
+                        }
+                    }
+                }
+            };
+
+            var jsonRequest = JsonSerializer.Serialize(geminiRequest, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            _logger.LogDebug("Request a Gemini para generación de plan: {Request}", jsonRequest);
+
+            var url = $"{_baseUrl}?key={_apiKey}";
+            var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error en la API de Gemini para generación de plan: {StatusCode} - {Error}",
+                    response.StatusCode, errorContent);
+
+                throw new InvalidOperationException($"Error al generar plan con IA: {response.StatusCode}");
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug("Response de Gemini para generación de plan: {Response}", responseContent);
+
+            var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(responseContent, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            var aiText = geminiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+
+            if (string.IsNullOrEmpty(aiText))
+            {
+                _logger.LogWarning("No se recibió respuesta válida de Gemini para generación de plan");
+                throw new InvalidOperationException("No se pudo obtener respuesta de la IA para generar el plan.");
+            }
+
+            // Parsear la respuesta del plan
+            var planResponse = ParsePlanFromAIResponse(aiText, categoryList, request.TimezoneOffsetMinutes, existingEvents);
+
+            _logger.LogInformation(
+                "Plan generado exitosamente: {Title} - {Sessions} sesiones en {Weeks} semanas",
+                planResponse.PlanTitle,
+                planResponse.TotalSessions,
+                planResponse.DurationWeeks);
+
+            return planResponse;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al generar plan multi-día con IA");
+            throw;
+        }
+    }
+
     public async Task<ParseNaturalLanguageResponseDto> ParseNaturalLanguageAsync(
         string naturalLanguageText,
         Guid userId,
@@ -380,6 +465,7 @@ public class GeminiAIValidationService : IAIValidationService
             parsed.EndDate = normalizedEnd;
 
             var resolvedCategoryId = parsed.EventCategoryId;
+            string? suggestedCategoryName = null;
 
             if (resolvedCategoryId == Guid.Empty || !availableCategories.Any(c => c.Id == resolvedCategoryId))
             {
@@ -393,6 +479,12 @@ public class GeminiAIValidationService : IAIValidationService
                     if (matched != null)
                     {
                         resolvedCategoryId = matched.Id;
+                    }
+                    else
+                    {
+                        // Si no existe, guardar el nombre para crear la categoría automáticamente
+                        suggestedCategoryName = categoryName;
+                        _logger.LogInformation("La IA sugirió una nueva categoría: '{CategoryName}'", categoryName);
                     }
                 }
             }
@@ -414,6 +506,7 @@ public class GeminiAIValidationService : IAIValidationService
             }
 
             parsed.EventCategoryId = resolvedCategoryId;
+            parsed.SuggestedCategoryName = suggestedCategoryName;
             parsed.TimezoneOffsetMinutes = timezoneOffsetMinutes;
 
             return parsed;
@@ -915,4 +1008,436 @@ public class GeminiAIValidationService : IAIValidationService
         var formatted = offset.Duration().ToString(@"hh\:mm");
         return $"UTC{sign}{formatted}";
     }
+
+    /// <summary>
+    /// Construye el prompt especializado para generación de planes multi-día
+    /// </summary>
+    private string BuildPlanGenerationPrompt(
+        GeneratePlanRequestDto request,
+        IEnumerable<EventCategoryDto> availableCategories,
+        IEnumerable<EventDto>? existingEvents,
+        UserPreferencesDto? userPreferences)
+    {
+        var sb = new StringBuilder();
+        var utcNow = DateTime.UtcNow;
+        var userLocalNow = utcNow.AddMinutes(request.TimezoneOffsetMinutes);
+        var offset = TimeSpan.FromMinutes(request.TimezoneOffsetMinutes);
+        var timezoneString = request.TimezoneOffsetMinutes == 0 ? "UTC" : $"UTC{offset.TotalHours:+0;-0}";
+
+        sb.AppendLine("Eres un asistente de planificación inteligente. Tu tarea es crear un PLAN MULTI-DÍA estructurado y progresivo para alcanzar un objetivo.");
+        sb.AppendLine();
+        sb.AppendLine($"Fecha actual del usuario: {userLocalNow:yyyy-MM-dd HH:mm} ({timezoneString})");
+        sb.AppendLine();
+        sb.AppendLine("⚠️ IMPORTANTE: Todas las fechas/horas deben estar en formato UTC ISO 8601, pero en tus mensajes menciona horarios en zona local del usuario.");
+        sb.AppendLine();
+        sb.AppendLine("OBJETIVO DEL USUARIO:");
+        sb.AppendLine($"\"{request.Goal}\"");
+        sb.AppendLine();
+
+        // Fecha de inicio del plan
+        DateTime planStartDate;
+        if (request.StartDate.HasValue)
+        {
+            planStartDate = request.StartDate.Value.AddMinutes(request.TimezoneOffsetMinutes);
+            sb.AppendLine($"FECHA DE INICIO DEL PLAN: {planStartDate:yyyy-MM-dd} (especificada por el usuario)");
+        }
+        else
+        {
+            planStartDate = userLocalNow.AddDays(1).Date; // Mañana por defecto
+            sb.AppendLine($"FECHA DE INICIO DEL PLAN: {planStartDate:yyyy-MM-dd} (mañana)");
+        }
+        sb.AppendLine();
+
+        // Preferencias del plan
+        if (request.DurationWeeks.HasValue || request.SessionsPerWeek.HasValue || request.SessionDurationMinutes.HasValue || !string.IsNullOrEmpty(request.PreferredTimeOfDay))
+        {
+            sb.AppendLine("PREFERENCIAS DEL PLAN:");
+            if (request.DurationWeeks.HasValue)
+                sb.AppendLine($"- Duración deseada: {request.DurationWeeks} semanas");
+            if (request.SessionsPerWeek.HasValue)
+                sb.AppendLine($"- Sesiones por semana: {request.SessionsPerWeek}");
+            if (request.SessionDurationMinutes.HasValue)
+                sb.AppendLine($"- Duración de sesión: {request.SessionDurationMinutes} minutos");
+            if (!string.IsNullOrEmpty(request.PreferredTimeOfDay))
+                sb.AppendLine($"- Horario preferido: {request.PreferredTimeOfDay}");
+            sb.AppendLine();
+        }
+
+        // Contexto del calendario
+        AppendCalendarContext(sb, existingEvents, request.TimezoneOffsetMinutes, isParsingMode: true);
+
+        // Categorías disponibles
+        sb.AppendLine("CATEGORÍAS DISPONIBLES:");
+        var categoryList = availableCategories.ToList();
+        foreach (var category in categoryList)
+        {
+            sb.AppendLine($"• {category.Name} - ID: \"{category.Id}\" ({category.Description ?? "Sin descripción"})");
+        }
+        sb.AppendLine();
+
+        // Preferencias del usuario
+        AppendUserPreferences(sb, userPreferences);
+
+        // Instrucciones específicas para planes
+        sb.AppendLine("INSTRUCCIONES PARA GENERACIÓN DE PLAN:");
+        sb.AppendLine("1. Analiza el objetivo y determina una duración apropiada (respeta la preferencia si existe)");
+        sb.AppendLine("2. Crea un plan PROGRESIVO con sesiones que aumenten en complejidad/intensidad");
+        sb.AppendLine("3. Distribuye las sesiones de forma equilibrada respetando días laborales y horarios del usuario");
+        sb.AppendLine("4. Evita conflictos con eventos existentes del calendario");
+        sb.AppendLine("5. Asigna títulos descriptivos que indiquen el progreso (ej: 'Semana 1: Fundamentos', 'Sesión 3: Práctica avanzada')");
+        sb.AppendLine("6. Incluye descripciones detalladas con objetivos específicos de cada sesión");
+        sb.AppendLine("7. Asigna la categoría apropiada del catálogo disponible");
+        sb.AppendLine("8. Establece prioridades coherentes (sesiones iniciales: Medium, sesiones clave: High)");
+        sb.AppendLine($"9. IMPORTANTE: Inicia el plan desde la FECHA DE INICIO especificada ({planStartDate:yyyy-MM-dd})");
+        sb.AppendLine();
+
+        // Formato de respuesta JSON
+        sb.AppendLine("Responde en formato JSON con esta estructura exacta:");
+        sb.AppendLine(@"{");
+        sb.AppendLine(@"  ""planTitle"": ""Título descriptivo del plan (ej: 'Plan de 8 semanas para aprender guitarra')"",");
+        sb.AppendLine(@"  ""planDescription"": ""Descripción general del plan y su estructura"",");
+        sb.AppendLine(@"  ""durationWeeks"": 8,");
+        sb.AppendLine(@"  ""totalSessions"": 24,");
+        sb.AppendLine(@"  ""events"": [");
+        sb.AppendLine(@"    {");
+        sb.AppendLine(@"      ""title"": ""Semana 1 - Sesión 1: Introducción y fundamentos"",");
+        sb.AppendLine(@"      ""description"": ""Objetivos específicos de esta sesión..."",");
+        sb.AppendLine(@"      ""startDate"": ""2025-01-20T10:00:00Z"",");
+        sb.AppendLine(@"      ""endDate"": ""2025-01-20T11:30:00Z"",");
+        sb.AppendLine(@"      ""isAllDay"": false,");
+        sb.AppendLine(@"      ""location"": """",");
+        sb.AppendLine(@"      ""priority"": 2,");
+        sb.AppendLine($@"      ""eventCategoryId"": ""{categoryList.FirstOrDefault()?.Id ?? Guid.Empty}""");
+        sb.AppendLine(@"    }");
+        sb.AppendLine(@"    // ... más eventos");
+        sb.AppendLine(@"  ],");
+        sb.AppendLine(@"  ""additionalTips"": ""Consejos generales para tener éxito con este plan"",");
+        sb.AppendLine(@"  ""conflictWarnings"": [""Advertencia 1 si detectas conflictos""]");
+        sb.AppendLine(@"}");
+        sb.AppendLine();
+
+        sb.AppendLine("VALIDACIÓN DE CONFLICTOS:");
+        sb.AppendLine("- Compara cada sesión del plan con los eventos existentes del calendario");
+        sb.AppendLine("- Si una sesión se superpone con un evento existente, agrégala a conflictWarnings");
+        sb.AppendLine("- Ejemplo de advertencia: 'Sesión 3 (Lunes 15:00) se superpone con Reunión de equipo'");
+        sb.AppendLine();
+
+        sb.AppendLine("RECUERDA:");
+        sb.AppendLine("- Todas las fechas en formato UTC ISO 8601 con 'Z' al final");
+        sb.AppendLine("- eventCategoryId debe ser un GUID exacto de la lista de categorías");
+        sb.AppendLine("- priority debe ser 1-4 (1=Low, 2=Medium, 3=High, 4=Critical)");
+        sb.AppendLine("- Inicia el plan desde mañana, no desde hoy");
+        sb.AppendLine("- Sé específico y progresivo en los títulos y descripciones");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Parsea la respuesta de IA para extraer el plan generado
+    /// </summary>
+    private GeneratePlanResponseDto ParsePlanFromAIResponse(
+        string aiText,
+        IReadOnlyList<EventCategoryDto> availableCategories,
+        int timezoneOffsetMinutes,
+        IEnumerable<EventDto>? existingEvents)
+    {
+        try
+        {
+            using var document = ParseAiJson(aiText);
+            var rootElement = document.RootElement.Clone();
+
+            var planResponse = new GeneratePlanResponseDto
+            {
+                PlanTitle = ExtractJsonString(rootElement, "planTitle") ?? "Plan generado",
+                PlanDescription = ExtractJsonString(rootElement, "planDescription") ?? "",
+                DurationWeeks = rootElement.TryGetProperty("durationWeeks", out var durationProp) && durationProp.ValueKind == JsonValueKind.Number
+                    ? durationProp.GetInt32()
+                    : 1,
+                TotalSessions = rootElement.TryGetProperty("totalSessions", out var sessionsProp) && sessionsProp.ValueKind == JsonValueKind.Number
+                    ? sessionsProp.GetInt32()
+                    : 0,
+                AdditionalTips = ExtractJsonString(rootElement, "additionalTips")
+            };
+
+            // Parsear eventos
+            if (rootElement.TryGetProperty("events", out var eventsArray) && eventsArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var eventElement in eventsArray.EnumerateArray())
+                {
+                    try
+                    {
+                        var eventDto = ParseEventFromAIResponse(eventElement, availableCategories, timezoneOffsetMinutes);
+                        planResponse.Events.Add(eventDto);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error al parsear un evento del plan, continuando con el siguiente");
+                    }
+                }
+            }
+
+            // Actualizar total de sesiones si no coincide
+            if (planResponse.TotalSessions != planResponse.Events.Count)
+            {
+                planResponse.TotalSessions = planResponse.Events.Count;
+            }
+
+            // Parsear advertencias de conflictos
+            if (rootElement.TryGetProperty("conflictWarnings", out var warningsArray) && warningsArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var warning in warningsArray.EnumerateArray())
+                {
+                    if (warning.ValueKind == JsonValueKind.String)
+                    {
+                        var warningText = warning.GetString();
+                        if (!string.IsNullOrWhiteSpace(warningText))
+                        {
+                            planResponse.ConflictWarnings.Add(warningText);
+                        }
+                    }
+                }
+            }
+
+            // Detectar conflictos adicionales programáticamente
+            if (existingEvents != null && existingEvents.Any())
+            {
+                foreach (var plannedEvent in planResponse.Events)
+                {
+                    var conflicts = existingEvents.Where(existing =>
+                        (plannedEvent.StartDate >= existing.StartDate && plannedEvent.StartDate < existing.EndDate) ||
+                        (plannedEvent.EndDate > existing.StartDate && plannedEvent.EndDate <= existing.EndDate) ||
+                        (plannedEvent.StartDate <= existing.StartDate && plannedEvent.EndDate >= existing.EndDate)
+                    );
+
+                    foreach (var conflict in conflicts)
+                    {
+                        var warningMessage = $"'{plannedEvent.Title}' se superpone con '{conflict.Title}' ({conflict.StartDate:dd/MM HH:mm})";
+                        if (!planResponse.ConflictWarnings.Contains(warningMessage))
+                        {
+                            planResponse.ConflictWarnings.Add(warningMessage);
+                        }
+                    }
+                }
+            }
+
+            planResponse.HasPotentialConflicts = planResponse.ConflictWarnings.Any();
+
+            return planResponse;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al parsear respuesta del plan de IA");
+            throw new InvalidOperationException("No se pudo interpretar el plan generado por la IA", ex);
+        }
+    }
+
+    public async Task<IEnumerable<ScheduleSuggestionDto>?> GenerateScheduleSuggestionsAsync(
+        Guid userId,
+        IEnumerable<EventDto> events)
+    {
+        try
+        {
+            _logger.LogInformation("Generando sugerencias con IA para {EventCount} eventos", events.Count());
+
+            var prompt = BuildScheduleSuggestionsPrompt(events);
+
+            var geminiRequest = new GeminiRequest
+            {
+                Contents = new List<GeminiContent>
+                {
+                    new GeminiContent
+                    {
+                        Parts = new List<GeminiPart>
+                        {
+                            new GeminiPart { Text = prompt }
+                        }
+                    }
+                }
+            };
+
+            var jsonRequest = JsonSerializer.Serialize(geminiRequest, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            var url = $"{_baseUrl}?key={_apiKey}";
+            var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error en API Gemini: {StatusCode} - {Error}", response.StatusCode, errorContent);
+                return null; // Fallback a algoritmo manual
+            }
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(jsonResponse, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            var aiText = geminiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+            if (string.IsNullOrWhiteSpace(aiText))
+            {
+                _logger.LogWarning("Respuesta vacía de Gemini");
+                return null;
+            }
+
+            _logger.LogDebug("Respuesta IA: {Response}", aiText);
+
+            // Parsear JSON de sugerencias
+            var jsonMatch = System.Text.RegularExpressions.Regex.Match(aiText, @"\[[\s\S]*\]");
+            if (!jsonMatch.Success)
+            {
+                _logger.LogWarning("No se encontró JSON en respuesta de IA");
+                return null;
+            }
+
+            var suggestions = JsonSerializer.Deserialize<List<ScheduleSuggestionDto>>(jsonMatch.Value, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true
+            });
+
+            _logger.LogInformation("IA generó {Count} sugerencias", suggestions?.Count ?? 0);
+            return suggestions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando sugerencias con IA");
+            return null; // Fallback a algoritmo manual
+        }
+    }
+
+    private string BuildScheduleSuggestionsPrompt(IEnumerable<EventDto> events)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Analiza este calendario y genera sugerencias de optimización en JSON.");
+        sb.AppendLine();
+        sb.AppendLine("EVENTOS:");
+
+        foreach (var evt in events.OrderBy(e => e.StartDate))
+        {
+            sb.AppendLine($"- [{evt.Id}] {evt.Title} | {evt.StartDate:yyyy-MM-dd HH:mm} - {evt.EndDate:HH:mm} | Cat: {evt.EventCategory?.Name ?? "Sin categoría"}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("DETECTA: conflictos, sobrecarga, falta descansos, mala distribución, eventos duplicados/similares.");
+        sb.AppendLine("Para eventos similares: sugiere unificarlos o agruparlos.");
+        sb.AppendLine();
+        sb.AppendLine("RESPONDE SOLO con array JSON:");
+        sb.AppendLine("[{");
+        sb.AppendLine("  \"eventId\": \"guid-del-evento o null\",");
+        sb.AppendLine("  \"type\": 1-6 (1=MoveEvent,2=ResolveConflict,3=OptimizeDistribution,4=PatternAlert,5=SuggestBreak,6=GeneralReorganization),");
+        sb.AppendLine("  \"description\": \"Texto corto y ACCIONABLE (ej: 'Mover Guitarra a las 10:00', 'Crear descanso de 30min')\",");
+        sb.AppendLine("  \"reason\": \"Explicación detallada del POR QUÉ\",");
+        sb.AppendLine("  \"priority\": 1-5,");
+        sb.AppendLine("  \"suggestedDateTime\": \"2025-11-08T15:00:00Z (OBLIGATORIO para type=5 SuggestBreak)\",");
+        sb.AppendLine("  \"confidenceScore\": 70-100,");
+        sb.AppendLine("  \"relatedEventTitles\": [\"Título evento 1\", \"Título evento 2\"]");
+        sb.AppendLine("}]");
+        sb.AppendLine();
+        sb.AppendLine("REGLAS OBLIGATORIAS PARA TODOS LOS TIPOS:");
+        sb.AppendLine();
+        sb.AppendLine("type=1 (MoveEvent):");
+        sb.AppendLine("  - eventId: ID del evento a mover");
+        sb.AppendLine("  - suggestedDateTime: nueva fecha/hora EXACTA");
+        sb.AppendLine("  - description: 'Mover [Nombre] a [hora específica]'");
+        sb.AppendLine();
+        sb.AppendLine("type=2 (ResolveConflict):");
+        sb.AppendLine("  - eventId: ID del evento en conflicto");
+        sb.AppendLine("  - relatedEventTitles: títulos de TODOS los eventos en conflicto");
+        sb.AppendLine("  - suggestedDateTime: nueva hora propuesta para resolver");
+        sb.AppendLine();
+        sb.AppendLine("type=3 (OptimizeDistribution):");
+        sb.AppendLine("  - relatedEventTitles: títulos de TODOS los eventos a reorganizar (mínimo 2)");
+        sb.AppendLine("  - description: acción específica (ej: 'Agrupar Salud en lunes y miércoles')");
+        sb.AppendLine();
+        sb.AppendLine("type=4 (PatternAlert):");
+        sb.AppendLine("  - relatedEventTitles: títulos de TODOS los eventos que forman el patrón (mínimo 2)");
+        sb.AppendLine("  - description: patrón detectado + acción sugerida");
+        sb.AppendLine("  - OBLIGATORIO: listar eventos específicos involucrados");
+        sb.AppendLine();
+        sb.AppendLine("type=5 (SuggestBreak):");
+        sb.AppendLine("  - suggestedDateTime: fecha/hora EXACTA del descanso propuesto");
+        sb.AppendLine("  - relatedEventTitles: eventos entre los que va el descanso");
+        sb.AppendLine("  - description: 'Crear descanso de [duración] entre [evento1] y [evento2]'");
+        sb.AppendLine();
+        sb.AppendLine("type=6 (GeneralReorganization):");
+        sb.AppendLine("  - relatedEventTitles: eventos afectados por la reorganización");
+        sb.AppendLine();
+        sb.AppendLine("CRÍTICO: SIEMPRE incluir relatedEventTitles cuando hay 2+ eventos involucrados. El usuario debe ver qué eventos exactos se afectan.");
+
+        return sb.ToString();
+    }
+
+    public async Task<string> GenerateTextAsync(string prompt, string? context = null)
+    {
+        try
+        {
+            _logger.LogInformation("Generando texto con IA");
+
+            var fullPrompt = string.IsNullOrEmpty(context)
+                ? prompt
+                : $"{context}\n\n{prompt}";
+
+            // Construir request a Gemini
+            var geminiRequest = new GeminiRequest
+            {
+                Contents = new List<GeminiContent>
+                {
+                    new GeminiContent
+                    {
+                        Parts = new List<GeminiPart>
+                        {
+                            new GeminiPart { Text = fullPrompt }
+                        }
+                    }
+                }
+            };
+
+            var jsonRequest = JsonSerializer.Serialize(geminiRequest, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            var url = $"{_baseUrl}?key={_apiKey}";
+            var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+
+            // Timeout de 10 segundos para self-care suggestions
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await _httpClient.PostAsync(url, httpContent, cts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error en la API de Gemini: {StatusCode} - {Error}", response.StatusCode, errorContent);
+                return "";
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug("Respuesta de Gemini: {Response}", responseContent);
+
+            var geminiResponse = JsonSerializer.Deserialize<GeminiResponse>(responseContent, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            var text = geminiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text ?? "";
+            _logger.LogInformation("Texto generado exitosamente: {Length} caracteres", text.Length);
+            return text;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Timeout generando texto con IA (10s)");
+            return "";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando texto con IA");
+            return "";
+        }
+    }
 }
+

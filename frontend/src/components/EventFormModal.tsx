@@ -9,6 +9,12 @@ import { ReminderPickerModal } from './ReminderPickerModal';
 import { ReminderSection } from './ReminderSection';
 import { TimeInput } from './TimeInput';
 
+interface EventPrefillData {
+  title?: string;
+  description?: string;
+  durationMinutes?: number;
+}
+
 interface EventFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -17,6 +23,7 @@ interface EventFormModalProps {
   initialDate?: Date;
   mode?: 'create' | 'edit';
   eventToEdit?: EventDto | null;
+  prefillData?: EventPrefillData;
 }
 
 export const EventFormModal: React.FC<EventFormModalProps> = ({
@@ -26,7 +33,8 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   onEventUpdated,
   initialDate,
   mode = 'create',
-  eventToEdit
+  eventToEdit,
+  prefillData
 }) => {
   const [categories, setCategories] = useState<EventCategoryDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -174,38 +182,36 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setCategoryId(eventToEdit.eventCategory?.id ?? '');
       setPriority(eventToEdit.priority ?? 2);
     } else {
-      setTitle('');
-      setDescription('');
+      setTitle(prefillData?.title ?? '');
+      setDescription(prefillData?.description ?? '');
       setIsAllDay(false);
       setLocation('');
       setPriority(2);
 
-      if (initialDate) {
-        const offsetMs = initialDate.getTimezoneOffset() * 60000;
-        const dateStr = new Date(initialDate.getTime() - offsetMs).toISOString().split('T')[0];
-        setStartDate(dateStr);
-        setEndDate(dateStr);
+      const effectiveStart = initialDate ?? new Date();
+      const validStart = Number.isNaN(effectiveStart.getTime()) ? new Date() : effectiveStart;
+      const startOffsetMs = validStart.getTimezoneOffset() * 60000;
+      const startLocal = new Date(validStart.getTime() - startOffsetMs);
+      const startDateStr = startLocal.toISOString().split('T')[0];
+      setStartDate(startDateStr);
 
-        // Usar la hora de initialDate si está disponible
-        const timeStr = toTimeInputValue(initialDate.toISOString());
-        setStartTime(timeStr);
+      const startTimeStr = toTimeInputValue(validStart.toISOString()) || '09:00';
+      setStartTime(startTimeStr);
 
-        // Calcular hora de fin (1 hora después)
-        const endDateTime = new Date(initialDate);
-        endDateTime.setHours(endDateTime.getHours() + 1);
-        const endTimeStr = toTimeInputValue(endDateTime.toISOString());
-        setEndTime(endTimeStr);
-      } else {
-        const now = new Date();
-        const offsetMs = now.getTimezoneOffset() * 60000;
-        const today = new Date(now.getTime() - offsetMs).toISOString().split('T')[0];
-        setStartDate(today);
-        setEndDate(today);
-        setStartTime('09:00');
-        setEndTime('10:00');
-      }
+      const durationMinutes = prefillData?.durationMinutes && prefillData.durationMinutes > 0
+        ? prefillData.durationMinutes
+        : 60;
+      const endDateTime = new Date(validStart.getTime());
+      endDateTime.setMinutes(endDateTime.getMinutes() + durationMinutes);
+      const endOffsetMs = endDateTime.getTimezoneOffset() * 60000;
+      const endLocal = new Date(endDateTime.getTime() - endOffsetMs);
+      const endDateStr = endLocal.toISOString().split('T')[0];
+      setEndDate(endDateStr);
+
+      const endTimeStr = toTimeInputValue(endDateTime.toISOString()) || startTimeStr;
+      setEndTime(endTimeStr);
     }
-  }, [isOpen, isCreateMode, eventToEdit, initialDate, toTimeInputValue]);
+  }, [isOpen, isCreateMode, eventToEdit, initialDate, toTimeInputValue, prefillData]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -272,6 +278,18 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
     if (!startDateTime || !endDateTime) {
       throw new Error('No se pudo interpretar la fecha u hora seleccionada.');
+    }
+
+    // Validar que la fecha/hora de fin sea posterior a la de inicio
+    const startDateObj = new Date(startDateTime);
+    const endDateObj = new Date(endDateTime);
+
+    if (endDateObj <= startDateObj) {
+      if (isAllDay) {
+        throw new Error('La fecha de fin debe ser posterior a la fecha de inicio.');
+      } else {
+        throw new Error('La hora de fin debe ser posterior a la hora de inicio.');
+      }
     }
 
     return {

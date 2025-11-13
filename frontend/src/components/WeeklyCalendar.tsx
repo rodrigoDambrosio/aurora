@@ -274,7 +274,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ userId }) => {
                       key={event.id}
                       className="event-item"
                       style={{
-                        borderLeftColor: event.eventCategory.color || '#3b82f6'
+                        borderLeftColor: event.eventCategory?.color || '#3b82f6'
                       }}
                     >
                       <div className="event-title">{event.title}</div>
@@ -292,9 +292,9 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ userId }) => {
                       <div className="event-category">
                         <span
                           className="category-dot"
-                          style={{ backgroundColor: event.eventCategory.color }}
+                          style={{ backgroundColor: event.eventCategory?.color || '#3b82f6' }}
                         ></span>
-                        {event.eventCategory.name}
+                        {event.eventCategory?.name ?? 'Sin categoría'}
                       </div>
                       {event.location && (
                         <div className="event-location">📍 {event.location}</div>

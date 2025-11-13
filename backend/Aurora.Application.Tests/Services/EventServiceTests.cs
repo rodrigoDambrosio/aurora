@@ -5,6 +5,7 @@ using Aurora.Domain.Entities;
 using AutoFixture;
 using FluentAssertions;
 using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aurora.Application.Tests.Services;
 
@@ -19,7 +20,10 @@ public class EventServiceTests
     {
         _eventRepositoryMock = new Mock<IEventRepository>();
         _categoryRepositoryMock = new Mock<IEventCategoryRepository>();
-        _eventService = new EventService(_eventRepositoryMock.Object, _categoryRepositoryMock.Object);
+        _eventService = new EventService(
+            _eventRepositoryMock.Object,
+            _categoryRepositoryMock.Object,
+            NullLogger<EventService>.Instance);
         _fixture = new Fixture();
     }
 
@@ -27,7 +31,7 @@ public class EventServiceTests
     public void Constructor_WithNullEventRepository_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventService(null!, _categoryRepositoryMock.Object);
+        var act = () => new EventService(null!, _categoryRepositoryMock.Object, NullLogger<EventService>.Instance);
         act.Should().Throw<ArgumentNullException>().WithParameterName("eventRepository");
     }
 
@@ -35,8 +39,16 @@ public class EventServiceTests
     public void Constructor_WithNullCategoryRepository_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        var act = () => new EventService(_eventRepositoryMock.Object, null!);
+        var act = () => new EventService(_eventRepositoryMock.Object, null!, NullLogger<EventService>.Instance);
         act.Should().Throw<ArgumentNullException>().WithParameterName("categoryRepository");
+    }
+
+    [Fact]
+    public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
+    {
+        // Act & Assert
+        var act = () => new EventService(_eventRepositoryMock.Object, _categoryRepositoryMock.Object, null!);
+        act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
     }
 
     [Fact]
@@ -258,10 +270,14 @@ public class EventServiceTests
             .Setup(x => x.UserCanUseCategoryAsync(categoryId, It.IsAny<Guid>()))
             .ReturnsAsync(false);
 
+        _categoryRepositoryMock
+            .Setup(x => x.GetAvailableCategoriesForUserAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new List<EventCategory>());
+
         // Act & Assert
         var act = async () => await _eventService.CreateEventAsync(userId, createEventDto);
         await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("La categoría especificada no está disponible para este usuario");
+            .WithMessage("El usuario no tiene categorías disponibles. Por favor, crea una categoría primero.");
     }
 
     [Fact]

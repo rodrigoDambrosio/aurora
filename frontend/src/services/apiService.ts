@@ -78,7 +78,13 @@ export interface EventDto {
   notes?: string;
   isRecurring: boolean;
   priority: EventPriority;
-  eventCategory: EventCategoryDto;
+  eventCategoryId: string;
+  eventCategory?: EventCategoryDto;
+  moodRating?: number | null;
+  moodNotes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  userId?: string;
 }
 
 export interface WeeklyEventsRequestDto {
@@ -108,6 +114,11 @@ export interface CreateEventDto {
   timezoneOffsetMinutes?: number;
 }
 
+export interface UpdateEventMoodDto {
+  moodRating?: number | null;
+  moodNotes?: string | null;
+}
+
 export interface ParseNaturalLanguageRequestDto {
   text: string;
   timezoneOffsetMinutes: number;
@@ -126,6 +137,28 @@ export interface ParseNaturalLanguageResponseDto {
   event: CreateEventDto;
   validation?: AIValidationResult;
   errorMessage?: string;
+}
+
+export interface GeneratePlanRequestDto {
+  goal: string;
+  timezoneOffsetMinutes: number;
+  startDate?: string;
+  durationWeeks?: number;
+  sessionsPerWeek?: number;
+  sessionDurationMinutes?: number;
+  preferredTimeOfDay?: string;
+  categoryId?: string;
+}
+
+export interface GeneratePlanResponseDto {
+  planTitle: string;
+  planDescription: string;
+  durationWeeks: number;
+  totalSessions: number;
+  events: CreateEventDto[];
+  additionalTips?: string;
+  hasPotentialConflicts: boolean;
+  conflictWarnings: string[];
 }
 
 export interface RegisterUserRequestDto {
@@ -195,6 +228,310 @@ export interface UpdateUserPreferencesDto {
   exerciseDaysOfWeek?: number[];
   nlpKeywords?: string[];
   notificationsEnabled?: boolean;
+}
+
+export interface DailyMoodEntryDto {
+  id: string;
+  entryDate: string;
+  moodRating: number;
+  notes?: string | null;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MonthlyMoodResponseDto {
+  year: number;
+  month: number;
+  entries: DailyMoodEntryDto[];
+  userId?: string;
+}
+
+export interface UpsertDailyMoodRequestDto {
+  entryDate: string;
+  moodRating: number;
+  notes?: string | null;
+}
+
+// ===== RECOMMENDATIONS DTOs =====
+
+export interface RecommendationRequestDto {
+  referenceDate?: string;
+  limit?: number;
+  currentMood?: number;
+  externalContext?: string;
+}
+
+export interface RecommendationDto {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  reason: string;
+  recommendationType: string;
+  suggestedStart: string;
+  suggestedDurationMinutes: number;
+  confidence: number;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  moodImpact?: string | null;
+  summary?: string | null;
+}
+
+export interface RecommendationFeedbackDto {
+  recommendationId: string;
+  accepted: boolean;
+  notes?: string;
+  moodAfter?: number;
+  submittedAtUtc?: string;
+}
+
+export interface RecommendationFeedbackSummaryDto {
+  totalFeedback: number;
+  acceptedCount: number;
+  rejectedCount: number;
+  acceptanceRate: number;
+  averageMoodAfter?: number | null;
+  periodStartUtc: string;
+  periodEndUtc: string;
+}
+
+export type RecommendationConversationRole = 'user' | 'assistant';
+
+export interface RecommendationConversationMessageDto {
+  role: RecommendationConversationRole;
+  content: string;
+}
+
+export interface RecommendationAssistantRequestDto {
+  conversation: RecommendationConversationMessageDto[];
+  currentMood?: number;
+  externalContext?: string;
+  fallbackRecommendations?: RecommendationDto[];
+}
+
+export interface RecommendationAssistantChatRequestDto {
+  conversation: RecommendationConversationMessageDto[];
+  currentMood?: number;
+  externalContext?: string;
+}
+
+export interface RecommendationAssistantChatResponseDto {
+  message: string;
+}
+
+// ===== PRODUCTIVITY ANALYSIS DTOs =====
+
+export interface ProductivityAnalysisDto {
+  hourlyProductivity: HourlyProductivityDto[];
+  dailyProductivity: DailyProductivityDto[];
+  goldenHours: GoldenHourDto[];
+  lowEnergyHours: LowEnergyHourDto[];
+  categoryProductivity: CategoryProductivityDto[];
+  recommendations: ProductivityRecommendationDto[];
+  analysisPeriodStart: string;
+  analysisPeriodEnd: string;
+  totalEventsAnalyzed: number;
+  totalMoodRecordsAnalyzed: number;
+}
+
+export interface HourlyProductivityDto {
+  hour: number;
+  averageMood: number;
+  eventsCompleted: number;
+  totalEvents: number;
+  completionRate: number;
+  productivityScore: number;
+}
+
+export interface DailyProductivityDto {
+  dayOfWeek: number;
+  dayName: string;
+  averageMood: number;
+  productivityScore: number;
+  totalEvents: number;
+}
+
+export interface GoldenHourDto {
+  startHour: number;
+  endHour: number;
+  averageProductivityScore: number;
+  description: string;
+  applicableDays?: number[] | null;
+}
+
+export interface LowEnergyHourDto {
+  startHour: number;
+  endHour: number;
+  averageProductivityScore: number;
+  description: string;
+}
+
+export interface CategoryProductivityDto {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  optimalHours: number[];
+  averageProductivityScore: number;
+  bestDayOfWeek: number;
+}
+
+export interface ProductivityRecommendationDto {
+  title: string;
+  description: string;
+  priority: number;
+  type: string;
+  affectedCategories: string[];
+  suggestedHours: number[];
+}
+
+// ===== SELF-CARE RECOMMENDATIONS DTOs =====
+
+export const SelfCareType = {
+  Physical: 1,
+  Mental: 2,
+  Social: 3,
+  Creative: 4,
+  Rest: 5
+} as const;
+
+export type SelfCareType = typeof SelfCareType[keyof typeof SelfCareType];
+
+export const SelfCareFeedbackAction = {
+  Scheduled: 0,
+  CompletedNow: 1,
+  Dismissed: 2,
+  Ignored: 3
+} as const;
+
+export type SelfCareFeedbackAction = typeof SelfCareFeedbackAction[keyof typeof SelfCareFeedbackAction];
+
+export interface SelfCareRequestDto {
+  context?: string;
+  currentMood?: number;
+  count: number;
+}
+
+export interface SelfCareRecommendationDto {
+  id: string;
+  type: SelfCareType;
+  typeDescription: string;
+  title: string;
+  description: string;
+  durationMinutes: number;
+  personalizedReason: string;
+  confidenceScore: number;
+  icon: string;
+  suggestedDateTime?: string | null;
+  historicalMoodImpact?: number | null;
+  completionRate?: number | null;
+}
+
+export interface SelfCareFeedbackDto {
+  recommendationId: string;
+  action: SelfCareFeedbackAction;
+  moodAfter?: number | null;
+  notes?: string | null;
+  timestamp: string;
+}
+
+// ===== WELLNESS ANALYTICS DTOs =====
+
+export interface MoodDaySnapshotDto {
+  date: string;
+  moodRating: number;
+  notes?: string | null;
+}
+
+export interface MoodTrendPointDto {
+  date: string;
+  averageMood: number | null;
+  entries: number;
+}
+
+export interface MoodDistributionSliceDto {
+  moodRating: number;
+  count: number;
+  percentage: number;
+}
+
+export interface MoodStreaksDto {
+  currentPositive: number;
+  longestPositive: number;
+  currentNegative: number;
+  longestNegative: number;
+}
+
+export interface CategoryMoodImpactDto {
+  categoryId: string;
+  categoryName: string;
+  categoryColor?: string | null;
+  averageMood: number;
+  eventCount: number;
+  positiveCount: number;
+  negativeCount: number;
+}
+
+export interface WellnessSummaryDto {
+  year: number;
+  month: number;
+  averageMood: number;
+  bestDay?: MoodDaySnapshotDto | null;
+  worstDay?: MoodDaySnapshotDto | null;
+  moodTrend: MoodTrendPointDto[];
+  moodDistribution: MoodDistributionSliceDto[];
+  streaks: MoodStreaksDto;
+  categoryImpacts: CategoryMoodImpactDto[];
+  totalTrackedDays: number;
+  positiveDays: number;
+  neutralDays: number;
+  negativeDays: number;
+  trackingCoverage: number;
+  hasEventMoodData: boolean;
+}
+
+export const SuggestionType = {
+  MoveEvent: 1,
+  ResolveConflict: 2,
+  OptimizeDistribution: 3,
+  PatternAlert: 4,
+  SuggestBreak: 5,
+  GeneralReorganization: 6,
+} as const;
+
+export type SuggestionType = typeof SuggestionType[keyof typeof SuggestionType];
+
+export const SuggestionStatus = {
+  Pending: 1,
+  Accepted: 2,
+  Rejected: 3,
+  Postponed: 4,
+  Expired: 5,
+} as const;
+
+export type SuggestionStatus = typeof SuggestionStatus[keyof typeof SuggestionStatus];
+
+export interface ScheduleSuggestionDto {
+  id: string;
+  userId: string;
+  eventId?: string;
+  eventTitle?: string;
+  relatedEventTitles?: string[];
+  type: SuggestionType;
+  typeDescription: string;
+  description: string;
+  reason: string;
+  priority: number;
+  suggestedDateTime?: string;
+  status: SuggestionStatus;
+  statusDescription: string;
+  respondedAt?: string;
+  confidenceScore: number;
+  createdAt: string;
+}
+
+export interface RespondToSuggestionDto {
+  status: SuggestionStatus;
+  userComment?: string;
 }
 
 // Legacy interfaces for backward compatibility
@@ -407,10 +744,15 @@ export const apiService = {
    * Delete a custom event category, optionally reassigning events to another category
    */
   async deleteEventCategory(id: string, deleteData?: DeleteEventCategoryDto, userId?: string): Promise<void> {
-    const queryParam = userId ? `?userId=${userId}` : '';
-    return this.fetchApi<void>(`/eventcategories/${id}${queryParam}`, {
-      method: 'DELETE',
-      body: deleteData ? JSON.stringify(deleteData) : undefined
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId);
+    if (deleteData?.reassignToCategoryId) params.append('reassignToCategoryId', deleteData.reassignToCategoryId);
+
+    const queryString = params.toString();
+    const url = `/eventcategories/${id}${queryString ? `?${queryString}` : ''}`;
+
+    return this.fetchApi<void>(url, {
+      method: 'DELETE'
     });
   },
 
@@ -501,6 +843,16 @@ export const apiService = {
   },
 
   /**
+   * Update mood tracking for an event
+   */
+  async updateEventMood(eventId: string, payload: UpdateEventMoodDto): Promise<EventDto> {
+    return this.fetchApi<EventDto>(`/events/${eventId}/mood`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  /**
    * Parse natural language text to event using AI
    */
   async parseNaturalLanguage(text: string): Promise<ParseNaturalLanguageResponseDto> {
@@ -515,6 +867,65 @@ export const apiService = {
     return this.fetchApi<ParseNaturalLanguageResponseDto>('/events/from-text', {
       method: 'POST',
       body: JSON.stringify(request)
+    });
+  },
+
+  /**
+   * Generate a multi-day plan from a high-level goal using AI
+   */
+  async generatePlan(goal: string, options?: {
+    startDate?: string;
+    durationWeeks?: number;
+    sessionsPerWeek?: number;
+    sessionDurationMinutes?: number;
+    preferredTimeOfDay?: string;
+    categoryId?: string;
+  }): Promise<GeneratePlanResponseDto> {
+    // Obtener el offset de zona horaria del navegador en minutos
+    const timezoneOffsetMinutes = -new Date().getTimezoneOffset();
+
+    const request: GeneratePlanRequestDto = {
+      goal,
+      timezoneOffsetMinutes,
+      ...options
+    };
+
+    return this.fetchApi<GeneratePlanResponseDto>('/events/generate-plan', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  },
+
+  // ===== MOOD TRACKING ENDPOINTS =====
+
+  /**
+   * Get daily mood entries for a specific month
+   */
+  async getMonthlyMoodEntries(year: number, month: number): Promise<MonthlyMoodResponseDto> {
+    const params = new URLSearchParams();
+    params.append('year', year.toString());
+    params.append('month', month.toString());
+    return this.fetchApi<MonthlyMoodResponseDto>(`/moods/monthly?${params.toString()}`);
+  },
+
+  /**
+   * Create or update a daily mood entry
+   */
+  async upsertDailyMood(payload: UpsertDailyMoodRequestDto): Promise<DailyMoodEntryDto> {
+    return this.fetchApi<DailyMoodEntryDto>('/moods', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  /**
+   * Delete a daily mood entry for a specific date
+   */
+  async deleteDailyMood(entryDateUtcIso: string): Promise<void> {
+    const params = new URLSearchParams();
+    params.append('date', entryDateUtcIso);
+    return this.fetchApi<void>(`/moods?${params.toString()}`, {
+      method: 'DELETE'
     });
   },
 
@@ -552,6 +963,50 @@ export const apiService = {
   async updateUserPreferences(payload: UpdateUserPreferencesDto): Promise<UserPreferencesDto> {
     return this.fetchApi<UserPreferencesDto>('/user/preferences', {
       method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+  },
+
+
+  // ===== WELLNESS ANALYTICS ENDPOINTS =====
+
+  async getWellnessSummary(year: number, month: number): Promise<WellnessSummaryDto> {
+    const params = new URLSearchParams();
+    params.append('year', year.toString());
+    params.append('month', month.toString());
+    return this.fetchApi<WellnessSummaryDto>(`/wellness/summary?${params.toString()}`);
+  },
+
+  // ===== RECOMMENDATIONS ENDPOINTS =====
+
+  async getRecommendations(params?: RecommendationRequestDto): Promise<RecommendationDto[]> {
+    const searchParams = new URLSearchParams();
+
+    if (params?.referenceDate) {
+      searchParams.append('ReferenceDate', params.referenceDate);
+    }
+
+    if (typeof params?.limit === 'number') {
+      searchParams.append('Limit', params.limit.toString());
+    }
+
+    if (typeof params?.currentMood === 'number') {
+      searchParams.append('CurrentMood', params.currentMood.toString());
+    }
+
+    if (params?.externalContext) {
+      searchParams.append('ExternalContext', params.externalContext);
+    }
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString.length > 0 ? `/recommendations?${queryString}` : '/recommendations';
+
+    return this.fetchApi<RecommendationDto[]>(endpoint);
+  },
+
+  async generateConversationalRecommendations(payload: RecommendationAssistantRequestDto): Promise<RecommendationDto[]> {
+    return this.fetchApi<RecommendationDto[]>('/recommendations/assistant', {
+      method: 'POST',
       body: JSON.stringify(payload)
     });
   },
@@ -597,7 +1052,6 @@ export const apiService = {
       method: 'DELETE'
     });
   },
-
   /**
    * Mark a reminder as sent
    */
@@ -605,5 +1059,92 @@ export const apiService = {
     await this.fetchApi<void>(`/reminders/${id}/mark-sent`, {
       method: 'PUT'
     });
+  },
+  async generateAssistantReply(payload: RecommendationAssistantChatRequestDto): Promise<RecommendationAssistantChatResponseDto> {
+    return this.fetchApi<RecommendationAssistantChatResponseDto>('/recommendations/assistant/chat', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  async submitRecommendationFeedback(payload: RecommendationFeedbackDto): Promise<void> {
+    const body = {
+      ...payload,
+      submittedAtUtc: payload.submittedAtUtc ?? new Date().toISOString()
+    };
+
+    await this.fetchApi<void>('/recommendations/feedback', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+  },
+
+  async getRecommendationFeedbackSummary(days = 30): Promise<RecommendationFeedbackSummaryDto> {
+    const clamped = Math.min(Math.max(days, 1), 180);
+    return this.fetchApi<RecommendationFeedbackSummaryDto>(`/recommendations/feedback/summary?days=${clamped}`);
+  },
+
+  // ===== SCHEDULE SUGGESTIONS ENDPOINTS =====
+
+  /**
+   * Get pending schedule suggestions for current user
+   */
+  async getScheduleSuggestions(): Promise<ScheduleSuggestionDto[]> {
+    return this.fetchApi<ScheduleSuggestionDto[]>('/schedule-suggestions');
+  },
+
+  /**
+   * Generate new schedule suggestions by analyzing calendar
+   */
+  async generateScheduleSuggestions(): Promise<ScheduleSuggestionDto[]> {
+    return this.fetchApi<ScheduleSuggestionDto[]>('/schedule-suggestions/generate', {
+      method: 'POST'
+    });
+  },
+
+  /**
+  * Respond to a schedule suggestion (accept/reject/postpone)
+  */
+  async respondToSuggestion(id: string, response: RespondToSuggestionDto): Promise<ScheduleSuggestionDto> {
+    return this.fetchApi<ScheduleSuggestionDto>(`/schedule-suggestions/${id}/respond`, {
+      method: 'POST',
+      body: JSON.stringify(response)
+    });
+  },
+
+  // Productivity Analysis
+  async getProductivityAnalysis(periodDays = 30): Promise<ProductivityAnalysisDto> {
+    const clamped = Math.min(Math.max(periodDays, 1), 365);
+    return this.fetchApi<ProductivityAnalysisDto>(`/user/productivity-analysis?periodDays=${clamped}`);
+  },
+
+  // ===== SELF-CARE RECOMMENDATIONS ENDPOINTS =====
+
+  /**
+   * Get personalized self-care recommendations
+   */
+  async getSelfCareRecommendations(request: SelfCareRequestDto): Promise<SelfCareRecommendationDto[]> {
+    return this.fetchApi<SelfCareRecommendationDto[]>('/recommendations/self-care', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  },
+
+  /**
+   * Register feedback for a self-care recommendation
+   */
+  async registerSelfCareFeedback(feedback: SelfCareFeedbackDto): Promise<void> {
+    await this.fetchApi<void>('/recommendations/self-care/feedback', {
+      method: 'POST',
+      body: JSON.stringify(feedback)
+    });
+  },
+
+  /**
+   * Get generic self-care recommendations (offline fallback)
+   */
+  async getGenericSelfCare(count = 5): Promise<SelfCareRecommendationDto[]> {
+    const clamped = Math.min(Math.max(count, 1), 10);
+    return this.fetchApi<SelfCareRecommendationDto[]>(`/recommendations/self-care/generic?count=${clamped}`);
   }
 };

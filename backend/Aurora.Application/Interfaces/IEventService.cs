@@ -85,4 +85,13 @@ public interface IEventService
     /// <param name="excludeEventId">ID del evento a excluir de la verificación (para actualizaciones)</param>
     /// <returns>Lista de eventos que se superponen</returns>
     Task<IEnumerable<EventDto>> GetConflictingEventsAsync(Guid? userId, DateTime startDate, DateTime endDate, Guid? excludeEventId = null);
+
+    /// <summary>
+    /// Actualiza el estado de ánimo de un evento
+    /// </summary>
+    /// <param name="eventId">ID del evento</param>
+    /// <param name="userId">ID del usuario (opcional en modo desarrollo)</param>
+    /// <param name="moodDto">Datos del estado de ánimo</param>
+    /// <returns>Evento actualizado</returns>
+    Task<EventDto> UpdateEventMoodAsync(Guid eventId, Guid? userId, UpdateEventMoodDto moodDto);
 }

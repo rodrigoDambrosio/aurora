@@ -4,8 +4,9 @@ import ApiTest from './components/ApiTest';
 import AuthScreen from './components/Auth/AuthScreen';
 import MainDashboard from './components/MainDashboard';
 import { NotificationPermissionBanner } from './components/NotificationPermissionBanner';
+import { EventsProvider } from './context/EventsContext';
 import { NotificationProvider, useNotifications as useInAppNotifications } from './context/NotificationContext';
-import { useTheme } from './context/ThemeContext';
+import { useTheme } from './context/useTheme';
 import { useNotifications } from './hooks/useNotifications';
 import { apiService } from './services/apiService';
 
@@ -106,14 +107,18 @@ function AppContent() {
       ) : shouldShowAuthScreen ? (
         <AuthScreen onAuthSuccess={() => setIsAuthenticated(true)} />
       ) : (
-        <div className="aurora-app">
-          {permission === 'default' && !localStorage.getItem('notificationBannerDismissed') && (
-            <NotificationPermissionBanner onPermissionGranted={requestPermission} />
-          )}
-          <MainDashboard onViewEvent={(openEventFn) => {
-            globalOpenEventById = openEventFn;
-          }} />
-        </div>
+        <EventsProvider>
+
+          <div className="aurora-app">
+            {permission === 'default' && !localStorage.getItem('notificationBannerDismissed') && (
+              <NotificationPermissionBanner onPermissionGranted={requestPermission} />
+            )}
+            <MainDashboard onViewEvent={(openEventFn) => {
+              globalOpenEventById = openEventFn;
+            }} />
+
+          </div>
+        </EventsProvider>
       )}
     </div>
   );

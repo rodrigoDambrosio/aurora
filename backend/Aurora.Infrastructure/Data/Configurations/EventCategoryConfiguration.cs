@@ -43,9 +43,12 @@ public class EventCategoryConfiguration : IEntityTypeConfiguration<EventCategory
         builder.HasIndex(c => c.UserId)
             .HasDatabaseName("IX_EventCategories_UserId");
 
+        // Índice único parcial: solo aplica a categorías activas
+        // Esto permite múltiples categorías inactivas con el mismo nombre (soft delete)
         builder.HasIndex(c => new { c.UserId, c.Name })
             .IsUnique()
-            .HasDatabaseName("IX_EventCategories_UserId_Name");
+            .HasDatabaseName("IX_EventCategories_UserId_Name_Active")
+            .HasFilter("IsActive = 1");
 
         builder.HasIndex(c => c.IsSystemDefault)
             .HasDatabaseName("IX_EventCategories_IsDefault");

@@ -19,20 +19,20 @@ body {
 
 #root {
   height: 100vh;
-  width: 100vw;
+  width: 100%;
   overflow: hidden;
 }
 
 .App {
   height: 100vh;
-  width: 100vw;
+  width: 100%;
   overflow: hidden;
 }
 
 /* ===== AURORA MAIN APP ===== */
 .aurora-app {
   height: 100vh;
-  width: 100vw;
+  width: 100%;
   display: flex;
   background: var(--color-surface);
   position: relative;
@@ -185,5 +185,23 @@ body {
 
   .test-main {
     padding: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  #root,
+  .App,
+  .aurora-app {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
   }
 }

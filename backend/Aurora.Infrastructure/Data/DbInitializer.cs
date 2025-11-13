@@ -25,6 +25,9 @@ public static class DbInitializer
         // Asegurar que la columna Priority exista incluso si la base ya se creó antes del cambio
         await EnsurePriorityColumnAsync(context);
 
+        // Asegurar que las columnas MoodRating y MoodNotes existan en la tabla Events
+        await EnsureEventMoodColumnsAsync(context);
+
         // Asegurar que la columna Timezone exista en la tabla Users
         await EnsureTimezoneColumnAsync(context);
 
@@ -33,6 +36,15 @@ public static class DbInitializer
 
         // Asegurar que la tabla UserSessions exista (por compatibilidad con bases creadas antes de introducirla)
         await EnsureUserSessionsTableAsync(context);
+
+        // Asegurar que la tabla DailyMoodEntries exista
+        await EnsureDailyMoodEntriesTableAsync(context);
+
+        // Asegurar que la tabla RecommendationFeedback exista
+        await EnsureRecommendationFeedbackTableAsync(context);
+
+        // Asegurar que la tabla ScheduleSuggestions exista
+        await EnsureScheduleSuggestionsTableAsync(context);
 
         // Si ya hay usuarios, no hacer nada
         if (await context.Users.AnyAsync())
@@ -234,6 +246,118 @@ CREATE TABLE UserSessions (
     }
 
     /// <summary>
+    /// Garantiza que la tabla DailyMoodEntries exista para compatibilidad con bases antiguas.
+    /// </summary>
+    private static async Task EnsureDailyMoodEntriesTableAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var checkCommand = connection.CreateCommand();
+            checkCommand.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='DailyMoodEntries';";
+
+            var exists = false;
+            await using (var reader = await checkCommand.ExecuteReaderAsync())
+            {
+                exists = await reader.ReadAsync();
+            }
+
+            if (!exists)
+            {
+                using var createCommand = connection.CreateCommand();
+                createCommand.CommandText = @"
+CREATE TABLE DailyMoodEntries (
+    Id TEXT NOT NULL PRIMARY KEY,
+    EntryDate TEXT NOT NULL,
+    MoodRating INTEGER NOT NULL,
+    Notes TEXT,
+    UserId TEXT NOT NULL,
+    CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+    UpdatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+    IsActive INTEGER NOT NULL DEFAULT 1
+);";
+                await createCommand.ExecuteNonQueryAsync();
+
+                using var indexCommand = connection.CreateCommand();
+                indexCommand.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS IX_DailyMoodEntries_UserId_EntryDate ON DailyMoodEntries(UserId, EntryDate);";
+                await indexCommand.ExecuteNonQueryAsync();
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Garantiza que la tabla RecommendationFeedback exista para compatibilidad con bases antiguas.
+    /// </summary>
+    private static async Task EnsureRecommendationFeedbackTableAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var checkCommand = connection.CreateCommand();
+            checkCommand.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='RecommendationFeedback';";
+
+            var exists = false;
+            await using (var reader = await checkCommand.ExecuteReaderAsync())
+            {
+                exists = await reader.ReadAsync();
+            }
+
+            if (!exists)
+            {
+                using var createCommand = connection.CreateCommand();
+                createCommand.CommandText = @"
+CREATE TABLE RecommendationFeedback (
+    Id TEXT NOT NULL PRIMARY KEY,
+    RecommendationId TEXT NOT NULL,
+    Accepted INTEGER NOT NULL,
+    Notes TEXT,
+    MoodAfter INTEGER,
+    SubmittedAtUtc TEXT NOT NULL,
+    UserId TEXT NOT NULL,
+    CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+    UpdatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+    IsActive INTEGER NOT NULL DEFAULT 1
+);";
+                await createCommand.ExecuteNonQueryAsync();
+
+                using var indexCommand = connection.CreateCommand();
+                indexCommand.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS IX_RecommendationFeedback_UserId_RecommendationId ON RecommendationFeedback(UserId, RecommendationId);";
+                await indexCommand.ExecuteNonQueryAsync();
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    /// <summary>
     /// Reinicia la base de datos con datos frescos de desarrollo
     /// </summary>
     /// <param name="context">Contexto de base de datos</param>
@@ -281,6 +405,64 @@ CREATE TABLE UserSessions (
             {
                 using var alterCommand = connection.CreateCommand();
                 alterCommand.CommandText = "ALTER TABLE Events ADD COLUMN Priority INTEGER NOT NULL DEFAULT 2;";
+                await alterCommand.ExecuteNonQueryAsync();
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Garantiza que las columnas MoodRating y MoodNotes existan en la tabla Events.
+    /// </summary>
+    private static async Task EnsureEventMoodColumnsAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var pragmaCommand = connection.CreateCommand();
+            pragmaCommand.CommandText = "PRAGMA table_info('Events');";
+
+            var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            await using (var reader = await pragmaCommand.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    var columnName = reader["name"]?.ToString();
+                    if (columnName != null)
+                    {
+                        existingColumns.Add(columnName);
+                    }
+                }
+            }
+
+            // Agregar MoodRating si no existe
+            if (!existingColumns.Contains("MoodRating"))
+            {
+                using var alterCommand = connection.CreateCommand();
+                alterCommand.CommandText = "ALTER TABLE Events ADD COLUMN MoodRating INTEGER;";
+                await alterCommand.ExecuteNonQueryAsync();
+            }
+
+            // Agregar MoodNotes si no existe
+            if (!existingColumns.Contains("MoodNotes"))
+            {
+                using var alterCommand = connection.CreateCommand();
+                alterCommand.CommandText = "ALTER TABLE Events ADD COLUMN MoodNotes TEXT;";
                 await alterCommand.ExecuteNonQueryAsync();
             }
         }
@@ -395,6 +577,69 @@ CREATE TABLE UserSessions (
                     alterCommand.CommandText = $"ALTER TABLE UserPreferences ADD COLUMN {column.Key} {column.Value};";
                     await alterCommand.ExecuteNonQueryAsync();
                 }
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Garantiza que la tabla ScheduleSuggestions exista incluso para bases creadas antes de introducir la entidad.
+    /// </summary>
+    private static async Task EnsureScheduleSuggestionsTableAsync(AuroraDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+        var shouldCloseConnection = false;
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            shouldCloseConnection = true;
+        }
+
+        try
+        {
+            using var checkCommand = connection.CreateCommand();
+            checkCommand.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='ScheduleSuggestions';";
+
+            var exists = false;
+            await using (var reader = await checkCommand.ExecuteReaderAsync())
+            {
+                exists = await reader.ReadAsync();
+            }
+
+            if (!exists)
+            {
+                using var createCommand = connection.CreateCommand();
+                createCommand.CommandText = @"
+CREATE TABLE ScheduleSuggestions (
+    Id TEXT NOT NULL PRIMARY KEY,
+    UserId TEXT NOT NULL,
+    EventId TEXT,
+    Type INTEGER NOT NULL,
+    Description TEXT NOT NULL,
+    Reason TEXT NOT NULL,
+    Priority INTEGER NOT NULL DEFAULT 3,
+    SuggestedDateTime TEXT,
+    Status INTEGER NOT NULL DEFAULT 1,
+    RespondedAt TEXT,
+    ConfidenceScore INTEGER NOT NULL DEFAULT 70,
+    Metadata TEXT,
+    CreatedAt TEXT NOT NULL,
+    UpdatedAt TEXT NOT NULL,
+    IsActive INTEGER NOT NULL,
+    FOREIGN KEY (EventId) REFERENCES Events(Id) ON DELETE SET NULL
+);";
+                await createCommand.ExecuteNonQueryAsync();
+
+                using var indexCommand = connection.CreateCommand();
+                indexCommand.CommandText = "CREATE INDEX IF NOT EXISTS IX_ScheduleSuggestions_UserId ON ScheduleSuggestions(UserId);";
+                await indexCommand.ExecuteNonQueryAsync();
             }
         }
         finally

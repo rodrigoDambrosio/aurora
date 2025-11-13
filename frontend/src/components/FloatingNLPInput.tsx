@@ -1,9 +1,11 @@
-import { MessageSquare, Send, Sparkles, Star, X } from 'lucide-react';
+import { MessageSquare, Mic, MicOff, Send, Sparkles, Star, Target, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import type { AIValidationResult, CreateEventDto, EventPriority } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import './FloatingNLPInput.css';
+import { GeneratePlanModal } from './GeneratePlanModal';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface FloatingNLPInputProps {
   onEventCreated: () => void;
@@ -39,6 +41,22 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [categories, setCategories] = useState<Array<{ id: string; name: string; color: string }>>([]);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const {
+    isSupported: isVoiceSupported,
+    isListening: isVoiceListening,
+    error: speechRecognitionError,
+    interimResult: interimVoiceResult,
+    latestResult: latestVoiceResult,
+    reset: resetVoiceRecognition,
+    start: startVoiceRecognition,
+    stop: stopVoiceRecognition
+  } = useSpeechRecognition({
+    lang: 'es-ES',
+    interimResults: true
+  });
+  const inputBeforeVoiceRef = useRef('');
+  const [voicePreview, setVoicePreview] = useState('');
 
   const examples = [
     "reunión con cliente mañana a las 3pm",
@@ -48,6 +66,10 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
   ];
 
   const resetState = () => {
+    stopVoiceRecognition();
+    resetVoiceRecognition();
+    setVoicePreview('');
+    inputBeforeVoiceRef.current = '';
     setInput('');
     setParsedEvent(null);
     setValidation(null);
@@ -81,11 +103,55 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
     }
   };
 
+  useEffect(() => {
+    if (!latestVoiceResult || !latestVoiceResult.isFinal) {
+      return;
+    }
+
+    const addition = latestVoiceResult.text.trim();
+    if (!addition) {
+      return;
+    }
+
+    const base = inputBeforeVoiceRef.current ? `${inputBeforeVoiceRef.current} ${addition}` : addition;
+    const normalized = base.replace(/\s+/g, ' ').trim();
+    inputBeforeVoiceRef.current = normalized;
+    setInput(normalized);
+    setVoicePreview('');
+  }, [latestVoiceResult]);
+
+  useEffect(() => {
+    if (isVoiceListening && interimVoiceResult) {
+      setVoicePreview(interimVoiceResult);
+      return;
+    }
+
+    if (!isVoiceListening) {
+      setVoicePreview('');
+    }
+  }, [interimVoiceResult, isVoiceListening]);
+
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+
+    stopVoiceRecognition();
+    resetVoiceRecognition();
+    setVoicePreview('');
+    inputBeforeVoiceRef.current = '';
+  }, [isOpen, resetVoiceRecognition, stopVoiceRecognition]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
     console.log('[FloatingNLPInput] Iniciando análisis:', input);
+    if (isVoiceListening) {
+      stopVoiceRecognition();
+    }
+    resetVoiceRecognition();
+    setVoicePreview('');
     setError(null);
     setIsProcessing(true);
     setParsedEvent(null);
@@ -141,6 +207,22 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
     }
   };
 
+  const handleVoiceToggle = () => {
+    if (!isVoiceSupported) {
+      return;
+    }
+
+    if (isVoiceListening) {
+      stopVoiceRecognition();
+      return;
+    }
+
+  inputBeforeVoiceRef.current = input.trim();
+    resetVoiceRecognition();
+    setVoicePreview('');
+    startVoiceRecognition();
+  };
+
   const handleConfirm = async () => {
     if (!parsedEvent || isCreating) return;
 
@@ -170,6 +252,10 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
   };
 
   const handleCancel = () => {
+    stopVoiceRecognition();
+    resetVoiceRecognition();
+    setVoicePreview('');
+  inputBeforeVoiceRef.current = '';
     setInput('');
     setParsedEvent(null);
     setValidation(null);
@@ -242,12 +328,25 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
                 </div>
                 <span className="nlp-title">Crear con IA</span>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="nlp-close-button"
-              >
-                <X size={16} />
-              </button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsPlanModalOpen(true);
+                  }}
+                  className="nlp-plan-button"
+                  title="Generar plan multi-día"
+                >
+                  <Target size={16} />
+                  <span>Plan</span>
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="nlp-close-button"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             {/* Error State */}
@@ -268,11 +367,23 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
                     <input
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      placeholder="Ej: reunión mañana 3pm..."
+                      placeholder={isVoiceListening ? 'Habla ahora...' : 'Ej: reunión mañana 3pm...'}
                       className="nlp-input"
-                      disabled={isProcessing}
+                      disabled={isProcessing || isVoiceListening}
                       autoFocus
                     />
+                    {isVoiceSupported && (
+                      <button
+                        type="button"
+                        className={`nlp-voice-button ${isVoiceListening ? 'is-active' : ''}`}
+                        onClick={handleVoiceToggle}
+                        disabled={isProcessing}
+                        aria-pressed={isVoiceListening}
+                        aria-label={isVoiceListening ? 'Detener dictado por voz' : 'Activar dictado por voz'}
+                      >
+                        {isVoiceListening ? <MicOff size={16} aria-hidden="true" /> : <Mic size={16} aria-hidden="true" />}
+                      </button>
+                    )}
                     <button
                       type="submit"
                       className="nlp-submit-button"
@@ -286,6 +397,25 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
                     </button>
                   </div>
                 </form>
+
+                {isVoiceSupported ? (
+                  <div className="nlp-voice-feedback" role="status" aria-live="polite">
+                    {isVoiceListening ? (
+                      <>
+                        <span className="nlp-voice-dot" aria-hidden="true" />
+                        <span>Escuchando... hablá con naturalidad.</span>
+                      </>
+                    ) : voicePreview ? (
+                      <span className="nlp-voice-preview">"{voicePreview}"</span>
+                    ) : speechRecognitionError ? (
+                      <span className="nlp-voice-error">Revisá el micrófono ({speechRecognitionError}).</span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="nlp-voice-feedback nlp-voice-unsupported" role="status">
+                    <span>Tu navegador no admite dictado de voz.</span>
+                  </div>
+                )}
 
                 {/* Examples */}
                 <div className="nlp-examples">
@@ -514,6 +644,16 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Generate Plan Modal */}
+      <GeneratePlanModal
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        onPlanCreated={() => {
+          setIsPlanModalOpen(false);
+          onEventCreated();
+        }}
+      />
     </>
   );
 }

@@ -15,17 +15,18 @@ public static class DevelopmentUserService
     /// <returns>ID del usuario a usar</returns>
     public static Guid GetCurrentUserId(Guid? userId = null)
     {
-        if (DomainConstants.Development.AllowAnonymousAccess)
-        {
-            return userId ?? DomainConstants.DemoUser.Id;
-        }
-
+#if DEBUG
+        // En modo DEBUG, permite acceso sin autenticación usando usuario demo
+        return userId ?? DomainConstants.DemoUser.Id;
+#else
+        // En producción, requiere autenticación
         if (!userId.HasValue)
         {
             throw new UnauthorizedAccessException("Usuario no autenticado");
         }
 
         return userId.Value;
+#endif
     }
 
     /// <summary>

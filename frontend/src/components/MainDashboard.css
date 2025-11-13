@@ -2,7 +2,7 @@
 .main-dashboard {
     display: flex;
     min-height: 100vh;
-    width: 100vw;
+    width: 100%;
     background: var(--color-surface);
     font-family: 'Arial', sans-serif;
     overflow: hidden;
@@ -51,6 +51,33 @@
 .calendar-view-panel>* {
     flex: 1;
     min-width: 0;
+}
+
+.mood-view-panel {
+    height: 100%;
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: var(--color-surface);
+}
+
+.mood-view-panel>* {
+    flex: 1;
+    min-height: 0;
+}
+
+.wellness-view-panel {
+    height: 100%;
+    overflow-y: auto;
+    background: var(--color-surface);
+}
+
+.assistant-view-panel {
+    height: 100%;
+    overflow-y: auto;
+    background: var(--color-surface);
 }
 
 /* Placeholder views for other sections */
@@ -118,7 +145,8 @@
     .main-dashboard {
         flex-direction: column;
         height: 100vh;
-        overflow: hidden;
+        overflow: visible;
+        width: 100%;
     }
 
     .dashboard-content {
@@ -126,6 +154,8 @@
         height: auto;
         min-height: 0;
         overflow: auto;
+        padding-bottom: 24px;
+        width: 100%;
     }
 
     .dashboard-fab {
@@ -133,6 +163,11 @@
         right: 16px;
         width: 48px;
         height: 48px;
+    }
+
+    .mood-view-panel {
+        padding: 16px;
+        gap: 16px;
     }
 }
 

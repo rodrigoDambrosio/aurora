@@ -1,7 +1,7 @@
 import { CalendarDays, Eye, EyeOff, Lock, Mail, Moon, Sparkles, Sun, User } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../context/useTheme';
 import type { AuthResponseDto } from '../../services/apiService';
 import { ApiError, apiService } from '../../services/apiService';
 import './AuthScreen.css';

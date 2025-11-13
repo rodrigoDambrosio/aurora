@@ -1,8 +1,11 @@
 using Aurora.Api.Extensions;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -21,6 +24,7 @@ public class EventsController : ControllerBase
     private readonly IAIValidationService _aiValidationService;
     private readonly IEventCategoryRepository _eventCategoryRepository;
     private readonly IUserService _userService;
+    private readonly IValidator<UpdateEventMoodDto> _updateEventMoodValidator;
     private readonly ILogger<EventsController> _logger;
 
     public EventsController(
@@ -28,12 +32,14 @@ public class EventsController : ControllerBase
         IAIValidationService aiValidationService,
         IEventCategoryRepository eventCategoryRepository,
         IUserService userService,
+        IValidator<UpdateEventMoodDto> updateEventMoodValidator,
         ILogger<EventsController> logger)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
         _aiValidationService = aiValidationService ?? throw new ArgumentNullException(nameof(aiValidationService));
         _eventCategoryRepository = eventCategoryRepository ?? throw new ArgumentNullException(nameof(eventCategoryRepository));
         _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+        _updateEventMoodValidator = updateEventMoodValidator ?? throw new ArgumentNullException(nameof(updateEventMoodValidator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -289,7 +295,9 @@ public class EventsController : ControllerBase
                 return errorResult!;
             }
 
-            _logger.LogInformation("Creando nuevo evento: {Title} para usuario: {UserId}", createEventDto.Title, userId);
+            _logger.LogInformation(
+                "Creando nuevo evento: {Title} para usuario: {UserId}, categoría: {CategoryId}",
+                createEventDto.Title, userId, createEventDto.EventCategoryId);
 
             var createdEvent = await _eventService.CreateEventAsync(userId, createEventDto);
 
@@ -623,6 +631,86 @@ public class EventsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Actualiza el estado de ánimo de un evento completado
+    /// </summary>
+    /// <param name="id">ID del evento</param>
+    /// <param name="moodDto">Datos del estado de ánimo</param>
+    /// <returns>Evento actualizado con el estado de ánimo</returns>
+    /// <response code="200">Estado de ánimo actualizado exitosamente</response>
+    /// <response code="400">Datos de entrada inválidos</response>
+    /// <response code="404">Evento no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpPatch("{id:guid}/mood")]
+    [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<EventDto>> UpdateEventMood(Guid id, [FromBody] UpdateEventMoodDto moodDto)
+    {
+        try
+        {
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            _logger.LogInformation(
+                "Actualizando estado de ánimo del evento {EventId} para usuario {UserId}: Rating={Rating}",
+                id, userId, moodDto.MoodRating);
+
+            ValidationResult validationResult = await _updateEventMoodValidator.ValidateAsync(moodDto);
+            if (!validationResult.IsValid)
+            {
+                var combinedMessage = string.Join(" ", validationResult.Errors.Select(e => e.ErrorMessage).Distinct());
+                _logger.LogWarning("Datos inválidos para estado de ánimo: {Errors}", combinedMessage);
+
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Datos inválidos",
+                    Detail = combinedMessage,
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            var updatedEvent = await _eventService.UpdateEventMoodAsync(id, userId, moodDto);
+
+            _logger.LogInformation("Estado de ánimo actualizado exitosamente para evento {EventId}", id);
+
+            return Ok(updatedEvent);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Evento no encontrado o sin permisos: {Message}", ex.Message);
+            return NotFound(new ProblemDetails
+            {
+                Title = "Evento no encontrado",
+                Detail = ex.Message,
+                Status = StatusCodes.Status404NotFound
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Datos inválidos para actualizar estado de ánimo: {Message}", ex.Message);
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Datos inválidos",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error actualizando estado de ánimo del evento {EventId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Error interno",
+                Detail = "Ocurrió un error procesando la solicitud",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
     private static AIValidationSeverity MaxSeverity(AIValidationSeverity first, AIValidationSeverity second)
     {
         return (AIValidationSeverity)Math.Max((int)first, (int)second);
@@ -731,5 +819,116 @@ public class EventsController : ControllerBase
             Suggestions = issues.Count > 0 ? suggestions : new List<string>(),
             UsedAi = false
         };
+    }
+
+    /// <summary>
+    /// Genera un plan multi-día estructurado a partir de un objetivo de alto nivel usando IA
+    /// </summary>
+    /// <param name="request">Solicitud con el objetivo y preferencias del plan</param>
+    /// <returns>Plan generado con eventos estructurados</returns>
+    /// <response code="200">Plan generado exitosamente</response>
+    /// <response code="400">Solicitud inválida</response>
+    /// <response code="500">Error al generar el plan</response>
+    [HttpPost("generate-plan")]
+    [ProducesResponseType(typeof(GeneratePlanResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<GeneratePlanResponseDto>> GeneratePlan([FromBody] GeneratePlanRequestDto request)
+    {
+        try
+        {
+            if (!TryGetAuthenticatedUserId(out var userId, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Goal))
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Objetivo requerido",
+                    Detail = "Debe proporcionar un objetivo para generar el plan.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            _logger.LogInformation(
+                "Generando plan multi-día para usuario: {UserId}, objetivo: {Goal}",
+                userId, request.Goal);
+
+            // Obtener categorías disponibles del usuario
+            var categories = await _eventCategoryRepository.GetAvailableCategoriesForUserAsync(userId);
+            var categoryDtos = categories.Select(c => new EventCategoryDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Color = c.Color,
+                Description = c.Description,
+                SortOrder = c.SortOrder
+            }).ToList();
+
+            _logger.LogInformation(
+                "Categorías disponibles para el usuario {UserId}: {CategoryCount} - IDs: {CategoryIds}",
+                userId, categoryDtos.Count, string.Join(", ", categoryDtos.Select(c => $"{c.Name}({c.Id})")));
+
+            // Obtener eventos existentes para contexto (próximos 90 días)
+            var startDate = DateTime.UtcNow.Date;
+            var endDate = startDate.AddDays(90);
+            var existingEvents = await _eventService.GetEventsByDateRangeAsync(userId, startDate, endDate);
+
+            // TODO PLAN-131: Obtener preferencias del usuario cuando estén implementadas
+            // var userPreferences = await _userService.GetUserPreferencesAsync(userId);
+
+            // Generar el plan con IA
+            var planResponse = await _aiValidationService.GeneratePlanAsync(
+                request,
+                userId,
+                categoryDtos,
+                existingEvents,
+                userPreferences: null);
+
+            _logger.LogInformation(
+                "Plan generado exitosamente: {PlanTitle} - {TotalSessions} sesiones en {DurationWeeks} semanas",
+                planResponse.PlanTitle, planResponse.TotalSessions, planResponse.DurationWeeks);
+
+            if (planResponse.HasPotentialConflicts)
+            {
+                _logger.LogWarning(
+                    "El plan generado tiene {ConflictCount} posibles conflictos",
+                    planResponse.ConflictWarnings.Count);
+            }
+
+            return Ok(planResponse);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Parámetros inválidos en GeneratePlan: {Message}", ex.Message);
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Parámetros inválidos",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Error al generar plan para usuario: {UserId}", User.GetUserId());
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Error al generar plan",
+                Detail = "No se pudo generar el plan con la IA. Por favor, intente nuevamente.",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado al generar plan para usuario: {UserId}", User.GetUserId());
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Error interno del servidor",
+                Detail = "Ocurrió un error al procesar la solicitud.",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
     }
 }

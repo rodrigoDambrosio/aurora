@@ -28,7 +28,7 @@ public interface IAIValidationService
     /// <param name="availableCategories">Categorías disponibles con sus IDs reales</param>
     /// <param name="timezoneOffsetMinutes">Offset de zona horaria del usuario en minutos desde UTC (ej: -180 para UTC-3)</param>
     /// <param name="existingEvents">Eventos existentes del usuario para contexto (opcional)</param>
-    /// <param name="userPreferences">Preferencias del usuario (días laborales, horarios, duración predeterminada) para recomendaciones personalizadas (opcional)</param>
+    /// <param name="userPreferences">Preferencias del usuario (días laborales, horarios, duración predeterminada) para recomendaciones personalizas (opcional)</param>
     /// <returns>Evento parseado y análisis de validación</returns>
     Task<ParseNaturalLanguageResponseDto> ParseNaturalLanguageAsync(
         string naturalLanguageText,
@@ -37,4 +37,38 @@ public interface IAIValidationService
         int timezoneOffsetMinutes = 0,
         IEnumerable<EventDto>? existingEvents = null,
         UserPreferencesDto? userPreferences = null);
+
+    /// <summary>
+    /// Genera un plan multi-día estructurado y progresivo a partir de un objetivo de alto nivel
+    /// </summary>
+    /// <param name="request">Solicitud con el objetivo y preferencias del plan</param>
+    /// <param name="userId">ID del usuario que solicita el plan</param>
+    /// <param name="availableCategories">Categorías disponibles para asignar a los eventos</param>
+    /// <param name="existingEvents">Eventos existentes del usuario para evitar conflictos (opcional)</param>
+    /// <param name="userPreferences">Preferencias del usuario (días laborales, horarios) para optimizar la distribución (opcional)</param>
+    /// <returns>Plan generado con eventos estructurados y metadatos</returns>
+    Task<GeneratePlanResponseDto> GeneratePlanAsync(
+        GeneratePlanRequestDto request,
+        Guid userId,
+        IEnumerable<EventCategoryDto> availableCategories,
+        IEnumerable<EventDto>? existingEvents = null,
+        UserPreferencesDto? userPreferences = null);
+
+    /// <summary>
+    /// Analiza el calendario del usuario y genera sugerencias inteligentes de reorganización usando IA
+    /// </summary>
+    /// <param name="userId">ID del usuario</param>
+    /// <param name="events">Eventos del usuario para analizar</param>
+    /// <returns>Lista de sugerencias generadas por IA, o null si falla</returns>
+    Task<IEnumerable<ScheduleSuggestionDto>?> GenerateScheduleSuggestionsAsync(
+        Guid userId,
+        IEnumerable<EventDto> events);
+
+    /// <summary>
+    /// Genera una respuesta de texto usando IA para propósitos generales
+    /// </summary>
+    /// <param name="prompt">Prompt o pregunta para la IA</param>
+    /// <param name="context">Contexto adicional opcional</param>
+    /// <returns>Respuesta de texto generada por la IA</returns>
+    Task<string> GenerateTextAsync(string prompt, string? context = null);
 }

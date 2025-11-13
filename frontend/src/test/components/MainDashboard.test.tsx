@@ -10,7 +10,34 @@ vi.mock('../../services/apiService', () => ({
     deleteEvent: vi.fn().mockResolvedValue(undefined),
     getEventCategories: vi.fn().mockResolvedValue([]),
     createEvent: vi.fn().mockResolvedValue({}),
-    updateEvent: vi.fn().mockResolvedValue({})
+    updateEvent: vi.fn().mockResolvedValue({}),
+    getUserPreferences: vi.fn().mockResolvedValue({
+      firstDayOfWeek: 1,
+      timeFormat: '24h'
+    }),
+    updateEventMood: vi.fn().mockResolvedValue({}),
+    getWellnessSummary: vi.fn().mockResolvedValue({
+      year: 2025,
+      month: 10,
+      averageMood: 4.2,
+      bestDay: null,
+      worstDay: null,
+      moodTrend: [],
+      moodDistribution: [],
+      streaks: {
+        currentPositive: 0,
+        longestPositive: 0,
+        currentNegative: 0,
+        longestNegative: 0
+      },
+      categoryImpacts: [],
+      totalTrackedDays: 0,
+      positiveDays: 0,
+      neutralDays: 0,
+      negativeDays: 0,
+      trackingCoverage: 0,
+      hasEventMoodData: false
+    })
   }
 }))
 
@@ -77,6 +104,12 @@ vi.mock('../../components/Navigation', () => ({
         Monthly
       </button>
       <button
+        onClick={() => onViewChange('wellness')}
+        className={activeView === 'wellness' ? 'active' : ''}
+      >
+        Wellness
+      </button>
+      <button
         onClick={() => onViewChange('settings')}
         className={activeView === 'settings' ? 'active' : ''}
       >
@@ -99,6 +132,12 @@ vi.mock('../../components/Settings/SettingsScreen', () => ({
     <div data-testid="settings-screen">
       Settings Mock
     </div>
+  )
+}))
+
+vi.mock('../../components/WellnessDashboard', () => ({
+  default: () => (
+    <div data-testid="wellness-dashboard">Wellness Mock</div>
   )
 }))
 
@@ -201,17 +240,14 @@ describe('MainDashboard', () => {
     confirmSpy.mockRestore()
   })
 
-  it('shows placeholder for wellness view', async () => {
+  it('shows wellness dashboard when wellness view is selected', async () => {
     const user = setupUser()
     render(<MainDashboard />)
 
-    // We need to add wellness to navigation mock first
-    // For now, test with settings which exists
-    const settingsButton = screen.getByText('Settings')
-    await user.click(settingsButton)
+    const wellnessButton = screen.getByText('Wellness')
+    await user.click(wellnessButton)
 
-    // Mock SettingsScreen renders simple text
-    expect(screen.getByTestId('settings-screen')).toBeInTheDocument()
+    expect(screen.getByTestId('wellness-dashboard')).toBeInTheDocument()
   })
 
   it('defaults back to weekly calendar for unknown views', () => {
