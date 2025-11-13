@@ -2,6 +2,15 @@ import { Bell, Calendar, Clock, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ReminderDto } from '../types/reminder.types';
 
+/**
+ * Convierte una fecha string que viene del backend (en UTC) a un objeto Date local
+ */
+const parseEventDate = (dateString: string): Date => {
+  // Si la fecha no termina en 'Z', agregarla para indicar que es UTC
+  const utcDateString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+  return new Date(utcDateString);
+};
+
 interface InAppNotificationProps {
   reminder: ReminderDto;
   onDismiss: () => void;
@@ -13,10 +22,18 @@ export function InAppNotification({ reminder, onDismiss, onViewEvent, stackIndex
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Reproducir sonido de notificación
-    playNotificationSound();
+    // Debug: mostrar información de zona horaria
+    console.log('🌐 Información de zona horaria para evento:', reminder.eventTitle);
+    console.log('- Fecha original del evento (string):', reminder.eventStartDate);
+    console.log('- Fecha parseada con helper:', parseEventDate(reminder.eventStartDate));
+    console.log('- Fecha parseada directa:', new Date(reminder.eventStartDate));
+    console.log('- Zona horaria local:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+    console.log('- Offset local (minutos):', new Date().getTimezoneOffset());
+    console.log('- Fecha formateada:', formatEventDate(), 'a las', formatEventTime());
+    console.log('- Tiempo hasta evento:', getTimeUntilEvent());
 
-    // Mostrar con animación
+    // Reproducir sonido de notificación
+    playNotificationSound();    // Mostrar con animación
     setIsVisible(true);
 
     // Auto-cerrar después de 10 segundos
@@ -52,7 +69,8 @@ export function InAppNotification({ reminder, onDismiss, onViewEvent, stackIndex
   };
 
   const getTimeUntilEvent = (): string => {
-    const start = new Date(reminder.eventStartDate);
+    // Usar la función helper para parsear correctamente la fecha UTC
+    const start = parseEventDate(reminder.eventStartDate);
     const now = new Date();
     const diffMilliseconds = start.getTime() - now.getTime();
     const diffMinutes = Math.floor(diffMilliseconds / (1000 * 60));
@@ -78,20 +96,24 @@ export function InAppNotification({ reminder, onDismiss, onViewEvent, stackIndex
   };
 
   const formatEventTime = (): string => {
-    const start = new Date(reminder.eventStartDate);
+    // Usar la función helper para parsear correctamente la fecha UTC
+    const start = parseEventDate(reminder.eventStartDate);
     return start.toLocaleTimeString('es-ES', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Usar zona horaria local
     });
   };
 
   const formatEventDate = (): string => {
-    const start = new Date(reminder.eventStartDate);
+    // Usar la función helper para parsear correctamente la fecha UTC
+    const start = parseEventDate(reminder.eventStartDate);
     return start.toLocaleDateString('es-ES', {
       weekday: 'long',
       day: 'numeric',
-      month: 'long'
+      month: 'long',
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Usar zona horaria local
     });
   };
 
