@@ -11,10 +11,17 @@ public interface IEventRepository : IRepository<Event>
     /// Obtiene eventos de un usuario en un rango de fechas
     /// </summary>
     /// <param name="userId">ID del usuario</param>
-    /// <param name="startDate">Fecha de inicio</param>
-    /// <param name="endDate">Fecha de fin</param>
-    /// <returns>Lista de eventos en el rango</returns>
-    Task<IEnumerable<Event>> GetEventsByDateRangeAsync(Guid userId, DateTime startDate, DateTime endDate);
+    /// <param name="startDate">Fecha de inicio inclusive (UTC)</param>
+    /// <param name="endDateExclusive">Fecha de fin exclusiva (UTC)</param>
+    /// <returns>Lista de eventos que se superponen con el rango</returns>
+    Task<IEnumerable<Event>> GetEventsByDateRangeAsync(Guid userId, DateTime startDate, DateTime endDateExclusive);
+
+    /// <summary>
+    /// Obtiene todos los eventos de un usuario
+    /// </summary>
+    /// <param name="userId">ID del usuario</param>
+    /// <returns>Lista completa de eventos del usuario</returns>
+    Task<IEnumerable<Event>> GetEventsByUserIdAsync(Guid userId);
 
     /// <summary>
     /// Obtiene eventos de una semana específica para un usuario

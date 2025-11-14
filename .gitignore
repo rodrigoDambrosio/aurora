@@ -70,3 +70,4 @@ frontend/mockups/components/wellness/WellnessChart.tsx
 frontend/mockups/components/wellness/WellnessDashboard.tsx
 frontend/mockups/data/mockEvents.tsx
 frontend/mockups/styles/globals.css
+frontend/dev-dist/

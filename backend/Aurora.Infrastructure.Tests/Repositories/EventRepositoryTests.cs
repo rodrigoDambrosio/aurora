@@ -270,7 +270,7 @@ public class EventRepositoryTests : IDisposable
         // Arrange
         var userId = Guid.NewGuid();
         var startDate = new DateTime(2024, 1, 1);
-        var endDate = new DateTime(2024, 1, 7);
+        var endDateExclusive = new DateTime(2024, 1, 8);
 
         var category = new EventCategory
         {
@@ -307,11 +307,59 @@ public class EventRepositoryTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetEventsByDateRangeAsync(userId, startDate, endDate);
+        var result = await _repository.GetEventsByDateRangeAsync(userId, startDate, endDateExclusive);
 
         // Assert
         result.Should().HaveCount(1);
         result.First().Title.Should().Be("Evento en rango");
+    }
+
+    [Fact]
+    public async Task GetEventsByDateRangeAsync_WithOverlappingEvents_ShouldIncludeEventsOverlappingRange()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var startDate = new DateTime(2024, 1, 5);
+        var endDateExclusive = new DateTime(2024, 1, 7);
+
+        var category = new EventCategory
+        {
+            Id = Guid.NewGuid(),
+            Name = "Trabajo",
+            Color = "#1447e6",
+            UserId = userId
+        };
+
+        var spanningEvent = new Event
+        {
+            Id = Guid.NewGuid(),
+            Title = "Evento que se solapa",
+            StartDate = new DateTime(2024, 1, 4, 12, 0, 0),
+            EndDate = new DateTime(2024, 1, 5, 12, 0, 0),
+            UserId = userId,
+            EventCategoryId = category.Id
+        };
+
+        var fullyOutsideEvent = new Event
+        {
+            Id = Guid.NewGuid(),
+            Title = "Evento fuera",
+            StartDate = new DateTime(2024, 1, 7, 12, 0, 0),
+            EndDate = new DateTime(2024, 1, 7, 14, 0, 0),
+            UserId = userId,
+            EventCategoryId = category.Id
+        };
+
+        _context.EventCategories.Add(category);
+        _context.Events.AddRange(spanningEvent, fullyOutsideEvent);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEventsByDateRangeAsync(userId, startDate, endDateExclusive);
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.First().Title.Should().Be("Evento que se solapa");
     }
 
     [Fact]

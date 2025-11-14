@@ -272,7 +272,11 @@ public class EventService : IEventService
     {
         var currentUserId = DevelopmentUserService.GetCurrentUserId(userId);
 
-        var events = await _eventRepository.GetEventsByDateRangeAsync(currentUserId, startDate, endDate);
+        var normalizedStart = EnsureUtc(startDate);
+        var normalizedEndInclusive = EnsureUtc(endDate);
+        var endExclusive = normalizedEndInclusive.AddTicks(1);
+
+        var events = await _eventRepository.GetEventsByDateRangeAsync(currentUserId, normalizedStart, endExclusive);
 
         return events.Select(MapEventToDto);
     }

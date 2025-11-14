@@ -828,19 +828,19 @@ public class GeminiAIValidationService : IAIValidationService
 
             foreach (var evt in sortedEvents)
             {
+                var evtStartLocal = ConvertToUserLocalTime(evt.StartDate, timezoneOffsetMinutes);
+                var evtEndLocal = ConvertToUserLocalTime(evt.EndDate, timezoneOffsetMinutes);
+                var evtTime = evtStartLocal.ToString("yyyy-MM-dd HH:mm");
+                var category = evt.EventCategory?.Name ?? "Sin categoría";
+
                 if (isParsingMode)
                 {
-                    var evtTime = evt.StartDate.ToString("yyyy-MM-dd HH:mm");
-                    sb.AppendLine($"• [{evtTime}] \"{evt.Title}\" - {evt.EventCategory?.Name ?? "Sin categoría"}");
+                    sb.AppendLine($"• [{evtTime}] \"{evt.Title}\" - {category}");
                 }
                 else
                 {
-                    var evtStartLocal = ConvertToUserLocalTime(evt.StartDate, timezoneOffsetMinutes);
-                    var evtEndLocal = ConvertToUserLocalTime(evt.EndDate, timezoneOffsetMinutes);
                     var evtDuration = (evtEndLocal - evtStartLocal).TotalHours;
                     var evtDay = evtStartLocal.DayOfWeek.ToString();
-                    var evtTime = evtStartLocal.ToString("yyyy-MM-dd HH:mm");
-                    var category = evt.EventCategory?.Name ?? "Sin categoría";
                     sb.AppendLine($"• [{evtTime} ({evtDay})] \"{evt.Title}\" - {evtDuration:F1}h - {category}");
                 }
             }
@@ -1233,13 +1233,14 @@ public class GeminiAIValidationService : IAIValidationService
 
     public async Task<IEnumerable<ScheduleSuggestionDto>?> GenerateScheduleSuggestionsAsync(
         Guid userId,
-        IEnumerable<EventDto> events)
+        IEnumerable<EventDto> events,
+        int timezoneOffsetMinutes)
     {
         try
         {
             _logger.LogInformation("Generando sugerencias con IA para {EventCount} eventos", events.Count());
 
-            var prompt = BuildScheduleSuggestionsPrompt(events);
+            var prompt = BuildScheduleSuggestionsPrompt(events, timezoneOffsetMinutes);
 
             var geminiRequest = new GeminiRequest
             {
@@ -1300,6 +1301,24 @@ public class GeminiAIValidationService : IAIValidationService
                 PropertyNameCaseInsensitive = true
             });
 
+            // Gemini devuelve fechas en hora local (según el prompt), convertimos a UTC
+            if (suggestions != null)
+            {
+                foreach (var suggestion in suggestions)
+                {
+                    if (suggestion.SuggestedDateTime.HasValue)
+                    {
+                        // Interpretar como hora local y convertir a UTC
+                        // La fecha viene en hora local (GMT-3), restamos el offset para obtener UTC
+                        // Ej: 10:00 local (GMT-3) + 180 minutos = 13:00 UTC
+                        suggestion.SuggestedDateTime = DateTime.SpecifyKind(
+                            suggestion.SuggestedDateTime.Value.AddMinutes(Math.Abs(timezoneOffsetMinutes)), 
+                            DateTimeKind.Utc
+                        );
+                    }
+                }
+            }
+
             _logger.LogInformation("IA generó {Count} sugerencias", suggestions?.Count ?? 0);
             return suggestions;
         }
@@ -1310,16 +1329,25 @@ public class GeminiAIValidationService : IAIValidationService
         }
     }
 
-    private string BuildScheduleSuggestionsPrompt(IEnumerable<EventDto> events)
+    private string BuildScheduleSuggestionsPrompt(IEnumerable<EventDto> events, int timezoneOffsetMinutes)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Analiza este calendario y genera sugerencias de optimización en JSON.");
+        sb.AppendLine();
+        sb.AppendLine("⏰ CRÍTICO - FORMATO DE FECHAS:");
+        sb.AppendLine("  - Todas las horas que ves abajo están en HORA LOCAL del usuario (GMT-3)");
+        sb.AppendLine("  - Cuando generes 'suggestedDateTime', usa EXACTAMENTE la misma hora LOCAL que mencionas en 'description'");
+        sb.AppendLine("  - Formato: '2025-11-14T08:00:00' (sin Z al final = hora local)");
+        sb.AppendLine("  - EJEMPLO: Si sugieres 'Mover evento a las 08:00', el suggestedDateTime debe ser '2025-11-14T08:00:00'");
         sb.AppendLine();
         sb.AppendLine("EVENTOS:");
 
         foreach (var evt in events.OrderBy(e => e.StartDate))
         {
-            sb.AppendLine($"- [{evt.Id}] {evt.Title} | {evt.StartDate:yyyy-MM-dd HH:mm} - {evt.EndDate:HH:mm} | Cat: {evt.EventCategory?.Name ?? "Sin categoría"}");
+            // Convertir UTC a hora local para mostrar a Gemini
+            var localStart = evt.StartDate.AddMinutes(timezoneOffsetMinutes);
+            var localEnd = evt.EndDate.AddMinutes(timezoneOffsetMinutes);
+            sb.AppendLine($"- [{evt.Id}] {evt.Title} | {localStart:yyyy-MM-dd HH:mm} - {localEnd:HH:mm} | Cat: {evt.EventCategory?.Name ?? "Sin categoría"}");
         }
 
         sb.AppendLine();
@@ -1330,10 +1358,10 @@ public class GeminiAIValidationService : IAIValidationService
         sb.AppendLine("[{");
         sb.AppendLine("  \"eventId\": \"guid-del-evento o null\",");
         sb.AppendLine("  \"type\": 1-6 (1=MoveEvent,2=ResolveConflict,3=OptimizeDistribution,4=PatternAlert,5=SuggestBreak,6=GeneralReorganization),");
-        sb.AppendLine("  \"description\": \"Texto corto y ACCIONABLE (ej: 'Mover Guitarra a las 10:00', 'Crear descanso de 30min')\",");
+        sb.AppendLine("  \"description\": \"Texto corto y ACCIONABLE (ej: 'Mover Guitarra a las 08:00')\",");
         sb.AppendLine("  \"reason\": \"Explicación detallada del POR QUÉ\",");
         sb.AppendLine("  \"priority\": 1-5,");
-        sb.AppendLine("  \"suggestedDateTime\": \"2025-11-08T15:00:00Z (OBLIGATORIO para type=5 SuggestBreak)\",");
+        sb.AppendLine("  \"suggestedDateTime\": \"2025-11-14T08:00:00 (LA MISMA HORA que en description. OBLIGATORIO type=1,2,5)\",");
         sb.AppendLine("  \"confidenceScore\": 70-100,");
         sb.AppendLine("  \"relatedEventTitles\": [\"Título evento 1\", \"Título evento 2\"]");
         sb.AppendLine("}]");
@@ -1342,13 +1370,13 @@ public class GeminiAIValidationService : IAIValidationService
         sb.AppendLine();
         sb.AppendLine("type=1 (MoveEvent):");
         sb.AppendLine("  - eventId: ID del evento a mover");
-        sb.AppendLine("  - suggestedDateTime: nueva fecha/hora EXACTA");
-        sb.AppendLine("  - description: 'Mover [Nombre] a [hora específica]'");
+        sb.AppendLine("  - suggestedDateTime: MISMA hora que mencionas en description, formato 2025-11-14T08:00:00");
+        sb.AppendLine("  - description: 'Mover [Nombre] a las 08:00' (usa hora local que ves en los eventos)");
         sb.AppendLine();
         sb.AppendLine("type=2 (ResolveConflict):");
         sb.AppendLine("  - eventId: ID del evento en conflicto");
         sb.AppendLine("  - relatedEventTitles: títulos de TODOS los eventos en conflicto");
-        sb.AppendLine("  - suggestedDateTime: nueva hora propuesta para resolver");
+        sb.AppendLine("  - suggestedDateTime: MISMA hora que mencionas en description, formato 2025-11-14T08:00:00");
         sb.AppendLine();
         sb.AppendLine("type=3 (OptimizeDistribution):");
         sb.AppendLine("  - relatedEventTitles: títulos de TODOS los eventos a reorganizar (mínimo 2)");

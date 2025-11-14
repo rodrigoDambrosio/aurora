@@ -59,10 +59,12 @@ public interface IAIValidationService
     /// </summary>
     /// <param name="userId">ID del usuario</param>
     /// <param name="events">Eventos del usuario para analizar</param>
+    /// <param name="timezoneOffsetMinutes">Offset de zona horaria en minutos (ej: -180 para GMT-3)</param>
     /// <returns>Lista de sugerencias generadas por IA, o null si falla</returns>
     Task<IEnumerable<ScheduleSuggestionDto>?> GenerateScheduleSuggestionsAsync(
         Guid userId,
-        IEnumerable<EventDto> events);
+        IEnumerable<EventDto> events,
+        int timezoneOffsetMinutes);
 
     /// <summary>
     /// Genera una respuesta de texto usando IA para propósitos generales

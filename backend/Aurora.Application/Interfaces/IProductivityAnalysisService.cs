@@ -12,6 +12,7 @@ public interface IProductivityAnalysisService
     /// </summary>
     /// <param name="userId">ID del usuario</param>
     /// <param name="periodDays">Cantidad de días hacia atrás a analizar (por defecto 30)</param>
+    /// <param name="timezoneOffsetMinutes">Offset de la zona horaria del usuario en minutos (ej: -180 para UTC-3)</param>
     /// <returns>Análisis de productividad completo</returns>
-    Task<ProductivityAnalysisDto> AnalyzeProductivityAsync(Guid userId, int periodDays = 30);
+    Task<ProductivityAnalysisDto> AnalyzeProductivityAsync(Guid userId, int periodDays = 30, int? timezoneOffsetMinutes = null);
 }

@@ -173,7 +173,7 @@ export const ScheduleSuggestionsPanel: React.FC<ScheduleSuggestionsPanelProps> =
                 {suggestion.eventTitle && (
                   <div className="affected-events-section">
                     <div className="section-title">
-                      <span className="section-icon">�</span>
+                      <span className="section-icon">📌</span>
                       <strong>Eventos involucrados</strong>
                     </div>
 
@@ -256,7 +256,7 @@ export const ScheduleSuggestionsPanel: React.FC<ScheduleSuggestionsPanelProps> =
                     </>
                   ) : (
                     <>
-                      <span className="button-icon">✓</span> Aceptar
+                      <span className="button-icon">👍</span> Aceptar
                     </>
                   )}
                 </Button>
@@ -268,7 +268,7 @@ export const ScheduleSuggestionsPanel: React.FC<ScheduleSuggestionsPanelProps> =
                   className="action-reject"
                   title="Descartar esta sugerencia: no se aplicará y desaparecerá de la lista"
                 >
-                  <span className="button-icon">✗</span> Rechazar
+                  <span className="button-icon">👎</span> Rechazar
                 </Button>
               </div>
             </Card>

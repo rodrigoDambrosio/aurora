@@ -300,7 +300,6 @@ const WellnessDashboard: React.FC = () => {
                   <strong>{bestDay.headline}</strong>
                   <span className="hero-highlight-helper">{bestDay.description}</span>
                 </div>
-                <div className="hero-highlight divider" aria-hidden="true" />
                 <div className="hero-highlight">
                   <span className="hero-highlight-title">Día a mejorar</span>
                   <strong>{worstDay.headline}</strong>
@@ -396,19 +395,70 @@ const WellnessDashboard: React.FC = () => {
 
                 {hasTrackedDays && hasTrendData ? (
                   <div className="trend-chart" role="img" aria-label="Gráfico de evolución diaria del estado de ánimo">
-                    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <svg viewBox="0 -3 300 106" preserveAspectRatio="none">
+                      {/* Línea de tendencia */}
                       <polyline
-                        points={trendPoints}
+                        points={(summary?.moodTrend ?? [])
+                          .map((point, index) => {
+                            if (point.averageMood === null || point.averageMood === undefined) {
+                              return null;
+                            }
+                            const maxIndex = Math.max((summary?.moodTrend?.length ?? 1) - 1, 1);
+                            const x = (index / maxIndex) * 300;
+                            const normalized = (point.averageMood - 1) / 4;
+                            const y = (1 - normalized) * 100;
+                            return `${x.toFixed(2)},${y.toFixed(2)}`;
+                          })
+                          .filter(Boolean)
+                          .join(' ')}
                         fill="none"
                         stroke="var(--gradient-primary-start)"
-                        strokeWidth={2.5}
+                        strokeWidth={3}
                         strokeLinecap="round"
+                        strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke"
                       />
+                      {/* Puntos individuales */}
+                      {(summary?.moodTrend ?? []).map((point, index) => {
+                        if (point.averageMood === null || point.averageMood === undefined) {
+                          return null;
+                        }
+                        const maxIndex = Math.max((summary?.moodTrend?.length ?? 1) - 1, 1);
+                        const x = (index / maxIndex) * 300;
+                        const normalized = (point.averageMood - 1) / 4;
+                        const y = (1 - normalized) * 100;
+                        return (
+                          <circle
+                            key={index}
+                            cx={x}
+                            cy={y}
+                            r="2.5"
+                            fill="var(--gradient-primary-start)"
+                            vectorEffect="non-scaling-stroke"
+                          />
+                        );
+                      })}
                     </svg>
                     <div className="trend-scale" aria-hidden="true">
                       <span>5</span>
                       <span>3</span>
                       <span>1</span>
+                    </div>
+                    {/* Eje X con días del mes */}
+                    <div className="trend-x-axis" aria-hidden="true">
+                      {(summary?.moodTrend ?? []).map((point, index) => {
+                        const date = new Date(point.date);
+                        const day = date.getDate();
+                        const maxIndex = Math.max((summary?.moodTrend?.length ?? 1) - 1, 1);
+                        const x = (index / maxIndex) * 100;
+                        // Mostrar solo algunos días para no saturar
+                        const showLabel = index === 0 || index === maxIndex || day % 5 === 0;
+                        return showLabel ? (
+                          <span key={index} style={{ left: `${x}%` }}>
+                            {day}
+                          </span>
+                        ) : null;
+                      })}
                     </div>
                   </div>
                 ) : (

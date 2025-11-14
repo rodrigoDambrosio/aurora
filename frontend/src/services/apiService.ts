@@ -1045,7 +1045,8 @@ export const apiService = {
    * Generate new schedule suggestions by analyzing calendar
    */
   async generateScheduleSuggestions(): Promise<ScheduleSuggestionDto[]> {
-    return this.fetchApi<ScheduleSuggestionDto[]>('/schedule-suggestions/generate', {
+    const timezoneOffsetMinutes = -new Date().getTimezoneOffset();
+    return this.fetchApi<ScheduleSuggestionDto[]>(`/schedule-suggestions/generate?timezoneOffsetMinutes=${timezoneOffsetMinutes}`, {
       method: 'POST'
     });
   },
@@ -1063,7 +1064,13 @@ export const apiService = {
   // Productivity Analysis
   async getProductivityAnalysis(periodDays = 30): Promise<ProductivityAnalysisDto> {
     const clamped = Math.min(Math.max(periodDays, 1), 365);
-    return this.fetchApi<ProductivityAnalysisDto>(`/user/productivity-analysis?periodDays=${clamped}`);
+    const timezoneOffsetMinutes = -new Date().getTimezoneOffset();
+    const params = new URLSearchParams({
+      periodDays: clamped.toString(),
+      timezoneOffsetMinutes: timezoneOffsetMinutes.toString()
+    });
+
+    return this.fetchApi<ProductivityAnalysisDto>(`/user/productivity-analysis?${params.toString()}`);
   },
 
   // ===== SELF-CARE RECOMMENDATIONS ENDPOINTS =====

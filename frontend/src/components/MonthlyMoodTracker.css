@@ -205,6 +205,18 @@
     opacity: 0.35;
 }
 
+.mood-grid-day.is-future {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.mood-grid-day.is-future:hover {
+    background: var(--mm-cell-bg);
+    border-color: var(--mm-border);
+    transform: none;
+}
+
 .mood-grid-day.is-today {
     border-color: var(--mm-accent);
     box-shadow: inset 0 0 0 1px var(--mm-accent-soft-strong);

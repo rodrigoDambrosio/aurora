@@ -80,6 +80,19 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
     setIsOpen(false);
   };
 
+  // Keyboard shortcut for NLP input (Alt+I)
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.altKey && event.key.toLowerCase() === 'i') {
+        event.preventDefault();
+        setIsOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
   const formatDate = (isoDate: string) => {
     try {
       return new Intl.DateTimeFormat('es-ES', {
@@ -304,6 +317,7 @@ export function FloatingNLPInput({ onEventCreated }: FloatingNLPInputProps) {
             <button
               onClick={() => setIsOpen(true)}
               className="floating-nlp-button"
+              title="Crear con IA (Alt+I)"
             >
               <MessageSquare size={20} />
             </button>
