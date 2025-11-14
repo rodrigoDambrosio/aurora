@@ -141,12 +141,12 @@ public class EventRepository : Repository<Event>, IEventRepository
         return await query.AnyAsync();
     }
 
-    public async Task<IEnumerable<Event>> GetEventsByDateRangeAsync(Guid userId, DateTime startDate, DateTime endDate)
+    public async Task<IEnumerable<Event>> GetEventsByDateRangeAsync(Guid userId, DateTime startDate, DateTime endDateExclusive)
     {
         return await _dbSet
             .Where(e => e.UserId == userId &&
-                       e.StartDate >= startDate &&
-                       e.StartDate <= endDate)
+                       e.StartDate < endDateExclusive &&
+                       e.EndDate > startDate)
             .Include(e => e.EventCategory)
             .OrderBy(e => e.StartDate)
             .ThenBy(e => e.Title)

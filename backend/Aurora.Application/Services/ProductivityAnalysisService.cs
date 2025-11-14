@@ -21,24 +21,88 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
         _logger = logger;
     }
 
-    public async Task<ProductivityAnalysisDto> AnalyzeProductivityAsync(Guid userId, int periodDays = 30)
+    public async Task<ProductivityAnalysisDto> AnalyzeProductivityAsync(Guid userId, int periodDays = 30, int? timezoneOffsetMinutes = null)
     {
-        _logger.LogInformation("Iniciando análisis de productividad para usuario {UserId} con período de {Days} días", userId, periodDays);
+        var offsetMinutes = timezoneOffsetMinutes ?? -180; // UTC-3 (Buenos Aires) como valor por defecto temporal
+        var offsetTimeSpan = TimeSpan.FromMinutes(offsetMinutes);
+        var userNow = DateTimeOffset.UtcNow.ToOffset(offsetTimeSpan);
 
-        var endDate = DateTime.UtcNow;
-        var startDate = endDate.AddDays(-periodDays);
+        var localStart = new DateTimeOffset(userNow.Year, userNow.Month, userNow.Day, 0, 0, 0, offsetTimeSpan)
+            .AddDays(-(periodDays - 1));
+        var localEndExclusive = localStart.AddDays(periodDays);
+
+        var startDateUtc = localStart.UtcDateTime;
+        var endDateUtcExclusive = localEndExclusive.UtcDateTime;
+        var endDateUtcInclusive = endDateUtcExclusive.AddTicks(-1);
+
+        _logger.LogInformation(
+            "Iniciando análisis de productividad para usuario {UserId} con período de {Days} días (offset {Offset}) entre {Start} y {End}",
+            userId,
+            periodDays,
+            offsetMinutes,
+            startDateUtc,
+            endDateUtcInclusive);
 
         // Obtener eventos del período
-        var events = await _eventRepository.GetEventsByDateRangeAsync(userId, startDate, endDate);
-        var eventsList = events.ToList();
+        var eventsInPeriod = (await _eventRepository.GetEventsByDateRangeAsync(userId, startDateUtc, endDateUtcExclusive)).ToList();
 
-        _logger.LogInformation("Se encontraron {Count} eventos para analizar", eventsList.Count);
+        if (!eventsInPeriod.Any())
+        {
+            _logger.LogWarning(
+                "No se encontraron eventos en el rango {Start} - {End}. Intentando obtener todos los eventos del usuario para validar.",
+                startDateUtc,
+                endDateUtcInclusive);
 
-        // Calcular productividad por hora
-        var hourlyProductivity = CalculateHourlyProductivity(eventsList);
+            var allUserEvents = await _eventRepository.GetEventsByUserIdAsync(userId);
+            eventsInPeriod = allUserEvents
+                .Where(e => e.StartDate < endDateUtcExclusive && e.EndDate > startDateUtc)
+                .ToList();
+        }
+
+        var eventsList = eventsInPeriod
+            .Where(e => IsWorkCategory(e.EventCategory))
+            .ToList();
+
+        if (!eventsList.Any())
+        {
+            _logger.LogInformation("Sin eventos de trabajo identificados en el período; usando todos los eventos disponibles para evitar un análisis vacío");
+            eventsList = eventsInPeriod;
+        }
+
+        _logger.LogInformation("Se encontraron {Count} eventos de trabajo para analizar", eventsList.Count);
+
+        var localizedEvents = eventsList
+            .Select(e => new EventLocalSnapshot(
+                e,
+                ConvertToLocal(e.StartDate, offsetTimeSpan),
+                ConvertToLocal(e.EndDate, offsetTimeSpan)))
+            .Where(e => e.EndLocal > e.StartLocal)
+            .ToList();
+
+        // Calcular ventana de 7 días (excluyendo el día actual) para el heatmap horario
+        var hourlyWindowEndLocal = new DateTimeOffset(userNow.Year, userNow.Month, userNow.Day, 0, 0, 0, offsetTimeSpan);
+        var hourlyWindowStartLocal = hourlyWindowEndLocal.AddDays(-7);
+
+        if (hourlyWindowStartLocal < localStart)
+        {
+            hourlyWindowStartLocal = localStart;
+        }
+
+        var hourlyEvents = localizedEvents
+            .Where(e => e.StartLocal < hourlyWindowEndLocal && e.EndLocal > hourlyWindowStartLocal)
+            .ToList();
+
+        _logger.LogInformation(
+            "Ventana horario local: {Start} - {End} (Eventos: {Count})",
+            hourlyWindowStartLocal,
+            hourlyWindowEndLocal,
+            hourlyEvents.Count);
+
+        // Calcular productividad por hora con la ventana acotada
+        var hourlyProductivity = CalculateHourlyProductivity(hourlyEvents, hourlyWindowStartLocal, hourlyWindowEndLocal);
 
         // Calcular productividad por día de la semana
-        var dailyProductivity = CalculateDailyProductivity(eventsList);
+        var dailyProductivity = CalculateDailyProductivity(localizedEvents);
 
         // Identificar horas doradas
         var goldenHours = IdentifyGoldenHours(hourlyProductivity);
@@ -47,7 +111,7 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
         var lowEnergyHours = IdentifyLowEnergyHours(hourlyProductivity);
 
         // Calcular productividad por categoría
-        var categoryProductivity = CalculateCategoryProductivity(eventsList);
+        var categoryProductivity = CalculateCategoryProductivity(localizedEvents);
 
         // Generar recomendaciones
         var recommendations = GenerateRecommendations(hourlyProductivity, dailyProductivity, categoryProductivity);
@@ -60,22 +124,71 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
             LowEnergyHours = lowEnergyHours,
             CategoryProductivity = categoryProductivity,
             Recommendations = recommendations,
-            AnalysisPeriodStart = startDate,
-            AnalysisPeriodEnd = endDate,
-            TotalEventsAnalyzed = eventsList.Count,
-            TotalMoodRecordsAnalyzed = 0 // Por ahora, sin correlación con mood
+            AnalysisPeriodStart = startDateUtc,
+            AnalysisPeriodEnd = endDateUtcInclusive,
+            TotalEventsAnalyzed = localizedEvents.Count,
+            TotalMoodRecordsAnalyzed = localizedEvents.Count(e => e.Event.MoodRating.HasValue)
         };
     }
 
-    private List<HourlyProductivityDto> CalculateHourlyProductivity(List<Event> events)
+    private List<HourlyProductivityDto> CalculateHourlyProductivity(
+        IReadOnlyList<EventLocalSnapshot> events,
+        DateTimeOffset windowStart,
+        DateTimeOffset windowEnd)
     {
-        var hourlyStats = new List<HourlyProductivityDto>();
+        var accumulators = Enumerable.Range(0, 24)
+            .Select(_ => new HourAccumulator())
+            .ToArray();
+
+        foreach (var snapshot in events)
+        {
+            var effectiveStart = snapshot.StartLocal < windowStart ? windowStart : snapshot.StartLocal;
+            var effectiveEnd = snapshot.EndLocal > windowEnd ? windowEnd : snapshot.EndLocal;
+
+            if (effectiveEnd <= effectiveStart)
+            {
+                continue;
+            }
+
+            var cursor = effectiveStart;
+
+            while (cursor < effectiveEnd)
+            {
+                var hourStart = new DateTimeOffset(cursor.Year, cursor.Month, cursor.Day, cursor.Hour, 0, 0, cursor.Offset);
+                var hourEnd = hourStart.AddHours(1);
+                var segmentStart = cursor > hourStart ? cursor : hourStart;
+                var segmentEnd = effectiveEnd < hourEnd ? effectiveEnd : hourEnd;
+                var overlapMinutes = (segmentEnd - segmentStart).TotalMinutes;
+
+                if (overlapMinutes <= 0)
+                {
+                    cursor = hourEnd;
+                    continue;
+                }
+
+                var accumulator = accumulators[hourStart.Hour];
+                accumulator.TotalMinutes += overlapMinutes;
+                accumulator.EventIds.Add(snapshot.Event.Id);
+                accumulator.ActivityDates.Add(hourStart.Date);
+
+                if (snapshot.Event.MoodRating.HasValue)
+                {
+                    accumulator.MoodMinutes += overlapMinutes;
+                    accumulator.MoodWeightedSum += snapshot.Event.MoodRating.Value * overlapMinutes;
+                    accumulator.EventsWithMood.Add(snapshot.Event.Id);
+                }
+
+                cursor = hourEnd;
+            }
+        }
+
+        var hourlyStats = new List<HourlyProductivityDto>(24);
 
         for (int hour = 0; hour < 24; hour++)
         {
-            var eventsInHour = events.Where(e => e.StartDate.Hour == hour).ToList();
+            var accumulator = accumulators[hour];
 
-            if (!eventsInHour.Any())
+            if (accumulator.TotalMinutes <= 0)
             {
                 hourlyStats.Add(new HourlyProductivityDto
                 {
@@ -89,26 +202,26 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
                 continue;
             }
 
-            var completedEvents = eventsInHour.Count(e => e.MoodRating.HasValue || e.EndDate < DateTime.UtcNow);
-            var completionRate = (double)completedEvents / eventsInHour.Count * 100;
+            var averageMood = accumulator.MoodMinutes > 0
+                ? Math.Round(accumulator.MoodWeightedSum / accumulator.MoodMinutes, 2)
+                : 0;
 
-            // Score de productividad basado en:
-            // - Tasa de completitud (60%)
-            // - Cantidad de eventos (20%)
-            // - Dispersión horaria (20%)
-            var activityScore = Math.Min(eventsInHour.Count * 10, 100) * 0.2;
-            var completionScore = completionRate * 0.6;
-            var consistencyScore = CalculateConsistencyScore(eventsInHour) * 0.2;
+            var feedbackCoverage = accumulator.TotalMinutes > 0
+                ? accumulator.MoodMinutes / accumulator.TotalMinutes
+                : 0;
 
-            var productivityScore = completionScore + activityScore + consistencyScore;
+            var moodScore = accumulator.MoodMinutes > 0 ? NormalizeMoodScore(averageMood) : 0;
+            var consistencyScore = Math.Min(accumulator.ActivityDates.Count / 5.0, 1.0);
+            var volumeScore = Math.Min(accumulator.EventIds.Count / 4.0, 1.0);
+            var productivityScore = (moodScore * 0.6 + feedbackCoverage * 0.25 + consistencyScore * 0.1 + volumeScore * 0.05) * 100;
 
             hourlyStats.Add(new HourlyProductivityDto
             {
                 Hour = hour,
-                AverageMood = 3.5, // Por ahora valor neutral, integrar con DailyMoodEntry después
-                EventsCompleted = completedEvents,
-                TotalEvents = eventsInHour.Count,
-                CompletionRate = completionRate,
+                AverageMood = averageMood,
+                EventsCompleted = accumulator.EventsWithMood.Count,
+                TotalEvents = accumulator.EventIds.Count,
+                CompletionRate = Math.Round(feedbackCoverage * 100, 2),
                 ProductivityScore = Math.Round(productivityScore, 2)
             });
         }
@@ -116,25 +229,14 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
         return hourlyStats;
     }
 
-    private double CalculateConsistencyScore(List<Event> events)
-    {
-        if (events.Count < 2) return 50;
-
-        // Calcular varianza de días de la semana donde ocurren eventos
-        var daysOfWeek = events.Select(e => (int)e.StartDate.DayOfWeek).Distinct().Count();
-        
-        // Mayor diversidad de días = mayor consistencia
-        return Math.Min(daysOfWeek * 14.28, 100); // 100 / 7 días ≈ 14.28
-    }
-
-    private List<DailyProductivityDto> CalculateDailyProductivity(List<Event> events)
+    private List<DailyProductivityDto> CalculateDailyProductivity(IReadOnlyList<EventLocalSnapshot> events)
     {
         var dailyStats = new List<DailyProductivityDto>();
         var dayNames = new[] { "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado" };
 
         for (int day = 0; day < 7; day++)
         {
-            var eventsInDay = events.Where(e => (int)e.StartDate.DayOfWeek == day).ToList();
+            var eventsInDay = events.Where(e => (int)e.StartLocal.DayOfWeek == day).ToList();
 
             if (!eventsInDay.Any())
             {
@@ -149,15 +251,21 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
                 continue;
             }
 
-            var completedEvents = eventsInDay.Count(e => e.MoodRating.HasValue || e.EndDate < DateTime.UtcNow);
-            var completionRate = (double)completedEvents / eventsInDay.Count * 100;
-            var productivityScore = completionRate * 0.7 + Math.Min(eventsInDay.Count * 5, 100) * 0.3;
+            var feedbackEvents = eventsInDay.Where(e => e.Event.MoodRating.HasValue).ToList();
+            var averageMood = feedbackEvents.Any() ? feedbackEvents.Average(e => e.Event.MoodRating!.Value) : 0;
+            var feedbackCoverage = feedbackEvents.Any()
+                ? (double)feedbackEvents.Count / eventsInDay.Count
+                : 0;
+
+            var moodScore = feedbackEvents.Any() ? NormalizeMoodScore(averageMood) : 0;
+            var volumeScore = Math.Min(eventsInDay.Count / 6.0, 1.0);
+            var productivityScore = (moodScore * 0.55 + feedbackCoverage * 0.3 + volumeScore * 0.15) * 100;
 
             dailyStats.Add(new DailyProductivityDto
             {
                 DayOfWeek = day,
                 DayName = dayNames[day],
-                AverageMood = 3.5, // Valor neutral por ahora
+                AverageMood = feedbackEvents.Any() ? Math.Round(averageMood, 2) : 0,
                 ProductivityScore = Math.Round(productivityScore, 2),
                 TotalEvents = eventsInDay.Count
             });
@@ -261,20 +369,26 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
         return lowEnergyHours;
     }
 
-    private List<CategoryProductivityDto> CalculateCategoryProductivity(List<Event> events)
+    private List<CategoryProductivityDto> CalculateCategoryProductivity(IReadOnlyList<EventLocalSnapshot> events)
     {
         var categoryStats = events
-            .Where(e => e.EventCategory != null)
-            .GroupBy(e => new { e.EventCategory!.Id, e.EventCategory.Name, e.EventCategory.Color })
+            .Where(e => e.Event.EventCategory != null)
+            .GroupBy(e => new { e.Event.EventCategory!.Id, e.Event.EventCategory.Name, e.Event.EventCategory.Color })
             .Select(g =>
             {
                 var categoryEvents = g.ToList();
-                var completedEvents = categoryEvents.Count(e => e.MoodRating.HasValue || e.EndDate < DateTime.UtcNow);
-                var completionRate = (double)completedEvents / categoryEvents.Count * 100;
+                var feedbackEvents = categoryEvents.Where(e => e.Event.MoodRating.HasValue).ToList();
+                var averageMood = feedbackEvents.Any() ? feedbackEvents.Average(e => e.Event.MoodRating!.Value) : 0;
+                var feedbackCoverage = feedbackEvents.Any()
+                    ? (double)feedbackEvents.Count / categoryEvents.Count
+                    : 0;
+
+                var moodScore = feedbackEvents.Any() ? NormalizeMoodScore(averageMood) : 0;
+                var productivityScore = (moodScore * 0.6 + feedbackCoverage * 0.4) * 100;
 
                 // Encontrar las mejores horas para esta categoría
                 var hourDistribution = categoryEvents
-                    .GroupBy(e => e.StartDate.Hour)
+                    .GroupBy(e => e.StartLocal.Hour)
                     .Select(h => new { Hour = h.Key, Count = h.Count() })
                     .OrderByDescending(h => h.Count)
                     .Take(3)
@@ -283,7 +397,7 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
 
                 // Encontrar el mejor día de la semana
                 var bestDay = categoryEvents
-                    .GroupBy(e => (int)e.StartDate.DayOfWeek)
+                    .GroupBy(e => (int)e.StartLocal.DayOfWeek)
                     .OrderByDescending(d => d.Count())
                     .FirstOrDefault()?.Key ?? 0;
 
@@ -293,7 +407,7 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
                     CategoryName = g.Key.Name,
                     CategoryColor = g.Key.Color,
                     OptimalHours = hourDistribution,
-                    AverageProductivityScore = Math.Round(completionRate * 0.8 + 20, 2),
+                    AverageProductivityScore = Math.Round(productivityScore, 2),
                     BestDayOfWeek = bestDay
                 };
             })
@@ -318,10 +432,14 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
 
         if (topHours.Any())
         {
+            var moodText = topHours.Any(h => h.AverageMood > 0)
+                ? $" (ánimo promedio {topHours.Average(h => h.AverageMood):F1}/5)"
+                : string.Empty;
+
             recommendations.Add(new ProductivityRecommendationDto
             {
                 Title = "Aprovecha tus horas más productivas",
-                Description = $"Tu mejor rendimiento es entre las {topHours.First().Hour:D2}:00 y {(topHours.Last().Hour + 1):D2}:00. Programa tareas importantes en estos horarios.",
+                Description = $"Tu mejor rendimiento es entre las {topHours.First().Hour:D2}:00 y {(topHours.Last().Hour + 1):D2}:00{moodText}. Programa tareas importantes en estos horarios.",
                 Priority = 5,
                 Type = "golden-hours",
                 SuggestedHours = topHours.Select(h => h.Hour).ToList()
@@ -335,10 +453,14 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
 
         if (lowHours.Any())
         {
+            var moodText = lowHours.Any(h => h.AverageMood > 0)
+                ? $" (ánimo promedio {lowHours.Average(h => h.AverageMood):F1}/5)"
+                : string.Empty;
+
             recommendations.Add(new ProductivityRecommendationDto
             {
                 Title = "Evita tareas exigentes en horas de baja energía",
-                Description = $"Tu rendimiento disminuye entre las {lowHours.First().Hour:D2}:00 y {(lowHours.Last().Hour + 1):D2}:00. Reserva estos momentos para tareas ligeras o descansos.",
+                Description = $"Tu rendimiento disminuye entre las {lowHours.First().Hour:D2}:00 y {(lowHours.Last().Hour + 1):D2}:00{moodText}. Reserva estos momentos para tareas ligeras o descansos.",
                 Priority = 4,
                 Type = "low-energy-warning",
                 SuggestedHours = lowHours.Select(h => h.Hour).ToList()
@@ -378,6 +500,30 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
         return recommendations.OrderByDescending(r => r.Priority).ToList();
     }
 
+    private static DateTimeOffset ConvertToLocal(DateTime dateTime, TimeSpan offset)
+    {
+        var utcDateTime = dateTime.Kind switch
+        {
+            DateTimeKind.Utc => dateTime,
+            DateTimeKind.Local => dateTime.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+        };
+
+        return new DateTimeOffset(utcDateTime, TimeSpan.Zero).ToOffset(offset);
+    }
+
+    private sealed record EventLocalSnapshot(Event Event, DateTimeOffset StartLocal, DateTimeOffset EndLocal);
+
+    private sealed class HourAccumulator
+    {
+        public HashSet<Guid> EventIds { get; } = new();
+        public HashSet<Guid> EventsWithMood { get; } = new();
+        public HashSet<DateTime> ActivityDates { get; } = new();
+        public double TotalMinutes { get; set; }
+        public double MoodMinutes { get; set; }
+        public double MoodWeightedSum { get; set; }
+    }
+
     private string GetTimeOfDayDescription(int hour)
     {
         return hour switch
@@ -388,5 +534,58 @@ public class ProductivityAnalysisService : IProductivityAnalysisService
             >= 20 and < 24 => "Noche",
             _ => "Madrugada"
         };
+    }
+
+    private static bool IsWorkCategory(EventCategory? category)
+    {
+        if (category == null)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(category.Icon))
+        {
+            var normalizedIcon = category.Icon.Trim().ToLowerInvariant();
+
+            if (normalizedIcon is "work" or "briefcase" or "briefcase-business" or "business" or "office" or "suitcase" or "laptop")
+            {
+                return true;
+            }
+
+            if (normalizedIcon.Contains("work", StringComparison.Ordinal) ||
+                normalizedIcon.Contains("briefcase", StringComparison.Ordinal) ||
+                normalizedIcon.Contains("business", StringComparison.Ordinal) ||
+                normalizedIcon.Contains("office", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (category.Icon.Contains("💼", StringComparison.Ordinal) ||
+                category.Icon.Contains("👔", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        var normalizedName = category.Name?.Trim().ToLowerInvariant();
+
+        if (string.IsNullOrEmpty(normalizedName))
+        {
+            return false;
+        }
+
+        return normalizedName.Contains("trabajo") ||
+               normalizedName.Contains("work") ||
+               normalizedName.Contains("laboral");
+    }
+
+    private static double NormalizeMoodScore(double mood)
+    {
+        if (double.IsNaN(mood) || double.IsInfinity(mood))
+        {
+            return 0;
+        }
+
+        return Math.Clamp((mood - 1) / 4.0, 0, 1);
     }
 }

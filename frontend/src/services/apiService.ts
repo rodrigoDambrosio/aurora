@@ -1064,7 +1064,13 @@ export const apiService = {
   // Productivity Analysis
   async getProductivityAnalysis(periodDays = 30): Promise<ProductivityAnalysisDto> {
     const clamped = Math.min(Math.max(periodDays, 1), 365);
-    return this.fetchApi<ProductivityAnalysisDto>(`/user/productivity-analysis?periodDays=${clamped}`);
+    const timezoneOffsetMinutes = -new Date().getTimezoneOffset();
+    const params = new URLSearchParams({
+      periodDays: clamped.toString(),
+      timezoneOffsetMinutes: timezoneOffsetMinutes.toString()
+    });
+
+    return this.fetchApi<ProductivityAnalysisDto>(`/user/productivity-analysis?${params.toString()}`);
   },
 
   // ===== SELF-CARE RECOMMENDATIONS ENDPOINTS =====

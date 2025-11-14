@@ -1,3 +1,4 @@
+using Aurora.Api.Extensions;
 using Aurora.Application.DTOs;
 using Aurora.Application.Interfaces;
 using Aurora.Domain.Services;
@@ -32,7 +33,9 @@ public class ProductivityAnalysisController : ControllerBase
     [ProducesResponseType(typeof(ProductivityAnalysisDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<ProductivityAnalysisDto>> GetProductivityAnalysis([FromQuery] int periodDays = 30)
+    public async Task<ActionResult<ProductivityAnalysisDto>> GetProductivityAnalysis(
+        [FromQuery] int periodDays = 30,
+        [FromQuery] int? timezoneOffsetMinutes = null)
     {
         try
         {
@@ -41,10 +44,28 @@ public class ProductivityAnalysisController : ControllerBase
                 return BadRequest(new { error = "El período debe estar entre 1 y 365 días" });
             }
 
-            var userId = DevelopmentUserService.GetCurrentUserId();
-            _logger.LogInformation("Obteniendo análisis de productividad para usuario {UserId} con período de {Days} días", userId, periodDays);
+            var userIdClaim = User.GetUserId();
 
-            var analysis = await _productivityAnalysisService.AnalyzeProductivityAsync(userId, periodDays);
+            if (!userIdClaim.HasValue)
+            {
+                _logger.LogWarning("No se encontró el identificador de usuario en el token al solicitar el análisis de productividad");
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Usuario no autenticado",
+                    Detail = "No se pudo determinar el usuario autenticado.",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            var userId = DevelopmentUserService.GetCurrentUserId(userIdClaim);
+
+            _logger.LogInformation(
+                "Obteniendo análisis de productividad para usuario {UserId} con período de {Days} días y offset {Offset}",
+                userId,
+                periodDays,
+                timezoneOffsetMinutes);
+
+            var analysis = await _productivityAnalysisService.AnalyzeProductivityAsync(userId, periodDays, timezoneOffsetMinutes);
 
             return Ok(analysis);
         }

@@ -252,7 +252,7 @@ public class RecommendationAssistantService : IRecommendationAssistantService
                 }
                 var id = GetString(element, "id") ?? $"ai-{timestamp}-{index}";
 
-                var suggestedStart = GetDate(element, "suggestedStart") ?? DateTime.UtcNow;
+                var suggestedStart = NormalizeSuggestedStart(GetDate(element, "suggestedStart"));
                 var duration = GetInt(element, "suggestedDurationMinutes") ?? 30;
                 var confidence = GetDouble(element, "confidence") ?? 0.6;
 
@@ -281,6 +281,21 @@ public class RecommendationAssistantService : IRecommendationAssistantService
         {
             throw new InvalidOperationException("No se pudo interpretar el JSON generado por la IA.", ex);
         }
+    }
+
+    private static DateTime NormalizeSuggestedStart(DateTime? candidate)
+    {
+        var utcCandidate = candidate.HasValue
+            ? candidate.Value.Kind switch
+            {
+                DateTimeKind.Utc => candidate.Value,
+                DateTimeKind.Local => candidate.Value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(candidate.Value, DateTimeKind.Utc)
+            }
+            : DateTime.UtcNow;
+
+        var earliestAllowed = DateTime.UtcNow.AddMinutes(5);
+        return utcCandidate < earliestAllowed ? earliestAllowed : utcCandidate;
     }
 
     private static string? ExtractJsonArray(string raw)
