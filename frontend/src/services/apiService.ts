@@ -5,6 +5,8 @@
  * Uses environment variables or falls back to proxy configuration in development.
  */
 
+import type { CreateReminderDto, ReminderDto } from '../types/reminder.types';
+
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -965,6 +967,7 @@ export const apiService = {
     });
   },
 
+
   // ===== WELLNESS ANALYTICS ENDPOINTS =====
 
   async getWellnessSummary(year: number, month: number): Promise<WellnessSummaryDto> {
@@ -1008,6 +1011,55 @@ export const apiService = {
     });
   },
 
+  // ===== REMINDERS ENDPOINTS =====
+
+  /**
+   * Create a new reminder for an event
+   */
+  async createReminder(payload: CreateReminderDto): Promise<ReminderDto> {
+    return this.fetchApi<ReminderDto>('/reminders', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  /**
+   * Get pending reminders (ready to trigger)
+   */
+  async getPendingReminders(): Promise<ReminderDto[]> {
+    return this.fetchApi<ReminderDto[]>('/reminders/pending');
+  },
+
+  /**
+   * Get reminder by ID
+   */
+  async getReminderById(id: string): Promise<ReminderDto> {
+    return this.fetchApi<ReminderDto>(`/reminders/${id}`);
+  },
+
+  /**
+   * Get all reminders for a specific event
+   */
+  async getRemindersByEventId(eventId: string): Promise<ReminderDto[]> {
+    return this.fetchApi<ReminderDto[]>(`/reminders/event/${eventId}`);
+  },
+
+  /**
+   * Delete a reminder
+   */
+  async deleteReminder(id: string): Promise<void> {
+    await this.fetchApi<void>(`/reminders/${id}`, {
+      method: 'DELETE'
+    });
+  },
+  /**
+   * Mark a reminder as sent
+   */
+  async markReminderAsSent(id: string): Promise<void> {
+    await this.fetchApi<void>(`/reminders/${id}/mark-sent`, {
+      method: 'PUT'
+    });
+  },
   async generateAssistantReply(payload: RecommendationAssistantChatRequestDto): Promise<RecommendationAssistantChatResponseDto> {
     return this.fetchApi<RecommendationAssistantChatResponseDto>('/recommendations/assistant/chat', {
       method: 'POST',
@@ -1052,8 +1104,8 @@ export const apiService = {
   },
 
   /**
-   * Respond to a schedule suggestion (accept/reject/postpone)
-   */
+  * Respond to a schedule suggestion (accept/reject/postpone)
+  */
   async respondToSuggestion(id: string, response: RespondToSuggestionDto): Promise<ScheduleSuggestionDto> {
     return this.fetchApi<ScheduleSuggestionDto>(`/schedule-suggestions/${id}/respond`, {
       method: 'POST',

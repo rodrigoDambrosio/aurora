@@ -174,6 +174,6 @@ public class EventRepository : Repository<Event>, IEventRepository
         return await _dbSet
             .Include(e => e.EventCategory)
             .Include(e => e.User)
-            .FirstOrDefaultAsync(e => e.Id == id);
+            .FirstOrDefaultAsync(e => e.Id == id );
     }
 }

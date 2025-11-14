@@ -11,6 +11,12 @@ namespace Aurora.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Los cambios de índices y la tabla RecommendationFeedback ya existen
+            // Esta migración se marca como aplicada sin ejecutar cambios
+            migrationBuilder.Sql("SELECT 1;"); // No-op
+
+            // Código original comentado:
+            /*
             migrationBuilder.DropIndex(
                 name: "IX_EventCategories_UserId_Name",
                 table: "EventCategories");
@@ -56,6 +62,7 @@ namespace Aurora.Infrastructure.Migrations
                 table: "RecommendationFeedback",
                 columns: new[] { "UserId", "RecommendationId" },
                 unique: true);
+            */
         }
 
         /// <inheritdoc />

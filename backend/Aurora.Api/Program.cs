@@ -61,6 +61,7 @@ builder.Services.AddScoped<IScheduleSuggestionRepository, ScheduleSuggestionRepo
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IReminderService, ReminderService>();
 builder.Services.AddScoped<IDailyMoodService, DailyMoodService>();
 builder.Services.AddScoped<IWellnessInsightsService, WellnessInsightsService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();

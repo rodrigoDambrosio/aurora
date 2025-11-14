@@ -94,6 +94,11 @@ public class Event : BaseEntity
     /// </summary>
     public virtual User? User { get; set; }
 
+    /// <summary>
+    /// Recordatorios asociados al evento
+    /// </summary>
+    public virtual ICollection<EventReminder> Reminders { get; set; } = new List<EventReminder>();
+
     // Métodos de dominio
     /// <summary>
     /// Valida si las fechas del evento son consistentes

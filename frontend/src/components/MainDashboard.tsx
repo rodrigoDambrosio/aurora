@@ -1,5 +1,7 @@
+import React, { useCallback, useEffect, useImperativeHandle, useState } from 'react';
+// import { apiService, type EventCategoryDto, type EventDto } from '../services/apiService';
 import { Heart } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+// import React, { useEffect, useState } from 'react';
 import { useEvents } from '../context/useEvents';
 import type { SelfCareFeedbackDto } from '../services/apiService';
 import { apiService, SelfCareFeedbackAction, type EventCategoryDto, type EventDto, type SelfCareRecommendationDto, type UpdateEventMoodDto } from '../services/apiService';
@@ -25,7 +27,15 @@ type SelfCareEventPrefill = {
   durationMinutes?: number;
 };
 
-const MainDashboard: React.FC = () => {
+interface MainDashboardRef {
+  openEventById: (eventId: string) => Promise<void>;
+}
+
+interface MainDashboardProps {
+  onViewEvent?: (openEventById: (eventId: string) => Promise<void>) => void;
+}
+
+const MainDashboard = React.forwardRef<MainDashboardRef, MainDashboardProps>(({ onViewEvent }, ref) => {
   const [activeView, setActiveView] = useState('calendar-week');
   const { refreshToken, refreshEvents } = useEvents();
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
@@ -63,6 +73,39 @@ const MainDashboard: React.FC = () => {
 
     loadUserPreferences();
   }, []);
+
+  // const bumpRefreshToken = () => {
+  //   setRefreshToken(prev => prev + 1);
+  // };
+
+  const openEventById = useCallback(async (eventId: string) => {
+    try {
+      console.log('Abriendo evento por ID:', eventId);
+      setDetailError('');
+
+      // Obtener el evento por ID
+      const event = await apiService.getEvent(eventId);
+
+      // Abrir el modal de detalles
+      setSelectedEvent(event);
+      setIsDetailModalOpen(true);
+    } catch (error) {
+      console.error('Error al cargar evento:', error);
+      setDetailError('No se pudo cargar el evento');
+    }
+  }, []);
+
+  // Exponer la función openEventById a través del ref
+  useImperativeHandle(ref, () => ({
+    openEventById
+  }), [openEventById]);
+
+  // Informar al componente padre sobre la función openEventById
+  useEffect(() => {
+    if (onViewEvent) {
+      onViewEvent(openEventById);
+    }
+  }, [onViewEvent, openEventById]);
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
@@ -377,6 +420,8 @@ const MainDashboard: React.FC = () => {
       </button>
     </div>
   );
-};
+});
+
+MainDashboard.displayName = 'MainDashboard';
 
 export default MainDashboard;

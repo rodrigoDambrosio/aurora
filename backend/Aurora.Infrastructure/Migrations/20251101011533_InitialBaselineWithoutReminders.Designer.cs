@@ -3,6 +3,7 @@ using System;
 using Aurora.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,54 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Aurora.Infrastructure.Migrations
 {
     [DbContext(typeof(AuroraDbContext))]
-    partial class AuroraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251101011533_InitialBaselineWithoutReminders")]
+    partial class InitialBaselineWithoutReminders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
-
-            modelBuilder.Entity("Aurora.Domain.Entities.DailyMoodEntry", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("datetime('now')");
-
-                    b.Property<DateTime>("EntryDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(true);
-
-                    b.Property<int>("MoodRating")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("datetime('now')");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "EntryDate")
-                        .IsUnique()
-                        .HasDatabaseName("IX_DailyMoodEntries_UserId_EntryDate");
-
-                    b.ToTable("DailyMoodEntries", (string)null);
-                });
 
             modelBuilder.Entity("Aurora.Domain.Entities.Event", b =>
                 {
@@ -98,13 +59,6 @@ namespace Aurora.Infrastructure.Migrations
 
                     b.Property<string>("Location")
                         .HasColumnType("TEXT");
-
-                    b.Property<string>("MoodNotes")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("MoodRating")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Notes")
                         .HasColumnType("TEXT");
@@ -210,8 +164,7 @@ namespace Aurora.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("IX_EventCategories_UserId_Name_Active")
-                        .HasFilter("IsActive = 1");
+                        .HasDatabaseName("IX_EventCategories_UserId_Name");
 
                     b.ToTable("EventCategories", (string)null);
                 });
@@ -223,9 +176,7 @@ namespace Aurora.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("CustomTimeHours")
                         .HasColumnType("INTEGER");
@@ -240,9 +191,7 @@ namespace Aurora.Infrastructure.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsSent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("ReminderType")
                         .HasColumnType("INTEGER");
@@ -251,129 +200,13 @@ namespace Aurora.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventId");
-
-                    b.HasIndex("IsSent");
-
-                    b.HasIndex("TriggerDateTime");
-
-                    b.HasIndex("TriggerDateTime", "IsSent")
-                        .HasDatabaseName("IX_EventReminders_TriggerDateTime_IsSent");
-
-                    b.ToTable("EventReminders", (string)null);
-                });
-
-            modelBuilder.Entity("Aurora.Domain.Entities.RecommendationFeedback", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("Accepted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("datetime('now')");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(true);
-
-                    b.Property<int?>("MoodAfter")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RecommendationId")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("SubmittedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("datetime('now')");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "RecommendationId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_RecommendationFeedback_UserId_RecommendationId");
-
-                    b.ToTable("RecommendationFeedback", (string)null);
-                });
-
-            modelBuilder.Entity("Aurora.Domain.Entities.ScheduleSuggestion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("ConfidenceScore")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("EventId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Metadata")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("SuggestedDateTime")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("UserId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.HasIndex("EventId");
 
-                    b.ToTable("ScheduleSuggestions");
+                    b.ToTable("EventReminder");
                 });
 
             modelBuilder.Entity("Aurora.Domain.Entities.User", b =>
@@ -570,17 +403,6 @@ namespace Aurora.Infrastructure.Migrations
                     b.ToTable("UserSessions", (string)null);
                 });
 
-            modelBuilder.Entity("Aurora.Domain.Entities.DailyMoodEntry", b =>
-                {
-                    b.HasOne("Aurora.Domain.Entities.User", "User")
-                        .WithMany("DailyMoodEntries")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Aurora.Domain.Entities.Event", b =>
                 {
                     b.HasOne("Aurora.Domain.Entities.EventCategory", "EventCategory")
@@ -622,26 +444,6 @@ namespace Aurora.Infrastructure.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("Aurora.Domain.Entities.RecommendationFeedback", b =>
-                {
-                    b.HasOne("Aurora.Domain.Entities.User", "User")
-                        .WithMany("RecommendationFeedback")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Aurora.Domain.Entities.ScheduleSuggestion", b =>
-                {
-                    b.HasOne("Aurora.Domain.Entities.Event", "Event")
-                        .WithMany()
-                        .HasForeignKey("EventId");
-
-                    b.Navigation("Event");
-                });
-
             modelBuilder.Entity("Aurora.Domain.Entities.UserPreferences", b =>
                 {
                     b.HasOne("Aurora.Domain.Entities.User", "User")
@@ -676,15 +478,11 @@ namespace Aurora.Infrastructure.Migrations
 
             modelBuilder.Entity("Aurora.Domain.Entities.User", b =>
                 {
-                    b.Navigation("DailyMoodEntries");
-
                     b.Navigation("EventCategories");
 
                     b.Navigation("Events");
 
                     b.Navigation("Preferences");
-
-                    b.Navigation("RecommendationFeedback");
 
                     b.Navigation("Sessions");
                 });

@@ -537,3 +537,135 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+/* Reminders Section Styles - Basados en el HTML de diseño */
+.event-reminders-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+}
+
+.event-reminders-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.event-reminders-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.event-reminders-add-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--gradient-primary-start);
+    font-size: 14px;
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.event-reminders-add-button:hover {
+    color: var(--color-text-primary);
+}
+
+.event-reminders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.event-reminder-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.event-reminder-card:hover {
+    border-color: var(--gradient-primary-start);
+}
+
+.event-reminder-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.event-reminder-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--color-text-muted);
+}
+
+.event-reminder-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.event-reminder-status {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    background: var(--color-surface-alt);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+}
+
+.event-reminder-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.event-reminder-edit {
+    padding: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.event-reminder-edit:hover {
+    color: var(--gradient-primary-start);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.event-reminder-delete {
+    padding: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: color 0.2s ease;
+    border-radius: 4px;
+}
+
+.event-reminder-delete:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.event-reminders-empty {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 16px;
+}

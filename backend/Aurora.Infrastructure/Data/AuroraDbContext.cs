@@ -39,6 +39,10 @@ public class AuroraDbContext : DbContext
     public DbSet<UserSession> UserSessions { get; set; }
 
     /// <summary>
+    /// Conjunto de recordatorios de eventos
+    /// </summary>
+    public DbSet<EventReminder> EventReminders { get; set; }
+    /// <summary>
     /// Conjunto de registros diarios de estado de ánimo
     /// </summary>
     public DbSet<DailyMoodEntry> DailyMoodEntries { get; set; }
@@ -63,6 +67,7 @@ public class AuroraDbContext : DbContext
         modelBuilder.ApplyConfiguration(new EventCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new UserPreferencesConfiguration());
         modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
+        modelBuilder.ApplyConfiguration(new EventReminderConfiguration());
         modelBuilder.ApplyConfiguration(new DailyMoodEntryConfiguration());
         modelBuilder.ApplyConfiguration(new RecommendationFeedbackConfiguration());
 

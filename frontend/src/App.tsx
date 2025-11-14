@@ -3,19 +3,30 @@ import './App.css';
 import ApiTest from './components/ApiTest';
 import AuthScreen from './components/Auth/AuthScreen';
 import MainDashboard from './components/MainDashboard';
+import { NotificationPermissionBanner } from './components/NotificationPermissionBanner';
 import { EventsProvider } from './context/EventsContext';
+import { NotificationProvider, useNotifications as useInAppNotifications } from './context/NotificationContext';
 import { useTheme } from './context/useTheme';
+import { useNotifications } from './hooks/useNotifications';
 import { apiService } from './services/apiService';
 
+// Variable global para mantener la referencia a la función openEventById
+let globalOpenEventById: ((eventId: string) => Promise<void>) | null = null;
+
 /**
- * Main Application Component
- * 
- * Aurora Personal Planner - Mobile-First Weekly Calendar
+ * Componente interno que maneja las notificaciones dentro del contexto
  */
-function App() {
+function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [userNotificationsEnabled, setUserNotificationsEnabled] = useState<boolean | null>(null);
   const { setTheme } = useTheme();
+
+  // Usar el contexto de notificaciones in-app
+  const { showNotification } = useInAppNotifications();
+
+  // Inicializar el sistema de notificaciones con callback para mostrar notificaciones in-app
+  const { permission, requestPermission } = useNotifications(showNotification);
 
   // Toggle between dashboard view and API test (for development)
   const showApiTest = import.meta.env.DEV && new URLSearchParams(window.location.search).has('test');
@@ -54,6 +65,9 @@ function App() {
     const loadUserPreferences = async () => {
       try {
         const preferences = await apiService.getUserPreferences();
+
+        // Guardar el estado de notificaciones del usuario
+        setUserNotificationsEnabled(preferences.notificationsEnabled);
 
         // Apply theme from backend if it exists
         if (preferences.theme && (preferences.theme === 'light' || preferences.theme === 'dark')) {
@@ -98,13 +112,52 @@ function App() {
         <AuthScreen onAuthSuccess={() => setIsAuthenticated(true)} />
       ) : (
         <EventsProvider>
+
           <div className="aurora-app">
-            <MainDashboard />
+            {permission === 'default' &&
+              !localStorage.getItem('notificationBannerDismissed') &&
+              userNotificationsEnabled !== true && (
+                <NotificationPermissionBanner onPermissionGranted={requestPermission} />
+              )}
+            <MainDashboard onViewEvent={(openEventFn) => {
+              globalOpenEventById = openEventFn;
+            }} />
+
           </div>
         </EventsProvider>
       )}
     </div>
-  )
+  );
+}
+
+/**
+ * Main Application Component
+ * 
+ * Aurora Personal Planner - Mobile-First Weekly Calendar
+ */
+function App() {
+  const handleViewEvent = async (eventId: string) => {
+    console.log('App.handleViewEvent called');
+    console.log('eventId:', eventId);
+    console.log('typeof eventId:', typeof eventId);
+    console.log('globalOpenEventById function:', globalOpenEventById);
+
+    if (globalOpenEventById) {
+      try {
+        await globalOpenEventById(eventId);
+      } catch (error) {
+        console.error('Error al abrir evento:', error);
+      }
+    } else {
+      console.log('globalOpenEventById no disponible aún, evento ID:', eventId);
+    }
+  };
+
+  return (
+    <NotificationProvider onViewEvent={handleViewEvent}>
+      <AppContent />
+    </NotificationProvider>
+  );
 }
 
 export default App

@@ -357,8 +357,13 @@
 .assistant-chat-bubble-user {
     align-self: flex-end;
     background: linear-gradient(135deg, var(--gradient-primary-start), var(--gradient-primary-end));
-    color: var(--color-surface);
+    color: #ffffff;
     border-bottom-right-radius: 4px;
+}
+
+.assistant-chat-bubble-user p {
+    color: #ffffff !important;
+    margin: 0;
 }
 
 .assistant-chat-bubble-assistant {
