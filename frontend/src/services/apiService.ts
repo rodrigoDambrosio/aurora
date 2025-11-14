@@ -1045,7 +1045,8 @@ export const apiService = {
    * Generate new schedule suggestions by analyzing calendar
    */
   async generateScheduleSuggestions(): Promise<ScheduleSuggestionDto[]> {
-    return this.fetchApi<ScheduleSuggestionDto[]>('/schedule-suggestions/generate', {
+    const timezoneOffsetMinutes = -new Date().getTimezoneOffset();
+    return this.fetchApi<ScheduleSuggestionDto[]>(`/schedule-suggestions/generate?timezoneOffsetMinutes=${timezoneOffsetMinutes}`, {
       method: 'POST'
     });
   },

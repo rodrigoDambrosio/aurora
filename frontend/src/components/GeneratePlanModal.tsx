@@ -28,6 +28,23 @@ export function GeneratePlanModal({ isOpen, onClose, onPlanCreated }: GeneratePl
   const [error, setError] = useState<string | null>(null);
   const [editedEvents, setEditedEvents] = useState<CreateEventDto[]>([]);
 
+  // Helper: Convertir UTC a fecha local para input type="date"
+  const toLocalDateInput = (isoString: string): string => {
+    const date = new Date(isoString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Helper: Convertir UTC a hora local para input type="time"
+  const toLocalTimeInput = (isoString: string): string => {
+    const date = new Date(isoString);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   const examples = [
     "Aprender a tocar la guitarra desde cero",
     "Entrenar para correr una maratón de 42km",
@@ -391,7 +408,7 @@ export function GeneratePlanModal({ isOpen, onClose, onPlanCreated }: GeneratePl
                               </label>
                               <input
                                 type="date"
-                                value={new Date(event.startDate).toISOString().split('T')[0]}
+                                value={toLocalDateInput(event.startDate)}
                                 onChange={(e) => {
                                   const newDate = e.target.value;
                                   const oldStart = new Date(event.startDate);
@@ -418,7 +435,7 @@ export function GeneratePlanModal({ isOpen, onClose, onPlanCreated }: GeneratePl
                               </label>
                               <input
                                 type="time"
-                                value={new Date(event.startDate).toISOString().slice(11, 16)}
+                                value={toLocalTimeInput(event.startDate)}
                                 onChange={(e) => {
                                   const [hours, minutes] = e.target.value.split(':').map(Number);
                                   const newStart = new Date(event.startDate);
@@ -435,7 +452,7 @@ export function GeneratePlanModal({ isOpen, onClose, onPlanCreated }: GeneratePl
                               </label>
                               <input
                                 type="time"
-                                value={new Date(event.endDate).toISOString().slice(11, 16)}
+                                value={toLocalTimeInput(event.endDate)}
                                 onChange={(e) => {
                                   const [hours, minutes] = e.target.value.split(':').map(Number);
                                   const newEnd = new Date(event.endDate);
