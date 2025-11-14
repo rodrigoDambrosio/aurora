@@ -10,6 +10,7 @@ interface ReminderPickerModalProps {
   onClose: () => void;
   onSave: (data: CreateReminderDto) => Promise<void>;
   editingReminder?: ReminderDto | null;
+  defaultReminderMinutes?: number;
 }
 
 export function ReminderPickerModal({
@@ -18,6 +19,7 @@ export function ReminderPickerModal({
   onClose,
   onSave,
   editingReminder,
+  defaultReminderMinutes = 15,
 }: ReminderPickerModalProps) {
   const [selectedType, setSelectedType] = useState<ReminderType>(ReminderType.Minutes15);
   const [customHour, setCustomHour] = useState('09');
@@ -40,14 +42,22 @@ export function ReminderPickerModal({
         setCustomBeforeMinutes((editingReminder.customTimeMinutes || 15).toString());
       }
     } else if (isOpen && !editingReminder) {
-      // Reset a valores por defecto cuando se abre para crear nuevo
-      setSelectedType(ReminderType.Minutes15);
+      // Reset a valores por defecto basados en la configuración del usuario
+      if (defaultReminderMinutes === 15) {
+        setSelectedType(ReminderType.Minutes15);
+      } else if (defaultReminderMinutes === 30) {
+        setSelectedType(ReminderType.Minutes30);
+      } else {
+        setSelectedType(ReminderType.Custom);
+        const hours = Math.floor(defaultReminderMinutes / 60);
+        const mins = defaultReminderMinutes % 60;
+        setCustomBeforeHours(hours.toString());
+        setCustomBeforeMinutes(mins.toString());
+      }
       setCustomHour('09');
       setCustomMinute('00');
-      setCustomBeforeHours('0');
-      setCustomBeforeMinutes('15');
     }
-  }, [editingReminder, isOpen]);
+  }, [editingReminder, isOpen, defaultReminderMinutes]);
 
   const handleSave = async () => {
     setError(null);

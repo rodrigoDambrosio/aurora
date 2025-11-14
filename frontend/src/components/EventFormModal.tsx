@@ -43,6 +43,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [validationResult, setValidationResult] = useState<AIValidationResult | null>(null);
   const [validationError, setValidationError] = useState<string>('');
   const [timeFormat, setTimeFormat] = useState<'12h' | '24h'>('24h'); // Preferencia de formato de hora
+  const [defaultReminderMinutes, setDefaultReminderMinutes] = useState<number>(15); // Preferencia de recordatorio por defecto
 
   // Form state
   const [title, setTitle] = useState('');
@@ -134,12 +135,39 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
     }
   };
 
+  // Crear recordatorio basado en minutos de la configuración
+  const createDefaultReminder = (minutes: number): CreateReminderDto => {
+    if (minutes === 15) {
+      return {
+        reminderType: ReminderType.Minutes15,
+        customTimeHours: null,
+        customTimeMinutes: null
+      };
+    } else if (minutes === 30) {
+      return {
+        reminderType: ReminderType.Minutes30,
+        customTimeHours: null,
+        customTimeMinutes: null
+      };
+    } else {
+      // Para otros valores, usar Custom
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return {
+        reminderType: ReminderType.Custom,
+        customTimeHours: hours,
+        customTimeMinutes: mins
+      };
+    }
+  };
+
   // Cargar preferencias de usuario
   useEffect(() => {
     const loadUserPreferences = async () => {
       try {
         const preferences = await apiService.getUserPreferences();
         setTimeFormat(preferences.timeFormat);
+        setDefaultReminderMinutes(preferences.defaultReminderMinutes || 15);
       } catch (err) {
         console.error('Error loading user preferences:', err);
         // Usar valor por defecto si falla
@@ -221,14 +249,10 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       const endTimeStr = toTimeInputValue(endDateTime.toISOString()) || startTimeStr;
       setEndTime(endTimeStr);
 
-      // Pre-seleccionar recordatorio de 15 minutos por defecto
-      setPendingReminders([{
-        reminderType: ReminderType.Minutes15,
-        customTimeHours: null,
-        customTimeMinutes: null
-      }]);
+      // Pre-seleccionar recordatorio según la configuración del usuario
+      setPendingReminders([createDefaultReminder(defaultReminderMinutes)]);
     }
-  }, [isOpen, isCreateMode, eventToEdit, initialDate, toTimeInputValue, prefillData]);
+  }, [isOpen, isCreateMode, eventToEdit, initialDate, toTimeInputValue, prefillData, defaultReminderMinutes]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -772,6 +796,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             isOpen={isReminderModalOpen}
             onClose={() => setIsReminderModalOpen(false)}
             onSave={handleAddPendingReminder}
+            defaultReminderMinutes={defaultReminderMinutes}
           />
         )}
       </div >

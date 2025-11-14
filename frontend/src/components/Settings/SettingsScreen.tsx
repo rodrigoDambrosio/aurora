@@ -175,7 +175,8 @@ const SettingsScreen: React.FC = () => {
         console.log('Theme synced with backend:', updatedPreferences.theme);
       }
 
-      setSuccessMessage('Preferencias actualizadas correctamente');
+      // Forzar recarga de la página para que todos los componentes obtengan las nuevas preferencias
+      window.location.reload();
     } catch (err) {
       console.error('Error saving preferences:', err);
       setError('Error al guardar las preferencias');
