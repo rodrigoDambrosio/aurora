@@ -18,6 +18,7 @@ public static class ReminderCalculator
             ReminderType.Minutes15 => eventStartDate.AddMinutes(-15),
             ReminderType.Minutes30 => eventStartDate.AddMinutes(-30),
             ReminderType.OneDayBefore => CalculateOneDayBeforeTrigger(eventStartDate, customTimeHours, customTimeMinutes),
+            ReminderType.Custom => CalculateCustomTrigger(eventStartDate, customTimeHours, customTimeMinutes),
             _ => throw new ArgumentException($"Tipo de recordatorio no válido: {reminderType}")
         };
     }
@@ -34,6 +35,22 @@ public static class ReminderCalculator
 
         var oneDayBefore = eventStartDate.Date.AddDays(-1);
         return oneDayBefore.AddHours(customTimeHours.Value).AddMinutes(customTimeMinutes.Value);
+    }
+
+    private static DateTime CalculateCustomTrigger(
+        DateTime eventStartDate,
+        int? customTimeHours,
+        int? customTimeMinutes)
+    {
+        if (!customTimeHours.HasValue || !customTimeMinutes.HasValue)
+        {
+            throw new ArgumentException("Se requieren horas y minutos personalizados para recordatorios custom");
+        }
+
+        // Restar las horas y minutos especificados del inicio del evento
+        return eventStartDate
+            .AddHours(-customTimeHours.Value)
+            .AddMinutes(-customTimeMinutes.Value);
     }
 
     /// <summary>

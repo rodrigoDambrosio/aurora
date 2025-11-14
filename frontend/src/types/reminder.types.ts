@@ -2,6 +2,7 @@ export const ReminderType = {
   Minutes15: 0,
   Minutes30: 1,
   OneDayBefore: 2,
+  Custom: 3,
 } as const;
 
 export type ReminderType = typeof ReminderType[keyof typeof ReminderType];

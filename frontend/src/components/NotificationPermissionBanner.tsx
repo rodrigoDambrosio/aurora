@@ -1,6 +1,7 @@
 import { Bell, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNotifications } from '../context/NotificationContext';
+import { apiService } from '../services/apiService';
 import { notificationService } from '../services/notificationService';
 import { ReminderType } from '../types/reminder.types';
 
@@ -16,9 +17,23 @@ export function NotificationPermissionBanner({ onPermissionGranted }: Notificati
     const permission = await notificationService.requestPermission();
 
     if (permission === 'granted') {
+      // Persistir que el usuario habilitó las notificaciones
+      try {
+        await apiService.updateUserPreferences({ notificationsEnabled: true });
+      } catch (error) {
+        console.error('Error al guardar preferencia de notificaciones:', error);
+      }
+
       onPermissionGranted?.();
       setIsVisible(false);
     } else if (permission === 'denied') {
+      // Guardar que el usuario denegó las notificaciones
+      try {
+        await apiService.updateUserPreferences({ notificationsEnabled: false });
+      } catch (error) {
+        console.error('Error al guardar preferencia de notificaciones:', error);
+      }
+
       // Mostrar mensaje de ayuda
       alert('Has denegado los permisos de notificaciones. Para habilitarlos, ve a la configuración de tu navegador.');
     }

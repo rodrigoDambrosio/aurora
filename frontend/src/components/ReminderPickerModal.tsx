@@ -1,6 +1,6 @@
 import { Clock, X } from 'lucide-react';
-import { useState } from 'react';
-import type { CreateReminderDto } from '../types/reminder.types';
+import { useEffect, useState } from 'react';
+import type { CreateReminderDto, ReminderDto } from '../types/reminder.types';
 import { ReminderType } from '../types/reminder.types';
 import './ReminderPickerModal.css';
 
@@ -9,6 +9,7 @@ interface ReminderPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: CreateReminderDto) => Promise<void>;
+  editingReminder?: ReminderDto | null;
 }
 
 export function ReminderPickerModal({
@@ -16,12 +17,37 @@ export function ReminderPickerModal({
   isOpen,
   onClose,
   onSave,
+  editingReminder,
 }: ReminderPickerModalProps) {
   const [selectedType, setSelectedType] = useState<ReminderType>(ReminderType.Minutes15);
   const [customHour, setCustomHour] = useState('09');
   const [customMinute, setCustomMinute] = useState('00');
+  const [customBeforeHours, setCustomBeforeHours] = useState('0');
+  const [customBeforeMinutes, setCustomBeforeMinutes] = useState('15');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pre-llenar valores cuando se edita un recordatorio
+  useEffect(() => {
+    if (editingReminder && isOpen) {
+      setSelectedType(editingReminder.reminderType);
+
+      if (editingReminder.reminderType === ReminderType.OneDayBefore) {
+        setCustomHour((editingReminder.customTimeHours || 9).toString().padStart(2, '0'));
+        setCustomMinute((editingReminder.customTimeMinutes || 0).toString().padStart(2, '0'));
+      } else if (editingReminder.reminderType === ReminderType.Custom) {
+        setCustomBeforeHours((editingReminder.customTimeHours || 0).toString());
+        setCustomBeforeMinutes((editingReminder.customTimeMinutes || 15).toString());
+      }
+    } else if (isOpen && !editingReminder) {
+      // Reset a valores por defecto cuando se abre para crear nuevo
+      setSelectedType(ReminderType.Minutes15);
+      setCustomHour('09');
+      setCustomMinute('00');
+      setCustomBeforeHours('0');
+      setCustomBeforeMinutes('15');
+    }
+  }, [editingReminder, isOpen]);
 
   const handleSave = async () => {
     setError(null);
@@ -37,6 +63,12 @@ export function ReminderPickerModal({
       if (selectedType === ReminderType.OneDayBefore) {
         reminderData.customTimeHours = parseInt(customHour, 10);
         reminderData.customTimeMinutes = parseInt(customMinute, 10);
+      }
+
+      // Si es custom, agregar horas y minutos antes del evento
+      if (selectedType === ReminderType.Custom) {
+        reminderData.customTimeHours = parseInt(customBeforeHours, 10);
+        reminderData.customTimeMinutes = parseInt(customBeforeMinutes, 10);
       }
 
       await onSave(reminderData);
@@ -70,7 +102,7 @@ export function ReminderPickerModal({
             <div className="reminder-modal-icon">
               <Clock size={20} />
             </div>
-            <h3>Agregar recordatorio</h3>
+            <h3>{editingReminder ? 'Editar recordatorio' : 'Agregar recordatorio'}</h3>
           </div>
           <button
             type="button"
@@ -160,6 +192,47 @@ export function ReminderPickerModal({
                 </div>
               )}
             </label>
+
+            <label className={`reminder-option ${selectedType === ReminderType.Custom ? 'selected' : ''}`}>
+              <div className="reminder-option-header">
+                <div className="reminder-option-radio" />
+                <span className="reminder-option-label">Personalizado:</span>
+              </div>
+              <input
+                type="radio"
+                name="reminderType"
+                value={ReminderType.Custom}
+                checked={selectedType === ReminderType.Custom}
+                onChange={() => setSelectedType(ReminderType.Custom)}
+                style={{ display: 'none' }}
+              />
+
+              {selectedType === ReminderType.Custom && (
+                <div className="reminder-custom-time">
+                  <input
+                    type="number"
+                    min="0"
+                    max="72"
+                    value={customBeforeHours}
+                    onChange={(e) => setCustomBeforeHours(e.target.value)}
+                    className="reminder-time-input"
+                    placeholder="0"
+                  />
+                  <span className="reminder-time-separator">h</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    step="5"
+                    value={customBeforeMinutes}
+                    onChange={(e) => setCustomBeforeMinutes(e.target.value)}
+                    className="reminder-time-input"
+                    placeholder="0"
+                  />
+                  <span className="reminder-time-separator">min antes</span>
+                </div>
+              )}
+            </label>
           </div>
 
           {error && (
@@ -185,7 +258,7 @@ export function ReminderPickerModal({
             onClick={handleSave}
             disabled={isSaving}
           >
-            {isSaving ? 'Guardando...' : 'Agregar recordatorio'}
+            {isSaving ? 'Guardando...' : (editingReminder ? 'Guardar cambios' : 'Agregar recordatorio')}
           </button>
         </div>
       </div>

@@ -119,6 +119,16 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         return '30 minutos antes';
       case ReminderType.OneDayBefore:
         return `1 día antes a las ${reminder.customTimeHours?.toString().padStart(2, '0')}:${reminder.customTimeMinutes?.toString().padStart(2, '0')}`;
+      case ReminderType.Custom:
+        const hours = reminder.customTimeHours || 0;
+        const minutes = reminder.customTimeMinutes || 0;
+        if (hours === 0 && minutes === 0) {
+          return 'En el momento del evento';
+        }
+        const parts = [];
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}min`);
+        return `${parts.join(' ')} antes`;
       default:
         return 'Personalizado';
     }
@@ -210,6 +220,13 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
       const endTimeStr = toTimeInputValue(endDateTime.toISOString()) || startTimeStr;
       setEndTime(endTimeStr);
+
+      // Pre-seleccionar recordatorio de 15 minutos por defecto
+      setPendingReminders([{
+        reminderType: ReminderType.Minutes15,
+        customTimeHours: null,
+        customTimeMinutes: null
+      }]);
     }
   }, [isOpen, isCreateMode, eventToEdit, initialDate, toTimeInputValue, prefillData]);
 

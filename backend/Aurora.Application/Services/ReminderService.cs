@@ -63,8 +63,10 @@ public class ReminderService : IReminderService
     public async Task<IEnumerable<ReminderDto>> GetPendingRemindersAsync()
     {
         var now = DateTime.UtcNow;
-        var toleranceMinutes = 2;
-        var maxTriggerTime = now.AddMinutes(toleranceMinutes);
+        // Tolerancia de 30 segundos para compensar el intervalo de polling
+        // sin disparar notificaciones demasiado antes de tiempo
+        var toleranceSeconds = 30;
+        var maxTriggerTime = now.AddSeconds(toleranceSeconds);
 
         // Obtener todos los recordatorios y filtrar en memoria
         var allReminders = await _reminderRepository.GetAllAsync();

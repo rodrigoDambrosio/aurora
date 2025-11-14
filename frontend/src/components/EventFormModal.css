@@ -626,6 +626,27 @@
     border: 1px solid var(--color-border);
 }
 
+.event-reminder-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.event-reminder-edit {
+    padding: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.event-reminder-edit:hover {
+    color: var(--gradient-primary-start);
+    background: rgba(59, 130, 246, 0.1);
+}
+
 .event-reminder-delete {
     padding: 4px;
     background: none;

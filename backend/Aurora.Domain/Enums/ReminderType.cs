@@ -4,5 +4,6 @@ public enum ReminderType
 {
     Minutes15 = 0,
     Minutes30 = 1,
-    OneDayBefore = 2
+    OneDayBefore = 2,
+    Custom = 3
 }

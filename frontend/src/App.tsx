@@ -19,6 +19,7 @@ let globalOpenEventById: ((eventId: string) => Promise<void>) | null = null;
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [userNotificationsEnabled, setUserNotificationsEnabled] = useState<boolean | null>(null);
   const { setTheme } = useTheme();
 
   // Usar el contexto de notificaciones in-app
@@ -65,6 +66,9 @@ function AppContent() {
       try {
         const preferences = await apiService.getUserPreferences();
 
+        // Guardar el estado de notificaciones del usuario
+        setUserNotificationsEnabled(preferences.notificationsEnabled);
+
         // Apply theme from backend if it exists
         if (preferences.theme && (preferences.theme === 'light' || preferences.theme === 'dark')) {
           setTheme(preferences.theme);
@@ -110,9 +114,11 @@ function AppContent() {
         <EventsProvider>
 
           <div className="aurora-app">
-            {permission === 'default' && !localStorage.getItem('notificationBannerDismissed') && (
-              <NotificationPermissionBanner onPermissionGranted={requestPermission} />
-            )}
+            {permission === 'default' &&
+              !localStorage.getItem('notificationBannerDismissed') &&
+              userNotificationsEnabled !== true && (
+                <NotificationPermissionBanner onPermissionGranted={requestPermission} />
+              )}
             <MainDashboard onViewEvent={(openEventFn) => {
               globalOpenEventById = openEventFn;
             }} />

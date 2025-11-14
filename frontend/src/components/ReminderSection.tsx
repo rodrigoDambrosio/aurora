@@ -1,4 +1,4 @@
-import { Bell, Plus, Trash2 } from 'lucide-react';
+import { Bell, Edit2, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useReminders } from '../hooks/useReminders';
 import type { CreateReminderDto, ReminderDto } from '../types/reminder.types';
@@ -15,6 +15,7 @@ interface ReminderSectionProps {
 export function ReminderSection({ eventId, eventStartDate }: ReminderSectionProps) {
   const { reminders, isLoading, addReminder, removeReminder } = useReminders(eventId);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<ReminderDto | null>(null);
 
   // No mostrar recordatorios para eventos pasados
   const isEventInPast = eventStartDate && new Date(eventStartDate) < new Date();
@@ -23,10 +24,29 @@ export function ReminderSection({ eventId, eventStartDate }: ReminderSectionProp
     await addReminder(data);
   };
 
+  const handleEditReminder = async (data: CreateReminderDto) => {
+    if (editingReminder) {
+      // Eliminar el recordatorio viejo y crear uno nuevo
+      await removeReminder(editingReminder.id);
+      await addReminder(data);
+      setEditingReminder(null);
+    }
+  };
+
   const handleDeleteReminder = async (id: string) => {
     if (confirm('¿Estás seguro de que quieres eliminar este recordatorio?')) {
       await removeReminder(id);
     }
+  };
+
+  const handleOpenEditModal = (reminder: ReminderDto) => {
+    setEditingReminder(reminder);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingReminder(null);
   };
 
   const getReminderTypeLabel = (reminder: ReminderDto): string => {
@@ -37,6 +57,16 @@ export function ReminderSection({ eventId, eventStartDate }: ReminderSectionProp
         return '30 minutos antes';
       case ReminderType.OneDayBefore:
         return `1 día antes a las ${reminder.customTimeHours?.toString().padStart(2, '0')}:${reminder.customTimeMinutes?.toString().padStart(2, '0')}`;
+      case ReminderType.Custom:
+        const hours = reminder.customTimeHours || 0;
+        const minutes = reminder.customTimeMinutes || 0;
+        if (hours === 0 && minutes === 0) {
+          return 'En el momento del evento';
+        }
+        const parts = [];
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}min`);
+        return `${parts.join(' ')} antes`;
       default:
         return 'Personalizado';
     }
@@ -108,14 +138,27 @@ export function ReminderSection({ eventId, eventStartDate }: ReminderSectionProp
                   </span>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => handleDeleteReminder(reminder.id)}
-                className="event-reminder-delete"
-                aria-label="Eliminar recordatorio"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="event-reminder-actions">
+                {!reminder.isSent && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditModal(reminder)}
+                    className="event-reminder-edit"
+                    aria-label="Editar recordatorio"
+                    title="Editar recordatorio"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteReminder(reminder.id)}
+                  className="event-reminder-delete"
+                  aria-label="Eliminar recordatorio"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))
         ) : (
@@ -130,8 +173,9 @@ export function ReminderSection({ eventId, eventStartDate }: ReminderSectionProp
         <ReminderPickerModal
           eventId={eventId}
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleAddReminder}
+          onClose={handleCloseModal}
+          onSave={editingReminder ? handleEditReminder : handleAddReminder}
+          editingReminder={editingReminder}
         />
       )}
     </div>
