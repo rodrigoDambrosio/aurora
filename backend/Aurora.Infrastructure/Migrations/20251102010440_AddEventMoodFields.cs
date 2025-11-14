@@ -11,17 +11,9 @@ namespace Aurora.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "MoodRating",
-                table: "Events",
-                type: "INTEGER",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "MoodNotes",
-                table: "Events",
-                type: "TEXT",
-                nullable: true);
+            // Las columnas MoodRating y MoodNotes ya existen en la BD
+            // Esta migración se marca como aplicada sin ejecutar cambios
+            migrationBuilder.Sql("SELECT 1;"); // No-op
         }
 
         /// <inheritdoc />

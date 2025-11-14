@@ -11,6 +11,12 @@ namespace Aurora.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // La tabla DailyMoodEntries ya existe en la BD
+            // Esta migración se marca como aplicada sin ejecutar cambios
+            migrationBuilder.Sql("SELECT 1;"); // No-op
+
+            // Código original comentado:
+            /*
             migrationBuilder.CreateTable(
                 name: "DailyMoodEntries",
                 columns: table => new
@@ -40,6 +46,7 @@ namespace Aurora.Infrastructure.Migrations
                 table: "DailyMoodEntries",
                 columns: new[] { "UserId", "EntryDate" },
                 unique: true);
+            */
         }
 
         /// <inheritdoc />
