@@ -10,7 +10,9 @@ public interface IScheduleSuggestionService
     /// <summary>
     /// Genera sugerencias de reorganización para un usuario
     /// </summary>
-    Task<IEnumerable<ScheduleSuggestionDto>> GenerateSuggestionsAsync(Guid userId);
+    /// <param name="userId">ID del usuario</param>
+    /// <param name="timezoneOffsetMinutes">Offset de zona horaria en minutos (ej: -180 para GMT-3)</param>
+    Task<IEnumerable<ScheduleSuggestionDto>> GenerateSuggestionsAsync(Guid userId, int timezoneOffsetMinutes);
 
     /// <summary>
     /// Obtiene las sugerencias pendientes de un usuario

@@ -151,6 +151,15 @@ const MonthlyMoodTracker: React.FC<MonthlyMoodTrackerProps> = ({ firstDayOfWeek 
   }, [loadMonthlyMood]);
 
   const openEditorForDate = (date: Date) => {
+    // No permitir seleccionar fechas futuras
+    const today = new Date();
+    const todayNormalized = normalizeDateKey(today);
+    const dateNormalized = normalizeDateKey(date);
+    
+    if (dateNormalized > todayNormalized) {
+      return; // Fecha futura, no hacer nada
+    }
+    
     const key = normalizeDateKey(date);
     const existing = entriesByDate.get(key);
     setSelectedDate(date);
@@ -316,14 +325,20 @@ const MonthlyMoodTracker: React.FC<MonthlyMoodTrackerProps> = ({ firstDayOfWeek 
           const dateKey = normalizeDateKey(day.date);
           const entry = entriesByDate.get(dateKey);
           const option = entry ? MOOD_OPTIONS.find(opt => opt.value === entry.moodRating) : undefined;
+          
+          // Determinar si es fecha futura
+          const today = new Date();
+          const todayNormalized = normalizeDateKey(today);
+          const isFuture = dateKey > todayNormalized;
 
           return (
             <button
               key={dateKey + index}
               type="button"
-              className={`mood-grid-day ${day.isCurrentMonth ? '' : 'is-other-month'} ${day.isToday ? 'is-today' : ''}`}
-              onClick={() => day.isCurrentMonth && openEditorForDate(day.date)}
-              aria-label={`Registrar estado de ánimo para el ${day.date.toLocaleDateString('es-ES')}${option ? `, actualmente ${option.label}` : ''}`}
+              className={`mood-grid-day ${day.isCurrentMonth ? '' : 'is-other-month'} ${day.isToday ? 'is-today' : ''} ${isFuture ? 'is-future' : ''}`}
+              onClick={() => day.isCurrentMonth && !isFuture && openEditorForDate(day.date)}
+              disabled={isFuture}
+              aria-label={isFuture ? `Día futuro, no disponible` : `Registrar estado de ánimo para el ${day.date.toLocaleDateString('es-ES')}${option ? `, actualmente ${option.label}` : ''}`}
             >
               <span className="mood-day-number">{day.date.getDate()}</span>
               {renderMoodIndicator(day.date)}

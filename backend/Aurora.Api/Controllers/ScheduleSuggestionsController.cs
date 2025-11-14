@@ -36,13 +36,15 @@ public class ScheduleSuggestionsController : ControllerBase
     /// <summary>
     /// Genera nuevas sugerencias analizando el calendario del usuario
     /// </summary>
+    /// <param name="timezoneOffsetMinutes">Offset de zona horaria en minutos (ej: -180 para GMT-3)</param>
     /// <returns>Lista de sugerencias generadas</returns>
     [HttpPost("generate")]
     [ProducesResponseType(typeof(IEnumerable<ScheduleSuggestionDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<ScheduleSuggestionDto>>> GenerateSuggestions()
+    public async Task<ActionResult<IEnumerable<ScheduleSuggestionDto>>> GenerateSuggestions([FromQuery] int? timezoneOffsetMinutes = null)
     {
         var userId = User.GetUserId() ?? Domain.Constants.DomainConstants.DemoUser.Id;
-        var suggestions = await _suggestionService.GenerateSuggestionsAsync(userId);
+        var offset = timezoneOffsetMinutes ?? -180; // Default GMT-3 (Argentina)
+        var suggestions = await _suggestionService.GenerateSuggestionsAsync(userId, offset);
         return Ok(suggestions);
     }
 

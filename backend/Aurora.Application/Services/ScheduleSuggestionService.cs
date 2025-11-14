@@ -24,7 +24,7 @@ public class ScheduleSuggestionService : IScheduleSuggestionService
         _aiValidationService = aiValidationService;
     }
 
-    public async Task<IEnumerable<ScheduleSuggestionDto>> GenerateSuggestionsAsync(Guid userId)
+    public async Task<IEnumerable<ScheduleSuggestionDto>> GenerateSuggestionsAsync(Guid userId, int timezoneOffsetMinutes)
     {
         // Descartar todas las sugerencias pendientes anteriores
         await _suggestionRepository.DiscardPendingSuggestionsAsync(userId);
@@ -54,7 +54,7 @@ public class ScheduleSuggestionService : IScheduleSuggestionService
 
         // Intentar generar sugerencias con IA primero
         Console.WriteLine($"🤖 Intentando generar sugerencias con IA para {eventDtos.Count} eventos...");
-        var aiSuggestions = await _aiValidationService.GenerateScheduleSuggestionsAsync(userId, eventDtos);
+        var aiSuggestions = await _aiValidationService.GenerateScheduleSuggestionsAsync(userId, eventDtos, timezoneOffsetMinutes);
 
         List<ScheduleSuggestion> suggestions;
 
