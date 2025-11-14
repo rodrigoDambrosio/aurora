@@ -371,7 +371,7 @@ public class EventsController : ControllerBase
             catch (Exception aiEx)
             {
                 _logger.LogError(aiEx, "La validación de IA falló; aplicando validación básica de respaldo");
-                validation = RunFallbackValidation(createEventDto, existingEvents);
+                validation = RunFallbackValidation(createEventDto, existingEvents, createEventDto.TimezoneOffsetMinutes);
             }
 
             return Ok(validation);
@@ -468,12 +468,18 @@ public class EventsController : ControllerBase
             if (parseResult.Validation == null)
             {
                 _logger.LogWarning("La respuesta de la IA no incluyó análisis; aplicando validación básica");
-                parseResult.Validation = RunFallbackValidation(parseResult.Event, existingEvents);
+                parseResult.Validation = RunFallbackValidation(
+                    parseResult.Event,
+                    existingEvents,
+                    request.TimezoneOffsetMinutes);
             }
             else
             {
                 // Siempre verificar conflictos explícitos aunque la IA haya respondido
-                var fallbackValidation = RunFallbackValidation(parseResult.Event, existingEvents);
+                var fallbackValidation = RunFallbackValidation(
+                    parseResult.Event,
+                    existingEvents,
+                    request.TimezoneOffsetMinutes);
 
                 // Si el fallback detectó un conflicto crítico, fusionar con la validación de la IA
                 if (fallbackValidation.Severity == AIValidationSeverity.Critical)
@@ -716,6 +722,23 @@ public class EventsController : ControllerBase
         return (AIValidationSeverity)Math.Max((int)first, (int)second);
     }
 
+    private static DateTime ConvertUtcToLocal(DateTime dateTime, int timezoneOffsetMinutes)
+    {
+        DateTime utcDateTime = dateTime.Kind switch
+        {
+            DateTimeKind.Utc => dateTime,
+            DateTimeKind.Local => dateTime.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+        };
+
+        if (timezoneOffsetMinutes == 0)
+        {
+            return utcDateTime;
+        }
+
+        return utcDateTime.AddMinutes(timezoneOffsetMinutes);
+    }
+
     private AIValidationResult MergeValidations(AIValidationResult aiValidation, AIValidationResult fallbackValidation)
     {
         // Si el fallback detectó problemas críticos, priorizarlos
@@ -741,7 +764,10 @@ public class EventsController : ControllerBase
         return aiValidation;
     }
 
-    private AIValidationResult RunFallbackValidation(CreateEventDto createEventDto, IEnumerable<EventDto>? existingEvents)
+    private AIValidationResult RunFallbackValidation(
+        CreateEventDto createEventDto,
+        IEnumerable<EventDto>? existingEvents,
+        int? timezoneOffsetMinutesOverride = null)
     {
         // Validación crítica: fin anterior al inicio
         if (createEventDto.EndDate <= createEventDto.StartDate)
@@ -785,11 +811,15 @@ public class EventsController : ControllerBase
             {
                 severity = MaxSeverity(severity, AIValidationSeverity.Critical);
 
+                var timezoneOffsetMinutes = timezoneOffsetMinutesOverride
+                    ?? createEventDto.TimezoneOffsetMinutes
+                    ?? 0;
+
                 // Crear mensaje detallado con los eventos que se superponen
                 var overlappingDetails = overlappingEvents.Select(e =>
                 {
-                    var eventStart = e.StartDate.ToString("HH:mm");
-                    var eventEnd = e.EndDate.ToString("HH:mm");
+                    var eventStart = ConvertUtcToLocal(e.StartDate, timezoneOffsetMinutes).ToString("HH:mm");
+                    var eventEnd = ConvertUtcToLocal(e.EndDate, timezoneOffsetMinutes).ToString("HH:mm");
                     return $"\"{e.Title}\" ({eventStart} - {eventEnd})";
                 }).ToList();
 

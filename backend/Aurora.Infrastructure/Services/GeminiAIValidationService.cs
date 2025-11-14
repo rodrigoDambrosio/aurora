@@ -828,19 +828,19 @@ public class GeminiAIValidationService : IAIValidationService
 
             foreach (var evt in sortedEvents)
             {
+                var evtStartLocal = ConvertToUserLocalTime(evt.StartDate, timezoneOffsetMinutes);
+                var evtEndLocal = ConvertToUserLocalTime(evt.EndDate, timezoneOffsetMinutes);
+                var evtTime = evtStartLocal.ToString("yyyy-MM-dd HH:mm");
+                var category = evt.EventCategory?.Name ?? "Sin categoría";
+
                 if (isParsingMode)
                 {
-                    var evtTime = evt.StartDate.ToString("yyyy-MM-dd HH:mm");
-                    sb.AppendLine($"• [{evtTime}] \"{evt.Title}\" - {evt.EventCategory?.Name ?? "Sin categoría"}");
+                    sb.AppendLine($"• [{evtTime}] \"{evt.Title}\" - {category}");
                 }
                 else
                 {
-                    var evtStartLocal = ConvertToUserLocalTime(evt.StartDate, timezoneOffsetMinutes);
-                    var evtEndLocal = ConvertToUserLocalTime(evt.EndDate, timezoneOffsetMinutes);
                     var evtDuration = (evtEndLocal - evtStartLocal).TotalHours;
                     var evtDay = evtStartLocal.DayOfWeek.ToString();
-                    var evtTime = evtStartLocal.ToString("yyyy-MM-dd HH:mm");
-                    var category = evt.EventCategory?.Name ?? "Sin categoría";
                     sb.AppendLine($"• [{evtTime} ({evtDay})] \"{evt.Title}\" - {evtDuration:F1}h - {category}");
                 }
             }
