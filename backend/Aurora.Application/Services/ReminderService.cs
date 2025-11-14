@@ -78,8 +78,22 @@ public class ReminderService : IReminderService
         var dtos = new List<ReminderDto>();
         foreach (var reminder in pendingReminders)
         {
-            dtos.Add(await MapToDto(reminder));
+            try
+            {
+                dtos.Add(await MapToDto(reminder));
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("no existe"))
+            {
+                // El evento fue eliminado, marcar el recordatorio como inactivo
+                reminder.IsActive = false;
+                reminder.UpdatedAt = DateTime.UtcNow;
+                await _reminderRepository.UpdateAsync(reminder);
+                // Continuar con el siguiente recordatorio
+            }
         }
+
+        // Guardar cambios si hubo recordatorios huérfanos
+        await _reminderRepository.SaveChangesAsync();
 
         return dtos;
     }
@@ -108,8 +122,21 @@ public class ReminderService : IReminderService
         var dtos = new List<ReminderDto>();
         foreach (var reminder in eventReminders)
         {
-            dtos.Add(await MapToDto(reminder));
+            try
+            {
+                dtos.Add(await MapToDto(reminder));
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("no existe"))
+            {
+                // El evento fue eliminado, marcar el recordatorio como inactivo
+                reminder.IsActive = false;
+                reminder.UpdatedAt = DateTime.UtcNow;
+                await _reminderRepository.UpdateAsync(reminder);
+            }
         }
+
+        // Guardar cambios si hubo recordatorios huérfanos
+        await _reminderRepository.SaveChangesAsync();
 
         return dtos;
     }
